@@ -92,6 +92,11 @@ class mod_peerforum_post_form extends moodleform {
         $post = $this->_customdata['post'];
         $edit = $this->_customdata['edit'];
         $thresholdwarning = $this->_customdata['thresholdwarning'];
+        $currentpage = $this->_customdata['page'];
+
+        $mform->addElement('hidden', 'page');
+        $mform->setType('page', PARAM_INT);
+        $mform->setConstants(array('page' => $currentpage));
 
         $mform->addElement('header', 'general', '');//fill in the data depending on page params later using set_data
 
@@ -231,6 +236,9 @@ class mod_peerforum_post_form extends moodleform {
 
         $mform->addElement('hidden', 'reply');
         $mform->setType('reply', PARAM_INT);
+
+        $mform->addElement('hidden', 'page');
+        $mform->setType('page', PARAM_INT);
     }
 
     /**
@@ -251,7 +259,7 @@ class mod_peerforum_post_form extends moodleform {
         if (empty($data['subject'])) {
             $errors['subject'] = get_string('erroremptysubject', 'peerforum');
         }
+
         return $errors;
     }
 }
-

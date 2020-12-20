@@ -69,7 +69,6 @@ class behat_mod_peerforum extends behat_base {
      *
      * @Given /^I reply "(?P<post_subject_string>(?:[^"]|\\")*)" post from "(?P<peerforum_name_string>(?:[^"]|\\")*)" peerforum
      *         with:$/
-     *
      * @param string $postname The subject of the post
      * @param string $peerforumname The peerforum name
      * @param TableNode $table

@@ -16,26 +16,26 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This page receives non-ajax ratingpeerpeer submissions
+ * This page receives non-ajax ratingpeer submissions
  *
  * It is similar to ratepeer_ajax.php. Unlike ratepeer_ajax.php a return url is required.
  *
- * @package    core_ratingpeerpeer
- * @category   ratingpeerpeer
+ * @package    core_ratingpeer
+ * @category   ratingpeer
  * @copyright  2010 Andrew Davis
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once('../config.php');
-require_once($CFG->dirroot . '/ratingpeerpeer/lib.php');
+require_once($CFG->dirroot . '/ratingpeer/lib.php');
 
 $contextid = required_param('contextid', PARAM_INT);
 $component = required_param('component', PARAM_COMPONENT);
-$ratingpeerpeerarea = required_param('ratingpeerpeerarea', PARAM_AREA);
+$ratingpeerarea = required_param('ratingpeerarea', PARAM_AREA);
 $itemid = required_param('itemid', PARAM_INT);
 $scaleid = required_param('scaleid', PARAM_INT);
-$userratingpeerpeer = required_param('ratingpeerpeer', PARAM_INT);
-$ratepeerduserid = required_param('ratepeerduserid', PARAM_INT);//which user is being ratepeerd. Required to update their grade
+$userratingpeer = required_param('ratingpeer', PARAM_INT);
+$ratedpeeruserid = required_param('ratedpeeruserid', PARAM_INT);//which user is being ratedpeer. Required to update their grade
 $returnurl = required_param('returnurl', PARAM_LOCALURL);//required for non-ajax requests
 
 $result = new stdClass;
@@ -45,63 +45,63 @@ require_login($course, false, $cm);
 
 $contextid = null;//now we have a context object throw away the id from the user
 $PAGE->set_context($context);
-$PAGE->set_url('/ratingpeerpeer/ratepeer.php', array('contextid' => $context->id));
+$PAGE->set_url('/ratingpeer/ratepeer.php', array('contextid' => $context->id));
 
-if (!confirm_sesskey() || !has_capability('moodle/ratingpeerpeer:ratepeer', $context)) {
+if (!confirm_sesskey() || !has_capability('mod/peerforum:rateratingpeer', $context)) {
     echo $OUTPUT->header();
-    echo get_string('ratepeerpermissiondenied', 'ratingpeerpeer');
+    echo get_string('ratepeerpermissiondenied', 'ratingpeer');
     echo $OUTPUT->footer();
     die();
 }
 
-$rm = new ratingpeerpeer_manager();
+$rm = new ratingpeer_manager();
 
-//check the module ratingpeerpeer permissions
-//doing this check here rather than within ratingpeerpeer_manager::get_ratingpeerpeers() so we can return a json error response
-$pluginpermissionsarray = $rm->get_plugin_permissions_array($context->id, $component, $ratingpeerpeerarea);
+//check the module ratingpeer permissions
+//doing this check here rather than within ratingpeer_manager::get_ratingpeers() so we can return a json error response
+$pluginpermissionsarray = $rm->get_plugin_permissions_array($context->id, $component, $ratingpeerarea);
 
 if (!$pluginpermissionsarray['ratepeer']) {
-    $result->error = get_string('ratepeerpermissiondenied', 'ratingpeerpeer');
+    $result->error = get_string('ratepeerpermissiondenied', 'ratingpeer');
     echo json_encode($result);
     die();
 } else {
     $params = array(
             'context' => $context,
             'component' => $component,
-            'ratingpeerpeerarea' => $ratingpeerpeerarea,
+            'ratingpeerarea' => $ratingpeerarea,
             'itemid' => $itemid,
             'scaleid' => $scaleid,
-            'ratingpeerpeer' => $userratingpeerpeer,
-            'ratepeerduserid' => $ratepeerduserid
+            'ratingpeer' => $userratingpeer,
+            'ratedpeeruserid' => $ratedpeeruserid
     );
-    if (!$rm->check_ratingpeerpeer_is_valid($params)) {
+    if (!$rm->check_ratingpeer_is_valid($params)) {
         echo $OUTPUT->header();
-        echo get_string('ratingpeerpeerinvalid', 'ratingpeerpeer');
+        echo get_string('ratingpeerinvalid', 'ratingpeer');
         echo $OUTPUT->footer();
         die();
     }
 }
 
-if ($userratingpeerpeer != RATINGPEERPEER_UNSET_RATINGPEERPEER) {
-    $ratingpeerpeeroptions = new stdClass;
-    $ratingpeerpeeroptions->context = $context;
-    $ratingpeerpeeroptions->component = $component;
-    $ratingpeerpeeroptions->ratingpeerpeerarea = $ratingpeerpeerarea;
-    $ratingpeerpeeroptions->itemid = $itemid;
-    $ratingpeerpeeroptions->scaleid = $scaleid;
-    $ratingpeerpeeroptions->userid = $USER->id;
+if ($userratingpeer != RATINGPEER_UNSET_RATINGPEER) {
+    $ratingpeeroptions = new stdClass;
+    $ratingpeeroptions->context = $context;
+    $ratingpeeroptions->component = $component;
+    $ratingpeeroptions->ratingpeerarea = $ratingpeerarea;
+    $ratingpeeroptions->itemid = $itemid;
+    $ratingpeeroptions->scaleid = $scaleid;
+    $ratingpeeroptions->userid = $USER->id;
 
-    $ratingpeerpeer = new ratingpeerpeer($ratingpeerpeeroptions);
-    $ratingpeerpeer->update_ratingpeerpeer($userratingpeerpeer);
-} else { //delete the ratingpeerpeer if the user set to RatePeer...
+    $ratingpeer = new ratingpeer($ratingpeeroptions);
+    $ratingpeer->update_ratingpeer($userratingpeer);
+} else { //delete the ratingpeer if the user set to Rate...
     $options = new stdClass;
     $options->contextid = $context->id;
     $options->component = $component;
-    $options->ratingpeerpeerarea = $ratingpeerpeerarea;
+    $options->ratingpeerarea = $ratingpeerarea;
     $options->userid = $USER->id;
     $options->itemid = $itemid;
 
-    $rm->delete_ratingpeerpeers($options);
+    $rm->delete_ratingpeers($options);
 }
 
 //todo add a setting to turn grade updating off for those who don't want them in gradebook
@@ -113,7 +113,7 @@ if (!empty($cm) && $context->contextlevel == CONTEXT_MODULE) {
     $functionname = $cm->modname . '_update_grades';
     require_once($CFG->dirroot . "/mod/{$cm->modname}/lib.php");
     if (function_exists($functionname)) {
-        $functionname($modinstance, $ratepeerduserid);
+        $functionname($modinstance, $ratedpeeruserid);
     }
 }
 

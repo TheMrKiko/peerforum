@@ -150,7 +150,7 @@ class mod_peerforum_external_testcase extends externallib_advanced_testcase {
 
         // Create a user who can track peerforums.
         $record = new stdClass();
-        $record->trackpeerforums = true;
+        $record->trackforums = true;
         $user1 = self::getDataGenerator()->create_user($record);
         // Create a bunch of other users to post.
         $user2 = self::getDataGenerator()->create_user();

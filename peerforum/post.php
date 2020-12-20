@@ -26,8 +26,10 @@
 require_once('../../config.php');
 require_once('lib.php');
 require_once($CFG->libdir . '/completionlib.php');
+require_once($CFG->dirroot . '/mod/peerforum/classes/peergrade_form.php');
 
 $reply = optional_param('reply', 0, PARAM_INT);
+$peergrade = optional_param('peergrade', 0, PARAM_INT);
 $peerforum = optional_param('peerforum', 0, PARAM_INT);
 $edit = optional_param('edit', 0, PARAM_INT);
 $delete = optional_param('delete', 0, PARAM_INT);
@@ -36,8 +38,11 @@ $name = optional_param('name', '', PARAM_CLEAN);
 $confirm = optional_param('confirm', 0, PARAM_INT);
 $groupid = optional_param('groupid', null, PARAM_INT);
 
+$currentpage = optional_param('page', 0, PARAM_INT);
+
 $PAGE->set_url('/mod/peerforum/post.php', array(
         'reply' => $reply,
+        'peergrade' => $peergrade,
         'peerforum' => $peerforum,
         'edit' => $edit,
         'delete' => $delete,
@@ -47,7 +52,7 @@ $PAGE->set_url('/mod/peerforum/post.php', array(
         'groupid' => $groupid,
 ));
 //these page_params will be passed as hidden variables later in the form.
-$page_params = array('reply' => $reply, 'peerforum' => $peerforum, 'edit' => $edit);
+$page_params = array('reply' => $reply, 'peerforum' => $peerforum, 'edit' => $edit, 'peergrade' => $peergrade);
 
 $sitecontext = context_system::instance();
 
@@ -64,6 +69,16 @@ if (!isloggedin() or isguestuser()) {
         }
     } else if (!empty($reply)) {      // User is writing a new reply
         if (!$parent = peerforum_get_post_full($reply)) {
+            print_error('invalidparentpostid', 'peerforum');
+        }
+        if (!$discussion = $DB->get_record('peerforum_discussions', array('id' => $parent->discussion))) {
+            print_error('notpartofdiscussion', 'peerforum');
+        }
+        if (!$peerforum = $DB->get_record('peerforum', array('id' => $discussion->peerforum))) {
+            print_error('invalidpeerforumid');
+        }
+    } else if (!empty($peergrade)) {      // User is writing a new peergrade
+        if (!$parent = peerforum_get_post_full($peergrade)) {
             print_error('invalidparentpostid', 'peerforum');
         }
         if (!$discussion = $DB->get_record('peerforum_discussions', array('id' => $parent->discussion))) {
@@ -148,6 +163,7 @@ if (!empty($peerforum)) {      // User is starting a new discussion in a peerfor
     $post->message = '';
     $post->messageformat = editors_get_preferred_format();
     $post->messagetrust = 0;
+    $post->peergraders = 0;
 
     if (isset($groupid)) {
         $post->groupid = $groupid;
@@ -224,6 +240,86 @@ if (!empty($peerforum)) {      // User is starting a new discussion in a peerfor
     $post->subject = $parent->subject;
     $post->userid = $USER->id;
     $post->message = '';
+    $post->peergraders = 0;
+
+    $post->groupid = ($discussion->groupid == -1) ? 0 : $discussion->groupid;
+
+    $strre = get_string('re', 'peerforum');
+    if (!(substr($post->subject, 0, strlen($strre)) == $strre)) {
+        $post->subject = $strre . ' ' . $post->subject;
+    }
+
+    // Unsetting this will allow the correct return URL to be calculated later.
+    unset($SESSION->fromdiscussion);
+
+} else if (!empty($peergrade)) {      // User is writing a new peergrade
+    if (!$parent = peerforum_get_post_full($peergrade)) {
+        print_error('invalidparentpostid', 'peerforum');
+    }
+    if (!$discussion = $DB->get_record("peerforum_discussions", array("id" => $parent->discussion))) {
+        print_error('notpartofdiscussion', 'peerforum');
+    }
+    if (!$peerforum = $DB->get_record("peerforum", array("id" => $discussion->peerforum))) {
+        print_error('invalidpeerforumid', 'peerforum');
+    }
+    if (!$course = $DB->get_record("course", array("id" => $discussion->course))) {
+        print_error('invalidcourseid');
+    }
+    if (!$cm = get_coursemodule_from_instance("peerforum", $peerforum->id, $course->id)) {
+        print_error('invalidcoursemodule');
+    }
+
+    // Ensure lang, theme, etc. is set up properly. MDL-6926
+    $PAGE->set_cm($cm, $course, $peerforum);
+
+    // Retrieve the contexts.
+    $modcontext = context_module::instance($cm->id);
+    $coursecontext = context_course::instance($course->id);
+
+    if (!peerforum_user_can_post($peerforum, $discussion, $USER, $cm, $course, $modcontext)) {
+        if (!isguestuser()) {
+            if (!is_enrolled($coursecontext)) {  // User is a guest here!
+                $SESSION->wantsurl = qualified_me();
+                $SESSION->enrolcancel = get_local_referer(false);
+                redirect(new moodle_url('/enrol/index.php', array('id' => $course->id,
+                        'returnurl' => '/mod/peerforum/view.php?f=' . $peerforum->id)),
+                        get_string('youneedtoenrol'));
+            }
+        }
+        print_error('nopostpeerforum', 'peerforum');
+    }
+
+    // Make sure user can post here
+    if (isset($cm->groupmode) && empty($course->groupmodeforce)) {
+        $groupmode = $cm->groupmode;
+    } else {
+        $groupmode = $course->groupmode;
+    }
+    if ($groupmode == SEPARATEGROUPS and !has_capability('moodle/site:accessallgroups', $modcontext)) {
+        if ($discussion->groupid == -1) {
+            print_error('nopostpeerforum', 'peerforum');
+        } else {
+            if (!groups_is_member($discussion->groupid)) {
+                print_error('nopostpeerforum', 'peerforum');
+            }
+        }
+    }
+
+    if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', $modcontext)) {
+        print_error("activityiscurrentlyhidden");
+    }
+
+    // Load up the $post variable.
+
+    $post = new stdClass();
+    $post->course = $course->id;
+    $post->peerforum = $peerforum->id;
+    $post->discussion = $parent->discussion;
+    $post->parent = $parent->id;
+    $post->subject = $parent->subject;
+    $post->userid = $USER->id;
+    $post->message = '';
+    $post->peergraders = '';
 
     $post->groupid = ($discussion->groupid == -1) ? 0 : $discussion->groupid;
 
@@ -322,7 +418,7 @@ if (!empty($peerforum)) {      // User is starting a new discussion in a peerfor
         }
 
         if ($post->totalscore) {
-            notice(get_string('couldnotdeleteratings', 'rating'),
+            notice(get_string('couldnotdeleteratingpeers', 'ratingpeer'),
                     peerforum_go_back_to("discuss.php?d=$post->discussion"));
 
         } else if ($replycount && !has_capability('mod/peerforum:deleteanypost', $modcontext)) {
@@ -378,7 +474,8 @@ if (!empty($peerforum)) {      // User is starting a new discussion in a peerfor
             echo $OUTPUT->heading(format_string($peerforum->name), 2);
             echo $OUTPUT->confirm(get_string("deletesureplural", "peerforum", $replycount + 1),
                     "post.php?delete=$delete&confirm=$delete",
-                    $CFG->wwwroot . '/mod/peerforum/discuss.php?d=' . $post->discussion . '#p' . $post->id);
+                    $CFG->wwwroot . '/mod/peerforum/discuss.php?d=' . $post->discussion . '&page=' . $currentpage . '#p' .
+                    $post->id);
 
             peerforum_print_post($post, $discussion, $peerforum, $cm, $course, false, false, false);
 
@@ -392,7 +489,9 @@ if (!empty($peerforum)) {      // User is starting a new discussion in a peerfor
             echo $OUTPUT->heading(format_string($peerforum->name), 2);
             echo $OUTPUT->confirm(get_string("deletesure", "peerforum", $replycount),
                     "post.php?delete=$delete&confirm=$delete",
-                    $CFG->wwwroot . '/mod/peerforum/discuss.php?d=' . $post->discussion . '#p' . $post->id);
+                    $CFG->wwwroot . '/mod/peerforum/discuss.php?d=' . $post->discussion . '&page=' . $currentpage . '#p' .
+                    $post->id);
+
             peerforum_print_post($post, $discussion, $peerforum, $cm, $course, false, false, false);
         }
 
@@ -511,14 +610,51 @@ if (!isset($peerforum->maxattachments)) {  // TODO - delete this once we add a f
 }
 
 $thresholdwarning = peerforum_check_throttling($peerforum, $cm);
-$mform_post = new mod_peerforum_post_form('post.php', array('course' => $course,
-        'cm' => $cm,
-        'coursecontext' => $coursecontext,
-        'modcontext' => $modcontext,
-        'peerforum' => $peerforum,
-        'post' => $post,
-        'thresholdwarning' => $thresholdwarning,
-        'edit' => $edit), 'post', '', array('id' => 'mformpeerforum'));
+/*$mform_post = new mod_peerforum_post_form('post.php', array('course' => $course,
+                                                        'cm' => $cm,
+                                                        'coursecontext' => $coursecontext,
+                                                        'modcontext' => $modcontext,
+                                                        'peerforum' => $peerforum,
+                                                        'post' => $post,
+                                                        'thresholdwarning' => $thresholdwarning,
+                                                        'edit' => $edit), 'post', '', array('id' => 'mformpeerforum'));
+*/
+
+if (!empty($reply) || !empty($edit)) {
+    $mform_post = new mod_peerforum_post_form('post.php', array('course' => $course,
+            'cm' => $cm,
+            'coursecontext' => $coursecontext,
+            'modcontext' => $modcontext,
+            'peerforum' => $peerforum,
+            'post' => $post,
+            'thresholdwarning' => $thresholdwarning,
+            'page' => $currentpage,
+            'edit' => $edit), 'post', '', array('id' => 'mformpeerforum', 'page' => $currentpage));
+}
+
+if (!empty($peergrade)) {
+    $mform_post = new mod_peergrade_post_form('post.php', array('course' => $course,
+            'cm' => $cm,
+            'coursecontext' => $coursecontext,
+            'modcontext' => $modcontext,
+            'peerforum' => $peerforum,
+            'post' => $post,
+            'thresholdwarning' => $thresholdwarning,
+            'page' => $currentpage,
+            'peergrade' => $peergrade), 'post', '', array('id' => 'mformpeerforum'));
+}
+if (empty($peergrade) && empty($reply) && empty($edit)) {
+    $mform_post = new mod_peerforum_post_form('post.php', array('course' => $course,
+            'cm' => $cm,
+            'coursecontext' => $coursecontext,
+            'modcontext' => $modcontext,
+            'peerforum' => $peerforum,
+            'post' => $post,
+            'thresholdwarning' => $thresholdwarning,
+            'page' => $currentpage,
+            'edit' => $edit), 'post', '', array('id' => 'mformpeerforum'));
+
+}
 
 $draftitemid = file_get_submitted_draft_itemid('attachments');
 file_prepare_draft_area($draftitemid, $modcontext->id, 'mod_peerforum', 'attachment', empty($post->id) ? null : $post->id,
@@ -544,6 +680,10 @@ $formheading = '';
 if (!empty($parent)) {
     $heading = get_string("yourreply", "peerforum");
     $formheading = get_string('reply', 'peerforum');
+}
+if (!empty($parent) && !empty($peergrade)) {
+    $heading = get_string("yourgradeandfeedback", "peerforum");
+    $formheading = get_string('peergrade', 'peerforum');
 } else {
     if ($peerforum->type == 'qanda') {
         $heading = get_string('yournewquestion', 'peerforum');
@@ -683,7 +823,7 @@ if ($fromform = $mform_post->get_data()) {
             // thread.
             $discussionurl = "view.php?f=$peerforum->id";
         } else {
-            $discussionurl = "discuss.php?d=$discussion->id#p$fromform->id";
+            $discussionurl = "discuss.php?d=$discussion->id&page=$currentpage#p$fromform->id";
         }
         add_to_log($course->id, "peerforum", "update post",
                 "$discussionurl&amp;parent=$fromform->id", "$fromform->id", $cm->id);
@@ -700,6 +840,9 @@ if ($fromform = $mform_post->get_data()) {
         $message = '';
         $addpost = $fromform;
         $addpost->peerforum = $peerforum->id;
+
+        $fromform->peergraders = 0;
+
         if ($fromform->id = peerforum_add_new_post($addpost, $mform_post, $message)) {
 
             $timemessage = 2;
@@ -737,7 +880,16 @@ if ($fromform = $mform_post->get_data()) {
                 $completion->update_state($cm, COMPLETION_COMPLETE);
             }
 
-            redirect(peerforum_go_back_to("$discussionurl#p$fromform->id"), $message . $subscribemessage, $timemessage);
+            //assign posts for user to peergrade
+            $peergraders = assign_peergraders($USER, $fromform->id, $course->id, $peerforum->id);
+
+            if ($peergraders) {
+                $all_peergraders = implode(';', $peergraders);
+                insert_peergraders($fromform->id, $all_peergraders, $course->id, $USER->id);
+            }
+
+            redirect(peerforum_go_back_to("$discussionurl&page=$currentpage#p$fromform->id"), $message . $subscribemessage,
+                    $timemessage);
 
         } else {
             print_error("couldnotadd", "peerforum", $errordestination);
@@ -857,6 +1009,10 @@ if ($post->parent) {
     $PAGE->navbar->add(get_string('reply', 'peerforum'));
 }
 
+if (($post->parent) && ($peergrade)) {
+    $PAGE->navbar->add(get_string('peergrade', 'peerforum'));
+}
+
 if ($edit) {
     $PAGE->navbar->add(get_string('edit', 'peerforum'));
 }
@@ -918,4 +1074,3 @@ if (!empty($formheading)) {
 $mform_post->display();
 
 echo $OUTPUT->footer();
-

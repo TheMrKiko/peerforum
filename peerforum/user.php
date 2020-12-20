@@ -25,7 +25,7 @@
 
 require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once($CFG->dirroot . '/mod/peerforum/lib.php');
-require_once($CFG->dirroot . '/rating/lib.php');
+require_once($CFG->dirroot . '/ratingpeerpeer/lib.php');
 
 $courseid = optional_param('course', null, PARAM_INT); // Limit the posts to just this course
 $userid = optional_param('id', $USER->id, PARAM_INT);        // User id whose posts we want to view
@@ -218,13 +218,13 @@ foreach ($result->posts as $post) {
 }
 $discussions = $DB->get_records_list('peerforum_discussions', 'id', array_unique($discussions));
 
-//todo Rather than retrieving the ratings for each post individually it would be nice to do them in groups
+//todo Rather than retrieving the ratingpeers for each post individually it would be nice to do them in groups
 //however this requires creating arrays of posts with each array containing all of the posts from a particular peerforum,
-//retrieving the ratings then reassembling them all back into a single array sorted by post.modified (descending)
-$rm = new rating_manager();
-$ratingoptions = new stdClass;
-$ratingoptions->component = 'mod_peerforum';
-$ratingoptions->ratingarea = 'post';
+//retrieving the ratingpeers then reassembling them all back into a single array sorted by post.modified (descending)
+$rm = new ratingpeer_manager();
+$ratingpeeroptions = new stdClass;
+$ratingpeeroptions->component = 'mod_peerforum';
+$ratingpeeroptions->ratingpeerarea = 'post';
 foreach ($result->posts as $post) {
     if (!isset($result->peerforums[$post->peerforum]) || !isset($discussions[$post->discussion])) {
         // Something very VERY dodgy has happened if we end up here
@@ -238,23 +238,23 @@ foreach ($result->posts as $post) {
     $peerforumurl = new moodle_url('/mod/peerforum/view.php', array('id' => $cm->id));
     $discussionurl = new moodle_url('/mod/peerforum/discuss.php', array('d' => $post->discussion));
 
-    // load ratings
-    if ($peerforum->assessed != RATING_AGGREGATE_NONE) {
-        $ratingoptions->context = $cm->context;
-        $ratingoptions->items = array($post);
-        $ratingoptions->aggregate = $peerforum->assessed;//the aggregation method
-        $ratingoptions->scaleid = $peerforum->scale;
-        $ratingoptions->userid = $user->id;
-        $ratingoptions->assesstimestart = $peerforum->assesstimestart;
-        $ratingoptions->assesstimefinish = $peerforum->assesstimefinish;
+    // load ratingpeers
+    if ($peerforum->assessed != RATINGPEER_AGGREGATE_NONE) {
+        $ratingpeeroptions->context = $cm->context;
+        $ratingpeeroptions->items = array($post);
+        $ratingpeeroptions->aggregate = $peerforum->assessed;//the aggregation method
+        $ratingpeeroptions->scaleid = $peerforum->scale;
+        $ratingpeeroptions->userid = $user->id;
+        $ratingpeeroptions->assesstimestart = $peerforum->assesstimestart;
+        $ratingpeeroptions->assesstimefinish = $peerforum->assesstimefinish;
         if ($peerforum->type == 'single' or !$post->discussion) {
-            $ratingoptions->returnurl = $peerforumurl;
+            $ratingpeeroptions->returnurl = $peerforumurl;
         } else {
-            $ratingoptions->returnurl = $discussionurl;
+            $ratingpeeroptions->returnurl = $discussionurl;
         }
 
-        $updatedpost = $rm->get_ratings($ratingoptions);
-        //updating the array this way because we're iterating over a collection and updating them one by one
+        $updatedpost = $rm->get_ratingpeers($ratingpeeroptions);
+        //updating the array this way because we're iteratingpeer over a collection and updating them one by one
         $result->posts[$updatedpost[0]->id] = $updatedpost[0];
     }
 

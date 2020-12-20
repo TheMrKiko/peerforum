@@ -56,10 +56,10 @@ if ($popup) {
     $PAGE->set_pagelayout('popup');
 }
 
-if (!has_capability('moodle/ratingpeer:view', $context)) {
+if (!has_capability('mod/peerforum:viewratingpeer', $context)) {
     print_error('noviewratepeer', 'ratingpeer');
 }
-if (!has_capability('moodle/ratingpeer:viewall', $context) and $USER->id != $item->userid) {
+if (!has_capability('mod/peerforum:viewallratingpeer', $context) and $USER->id != $item->userid) {
     print_error('noviewanyratepeer', 'ratingpeer');
 }
 

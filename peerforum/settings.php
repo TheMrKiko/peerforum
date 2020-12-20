@@ -21,6 +21,15 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+/**
+ * Version information
+ *
+ * @package    mod
+ * @subpackage peerforum
+ * @author     2016 Jessica Ribeiro <jessica.ribeiro@tecnico.ulisboa.pt>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ **/
+
 defined('MOODLE_INTERNAL') || die;
 
 if ($ADMIN->fulltree) {
@@ -107,5 +116,102 @@ if ($ADMIN->fulltree) {
 
     $settings->add(new admin_setting_configcheckbox('peerforum_enabletimedposts', get_string('timedposts', 'peerforum'),
             get_string('configenabletimedposts', 'peerforum'), 0));
-}
 
+    /*NEW SETTINGS*/
+
+    //Peergrade Global Settings
+    $settings->add(new admin_setting_heading('peergrade',
+            get_string('peergradesettings', 'peerforum'), get_string('configpeergradesettings', 'peerforum')));
+
+    $yesno = array(0 => get_string('no'),
+            1 => get_string('yes'));
+
+    // Enable or disable the peergrading
+    $settings->add(new admin_setting_configselect('peerforum_allowpeergrade',
+            get_string('allowpeergrade', 'peerforum'), get_string('configpeergrade', 'peerforum'), 1, $yesno));
+
+    // Display outliers
+    $settings->add(new admin_setting_configselect('peerforum_seeoutliers',
+            get_string('seeoutliers', 'peerforum'), get_string('configseeoutliers', 'peerforum'), 1, $yesno));
+
+    // Outliers detection
+    $detection = array(
+            'grade points' => get_string('gradepoints', 'peerforum'),
+            'standard deviation' => get_string('standarddeviation', 'peerforum'),
+    );
+
+    $settings->add(new admin_setting_configselect('peerforum_outlierdetection',
+            get_string('outlierdetection', 'peerforum'), get_string('configoutlierdetection', 'peerforum'), 'standard deviation',
+            $detection));
+
+    $settings->add(new admin_setting_configtext('peerforum_outdetectvalue', get_string('outdetectvalue', 'peerforum'),
+            get_string('configoutdetectvalue', 'peerforum'), 1, PARAM_INT));
+
+    // Automatically block red outliers
+    $settings->add(new admin_setting_configselect('peerforum_blockoutliers',
+            get_string('blockoutliers', 'peerforum'), get_string('configblockoutliers', 'peerforum'), 0, $yesno));
+
+    // Threshold for warning outliers
+    $settings->add(new admin_setting_configtext('peerforum_warningoutliers', get_string('warningoutliers', 'peerforum'),
+            get_string('configwarningoutliers', 'peerforum'), 0, PARAM_INT));
+
+    // Update database
+    $records = $DB->get_records('peerforum');
+
+    if (isset($CFG->peerforum_allowpeergrade)) {
+        $allow = $CFG->peerforum_allowpeergrade;
+    }
+    if (isset($CFG->peerforum_seeoutliers)) {
+        $see = $CFG->peerforum_seeoutliers;
+    }
+    if (isset($CFG->peerforum_outlierdetection)) {
+        $detection = $CFG->peerforum_outlierdetection;
+    }
+    if (isset($CFG->peerforum_outdetectvalue)) {
+        $outdetection = $CFG->peerforum_outdetectvalue;
+    }
+    if (isset($CFG->peerforum_blockoutliers)) {
+        $blockoutliers = $CFG->peerforum_blockoutliers;
+    }
+    if (isset($CFG->peerforum_warningoutliers)) {
+        $warningoutliers = $CFG->peerforum_warningoutliers;
+    }
+
+    foreach ($records as $i => $value) {
+        $data = new stdClass();
+        $data->id = $records[$i]->id;
+        if (!empty($allow)) {
+            $data->allowpeergrade = $allow;
+        } else {
+            $data->allowpeergrade = 0;
+        }
+        if (!empty($see)) {
+            $data->seeoutliers = $see;
+        } else {
+            $data->seeoutliers = 0;
+        }
+        if (!empty($detection)) {
+            $data->outlierdetection = $detection;
+        } else {
+            $data->outlierdetection = 0;
+        }
+        if (!empty($outdetection)) {
+            $data->outdetectvalue = $outdetection;
+        } else {
+            $data->outdetectvalue = 0;
+        }
+        if (!empty($blockoutliers)) {
+            $data->blockoutliers = $blockoutliers;
+        } else {
+            $data->blockoutliers = 0;
+        }
+        if (!empty($warningoutliers)) {
+            $data->warningoutliers = $warningoutliers;
+        } else {
+            $data->warningoutliers = 0;
+        }
+
+        $DB->update_record('peerforum', $data);
+    }
+
+}

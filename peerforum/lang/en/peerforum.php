@@ -218,7 +218,7 @@ $string['peerforum:movediscussions'] = 'Move discussions';
 $string['peerforum:postwithoutthrottling'] = 'Exempt from post threshold';
 $string['peerforumname'] = 'PeerForum name';
 $string['peerforumposts'] = 'PeerForum posts';
-$string['peerforum:rate'] = 'Rate posts';
+$string['peerforum:ratepeer'] = 'Rate posts';
 $string['peerforum:replynews'] = 'Reply to news';
 $string['peerforum:replypost'] = 'Reply to posts';
 $string['peerforums'] = 'PeerForums';
@@ -235,12 +235,12 @@ $string['peerforumtype_help'] = 'There are 5 peerforum types:
 * Q and A peerforum - Students must first post their perspectives before viewing other students\' posts
 * Standard peerforum displayed in a blog-like format - An open peerforum where anyone can start a new discussion at any time, and in which discussion topics are displayed on one page with "Discuss this topic" links
 * Standard peerforum for general use - An open peerforum where anyone can start a new discussion at any time';
-$string['peerforum:viewallratings'] = 'View all raw ratings given by individuals';
-$string['peerforum:viewanyrating'] = 'View total ratings that anyone received';
+$string['peerforum:viewallratingpeers'] = 'View all raw ratings given by individuals';
+$string['peerforum:viewanyratingpeer'] = 'View total ratings that anyone received';
 $string['peerforum:viewdiscussion'] = 'View discussions';
 $string['peerforum:viewhiddentimedposts'] = 'View hidden timed posts';
 $string['peerforum:viewqandawithoutposting'] = 'Always see Q and A posts';
-$string['peerforum:viewrating'] = 'View the total rating you received';
+$string['peerforum:viewratingpeer'] = 'View the total rating you received';
 $string['peerforum:viewsubscribers'] = 'View subscribers';
 $string['generalpeerforum'] = 'Standard peerforum for general use';
 $string['generalpeerforums'] = 'General peerforums';
@@ -368,9 +368,9 @@ $string['postmailinfo'] = 'This is a copy of a message posted on the {$a} websit
 
 To reply click on this link:';
 $string['postmailnow'] = '<p>This post will be mailed out immediately to all peerforum subscribers.</p>';
-$string['postrating1'] = 'Mostly separate knowing';
-$string['postrating2'] = 'Separate and connected';
-$string['postrating3'] = 'Mostly connected knowing';
+$string['postratingpeer1'] = 'Mostly separate knowing';
+$string['postratingpeer2'] = 'Separate and connected';
+$string['postratingpeer3'] = 'Mostly connected knowing';
 $string['posts'] = 'Posts';
 $string['postsmadebyuser'] = 'Posts made by {$a}';
 $string['postsmadebyuserincourse'] = 'Posts made by {$a->fullname} in {$a->coursename}';
@@ -493,3 +493,224 @@ $string['warnformorepost'] = 'Warning! There is more than one discussion in this
 $string['yournewquestion'] = 'Your new question';
 $string['yournewtopic'] = 'Your new discussion topic';
 $string['yourreply'] = 'Your reply';
+
+/* NEW STRINGS */
+
+$string['peergradesettings'] = 'Peer grade settings';
+$string['configpeergradesettings'] = 'Peer grade settings';
+$string['configpeergrade'] = 'Set to \'No\' if you do not want to enable peer grade on PeerForum';
+$string['rolewarningpeer'] = 'Roles with permission to peer grade';
+$string['rolewarningpeer_help'] =
+        'To submit peer grades users require the mod/peerforum:peergrade capability and any module specific capabilities. Users assigned the following roles should be able to peergrade items. The list of roles may be amended via the permissions link in the administration block.';
+$string['peeraggregatetype'] = 'Aggregate type';
+$string['peeraggregateavg'] = 'Average of peer grades';
+$string['peeraggregatecount'] = 'Count of peer grades';
+$string['peeraggregatemax'] = 'Maximum peer grade';
+$string['peeraggregatemin'] = 'Minimum peer grade';
+$string['peeraggregatenone'] = 'No peer grades';
+$string['peeraggregatesum'] = 'Sum of peer grades';
+$string['peeraggregatetype_help'] =
+        'The aggregate type defines how peer grades are combined to form the final grade in the gradebook.';
+$string['allowpeergrade'] = 'Enable peer grade';
+$string['configpeergradesettings'] = 'Peer grade settings';
+$string['peergrading'] = 'Peer grade';
+$string['finalgrademode'] = 'Final grade mode';
+$string['finalgrademode_help'] = 'Select the mode to final grade';
+$string['graderatepeers'] = 'Percentage for [professor] peer grading';
+$string['gradepeergrades'] = 'Percentage for [student] peer grading';
+$string['professorpercentage_help'] = 'Default maximum grade for peergrades assigned by professors in PeerForums';
+$string['studentpercentage_help'] = 'Default maximum grade for peer grades in peerforums';
+$string['peergradescale'] = 'Select peer grade scale';
+$string['peergradescale_help'] = 'This setting specifies the maximum grade a student can give to a PeerForum post.';
+$string['peergradesvisibility'] = 'Peergrades visibility';
+$string['peergradesvisibility_help'] =
+        'Select \'private\' if you do not want the peergrades of PeerForum posts to be public. Only the user whose post was peergraded can see the peergrades';
+$string['always'] = 'Always';
+$string['afterpeergradeends'] = 'After peergrade ends';
+$string['whenpeergrades_help'] =
+        'Select when you want the peergrades to appear. If \'Always\' is chosen, the peergrades will be always visible and public. If \'After peergrade ends\' is chosen, the peergrades will only be visible when a minimum number of peergraders submit a peergrade to a post in the PeerForum.';
+$string['when'] = 'Visible when:';
+$string['when_help'] =
+        'Select when you want the written feedback to appear. If \'Always\' is chosen, the feedback will be always visible and public. If \'After peergrade ends\' is chosen, the feedback will only be visible when a minimum number of peergraders submit a feedback to a post in the PeerForum.';
+$string['enablefeedback'] = 'Enable written feedback';
+$string['enablefeedback_help'] = 'Set to \'no\' if you do not want to allow written feedback on PeerForum posts';
+$string['feedbackvisibility'] = 'Feedback visibility';
+$string['feedbackvisibility_help'] =
+        'Select \'private\' if you do not want the written feedbacks of PeerForum posts to be public. Only the user whose post was peergraded can see the feedbacks';
+$string['remainanonymous'] = 'Maintain the peer grader anonymous';
+$string['remainanonymous_help'] = 'Set to \'yes\' if you do want to show the peer grader identity in PeerForum posts';
+$string['selectpeergraders'] = 'Select number of peer graders per post';
+$string['selectpeergraders_help'] = 'Number of peer graders to peer grade a PeerForum post';
+$string['minpeergraders'] = 'Minimum number of peer grades per post';
+$string['minpeergraders_help'] = 'Minimum number of peer graders to validate peergrading';
+$string['finishpeergrade'] = 'Peer grading ends when minimum grades are given per post';
+$string['finishpeergrade_help'] = 'Peer grading ends in this course when the minimum number of peer grades per post are done';
+$string['timetopeergrade'] = 'Time period to peer grade (in days)';
+$string['timetopeergrade_help'] = 'Time period to peer grade a post in PeerForum (in days)';
+$string['peergradetime'] = 'Restrict peer grades to items with dates in this range:';
+$string['onlyprofessorpeergrade'] = 'Only professor(s) peergrades';
+$string['onlystudentpeergrade'] = 'Only students peergrades';
+$string['professorstudentpeergrade'] = 'Professor(s) and students peergrades';
+$string['professorpercentage'] = 'Percentage for [professor] peer grading';
+$string['studentpercentage'] = 'Percentage for [student] peer grading';
+$string['public'] = 'Public';
+$string['private'] = 'Private';
+$string['onlyprofessor'] = 'Only professor';
+$string['peergrade'] = 'Peer grade';
+$string['selectstudentrandom'] = 'Randomly';
+$string['selectstudent'] = 'Select student';
+$string['onlyprofessor'] = 'Only professor';
+$string['assignrandompeer'] = 'Assign random peer';
+$string['assignpeer'] = 'Assign peer';
+$string['removepeer'] = 'Remove peer';
+$string['addall'] = 'All member groups mutually exclusive';
+$string['removeall'] = 'Remove all conflicts';
+$string['addconflict'] = 'Add conflict';
+$string['removeconflict'] = 'Remove conflict ';
+$string['addstudent'] = 'Add student';
+$string['removestudent'] = 'Remove student ';
+$string['error:noconflictselected'] = 'Warning: No conflict selected.';
+$string['error:nostudentselected'] = 'Warning: No student selected.';
+$string['error:nofeedback'] = 'Warning: You must write a feedback text. Please try again.';
+$string['error:nopeergrade'] = 'Warning: You must select a grade. Please try again.';
+$string['submited:peergrade'] = 'Your peer grade was submitted with success.';
+$string['submited:peergradeupdated'] = 'Your peer grade was updated with success.';
+$string['existinggroups'] = 'Existing groups: {$a}';
+$string['exclusive'] = 'Mutually exclusive students: {$a}';
+$string['numconflicts'] = 'Number of conflicts of mutually exclusive students: {$a}';
+$string['writefeedback'] = 'Write your feedback here ...';
+$string['showpost'] = 'Show post in context';
+$string['finishpeergrade'] = 'Peer grading ends when minimum grades are given per post';
+$string['finishpeergrade_help'] = 'Peer grading ends in this course when the minimum number of peer grades per post are done';
+$string['peerforumpanels'] = '{$a}';
+$string['peergradeaddedtimeleft'] = 'You have {$a} to edit it if you want to make any changes.';
+$string['error:noconflictselected'] = 'Warning: No conflict selected.';
+$string['error:nostudentselected'] = 'Warning: No student selected.';
+$string['error:nofeedback'] = 'Warning: You must write a feedback text. Please try again.';
+$string['error:nopeergrade'] = 'Warning: You must select a grade. Please try again.';
+$string['submited:peergrade'] = 'Your peer grade was submitted with success.';
+$string['submited:peergradeupdated'] = 'Your peer grade was updated with success.';
+$string['givefeedback'] = 'Give feedback';
+$string['editpeergrade'] = 'Edit peergrade';
+$string['allpeergradesforitem'] = 'All submitted peer grades';
+$string['gradeitemratepeer'] = '{$a->peerforumname} (ratepeer)';
+$string['gradeitemstudentpeergrade'] = '{$a->peerforumname} (students peer grade)';
+$string['gradeitemprofessorpeergrade'] = '{$a->peerforumname} (professors peer grade)';
+$string['capabilitychecknotavailable'] = 'Capability check not available until activity is saved';
+$string['seeoutliers'] = 'See outliers on the Peer Grade panel';
+$string['configseeoutliers'] = 'The outliers are displayed in red in the section View Peergrades of the Peer Grade panel';
+$string['gradepoints'] = 'Grade points';
+$string['standarddeviation'] = 'Standard Deviation';
+$string['outlierdetection'] = 'Outliers detection';
+$string['configoutlierdetection'] = 'Select which method should be used to detect outliers';
+$string['outdetectvalue'] = 'Outliers method value';
+$string['configoutdetectvalue'] = 'Select an integer value which would be used in the outliers detection method';
+$string['blockoutliers'] = 'Block red outliers';
+$string['configblockoutliers'] =
+        'Set to \'No\' if you want to block/eliminate automatically red outliers from final grades (hide red grades on the Peer Grade panel on View Peergrades tab)';
+$string['warningoutliers'] = 'Threshold for warnign outliers';
+$string['configwarningoutliers'] =
+        'Configure the threshold value for warnign outliers (yellow grades on the Peer Grade panel on View Peergrades tab)';
+
+$string['aggregatetyperate'] = 'Aggregate type';
+$string['aggregateavgrate'] = 'Average of ratings';
+$string['aggregatecountrate'] = 'Count of ratings';
+$string['aggregatemaxrate'] = 'Maximum rating';
+$string['aggregateminrate'] = 'Minimum rating';
+$string['aggregatenonerate'] = 'No ratings';
+$string['aggregatesumrate'] = 'Sum of ratings';
+$string['aggregatetyperate_help'] = 'The aggregate type defines how ratings are combined to form the final grade in the gradebook.
+
+* Average of ratings - The mean of all ratings
+* Count of ratings - The number of rated items becomes the final grade. Note that the total cannot exceed the maximum grade for the activity.
+* Maximum - The highest rating becomes the final grade
+* Minimum - The smallest rating becomes the final grade
+* Sum - All ratings are added together. Note that the total cannot exceed the maximum grade for the activity.
+
+If "No ratings" is selected, then the activity will not appear in the gradebook.';
+$string['allowratingpeers'] = 'Allow items to be rated?';
+$string['allratingpeersforitem'] = 'All submitted ratings';
+$string['couldnotdeleteratingpeers'] = 'Sorry, that cannot be deleted as people have already rated it';
+$string['noratepeer'] = 'Rating of items not allowed!';
+$string['noratingpeers'] = 'No ratings submitted';
+$string['noviewanyratepeer'] = 'You can only look at results for items that you made';
+$string['noviewratepeer'] = 'You do not have the capability to view item ratings';
+$string['ratepeer'] = 'Rate';
+$string['ratepeerpermissiondenied'] = 'You do not have permission to rate this item';
+$string['ratingpeer'] = 'Rating';
+$string['ratingpeerinvalid'] = 'Rating is invalid';
+$string['ratingpeertime'] = 'Restrict ratings to items with dates in this range:';
+$string['ratingpeers'] = 'Ratings';
+$string['rolewarningrate'] = 'Roles with permission to rate';
+$string['rolewarningrate_help'] =
+        'To submit ratings users require the mod/peerforum:ratepeer capability and any module specific capabilities. Users assigned the following roles should be able to rate items. The list of roles may be amended via the permissions link in the administration block.';
+$string['scaleselectionrequiredrate'] =
+        'When selecting a ratings aggregate type you must also select to use either a scale or set a maximum points.';
+$string['assignpeergradersparent'] = 'Assign peer graders from previous post';
+$string['selectstudentstr'] = 'Select student';
+$string['assignstudentstr'] = 'Assign student';
+$string['removestudentstr'] = 'Remove student';
+
+$string['managepostsmodeseeall'] = 'See all posts';
+$string['managepostsmodeseenotexpired'] = 'See posts not expired';
+$string['managepostsmodeseeexpired'] = 'See posts expired';
+$string['managepostsmodeseenotgraded'] = 'See ungraded posts';
+$string['managepostsmodeseegraded'] = 'See graded posts';
+$string['displaymanagepostsmode'] = 'Display manage posts mode';
+$string['managegradersmodeseeall'] = 'See all posts';
+$string['managegradersmodeseenotexpired'] = 'See posts not expired';
+$string['managegradersmodeseeexpired'] = 'See expired posts';
+$string['managegradersmodeseenotgraded'] = 'See ungraded posts';
+$string['displaymanagegradersmode'] = 'Display manage graders mode';
+$string['viewpeergradesmodeseeall'] = 'See all';
+$string['viewpeergradesmodeseewarnings'] = 'See warnings';
+$string['viewpeergradesmodeseeoutliers'] = 'See outliers';
+$string['displayviewpeergradesmode'] = 'Display manage graders mode';
+$string['firstletterpost'] = 'First letter of post subject';
+$string['gradeprofessorpost'] = "Enable peer grade of professor's posts";
+$string['gradeprofessorpost_help'] = "Select 'yes' if you want students to peer grade professor's posts";
+$string['expirepeergrade'] = "End post peer grade after expired time period";
+$string['expirepeergrade_help'] =
+        "Select 'yes' if you want the peer grade public anyway if after x days (defined above) not everyone has graded the post assigned to them.";
+$string['showpeergrades'] = "Show final peer grade";
+$string['showpeergrades_help'] = "Select 'no' if you want the final peer grade to be hidden. Only professors can see the grade";
+$string['showafterrating'] = "Show after ratings ends";
+$string['showafterrating_help'] =
+        "Select 'yes' if you want to show final peer grade only after rating ends (the ratings assessed type must be set to yes)";
+$string['showratings'] = "Show final rating";
+$string['showratings_help'] = "Select 'no' if you want the final rating to be hidden. Only professors can see the grade";
+$string['showafterpeergrade'] = "Show after peer grade ends";
+$string['showafterpeergrade_help'] =
+        "Select 'yes' if you want to show final rating only after peer grade ends (the peer grade assessed type must be set to yes)";
+$string['peergradecriteria'] = "Peer grade criteria";
+$string['peergradecriteria_help'] = "Select the grade criteria you want the posts to be evaluated by the students";
+$string['numericscale'] = "Single numeric scale";
+$string['other'] = "Other";
+$string['gradecriteria1'] = "Grade criteria #1";
+$string['gradecriteria1_help'] = "Type a grade criteria to be evaluated by the students";
+$string['gradecriteria2'] = "Grade criteria #2";
+$string['gradecriteria2_help'] = "Type a grade criteria to be evaluated by the students";
+$string['gradecriteria3'] = "Grade criteria #3";
+$string['gradecriteria3_help'] = "Type a grade criteria to be evaluated by the students";
+$string['error:nopeergradecriteria'] = 'Warning: You must select a grade for {$a}. Please try again.';
+$string['showpostid'] = 'Show post id';
+$string['showpostid_help'] =
+        "Select 'yes' if you want the posts' id to be displayed in the Peer Forum. This can be usefull for the Peer Grade panel.";
+$string['enablepagination'] = 'Enable pagination';
+$string['enablepagination_help'] = "Select 'no' if you do not want pagination on discussions.";
+$string['postsperpage'] = '#Posts per page';
+$string['postsperpage_help'] = 'Select the number of posts you want to be shown per page on discussions.';
+$string['showdetails'] = 'Show option of remove/assign students on post';
+$string['showdetails_help'] =
+        "Select 'yes' if you want to show, in a PeerForum post, two select options about assigning and removing students to peer grade the post.";
+$string['peerforum:rateratingpeer'] = "Add ratings to items";
+$string['mod/peerforum:grade'] = "Add peer grades to items";
+$string['mod/peerforum:peergradepost'] = "Peer grade posts";
+$string['mod/peerforum:viewallpeergrades'] = "View all raw peer grades given by individuals";
+$string['mod/peerforum:viewallratingpeer'] = "View all raw ratings given by individuals";
+$string['mod/peerforum:viewpanelpeergrades'] = "View Peer Grade panel";
+$string['peerforum:grade'] = "Peer grade an item";
+$string['peerforum:peergradepost'] = "Peer grade post";
+$string['peerforum:viewallpeergrades'] = "View all raw peer grades given by individuals";
+$string['peerforum:viewallratingpeer'] = "View all raw ratings given by individuals";
+$string['peerforum:viewpanelpeergrades'] = "View Peer Grade panel";

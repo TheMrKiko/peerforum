@@ -22,6 +22,46 @@
 require_once($CFG->dirroot . '/mod/peerforum/lib.php');
 require_once($CFG->libdir . '/portfolio/caller.php');
 
+/*NEW FUNCTIONS PEERGRADE*/
+
+class peerforum {
+
+    /**
+     * Returns an array of numeric values that can be used as maximum grades
+     *
+     * @return array Array of integers
+     */
+    public static function available_maxgrades_list() {
+        $grades = array();
+        for ($i = 100; $i >= 1; $i--) {
+            $grades[$i] = $i;
+        }
+        return $grades;
+    }
+
+    public static function available_mingraders() {
+        global $DB;
+        $graders = array();
+        $systemcontext = context_system::instance();
+
+        $peerforum = $DB->get_record('peerforum', array('id' => $systemcontext->id));
+
+        if (!empty($peerforum)) {
+            $max = $DB->get_record('peerforum', array('id' => $peerforum->id));
+            $maxgraders = $max->selectpeergraders;
+        } else {
+            $maxgraders = 1;
+        }
+        for ($i = $maxgraders; $i >= 1; $i--) {
+            $graders[$i] = $i;
+        }
+
+        return $graders;
+    }
+}
+
+/*-----------------*/
+
 /**
  * @package   mod-peerforum
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}

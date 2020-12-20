@@ -25,6 +25,9 @@
  */
 
 require_once('../../config.php');
+/*NEW pagination peerforum*/
+$currentpage = optional_param('page', 0, PARAM_INT);    // Used for pagination.
+/*--*/
 
 $d = required_param('d', PARAM_INT);                // Discussion ID
 $parent = optional_param('parent', 0, PARAM_INT);        // If set, then display this post and all children.
@@ -33,7 +36,7 @@ $move = optional_param('move', 0, PARAM_INT);          // If set, moves this dis
 $mark = optional_param('mark', '', PARAM_ALPHA);       // Used for tracking read posts if user initiated.
 $postid = optional_param('postid', 0, PARAM_INT);        // Used for tracking read posts if user initiated.
 
-$url = new moodle_url('/mod/peerforum/discuss.php', array('d' => $d));
+$url = new moodle_url('/mod/peerforum/discuss.php', array('d' => $d, 'page' => $currentpage));
 if ($parent !== 0) {
     $url->param('parent', $parent);
 }
@@ -260,10 +263,32 @@ if ($move == -1 and confirm_sesskey()) {
     echo $OUTPUT->notification(get_string('discussionmoved', 'peerforum', format_string($peerforum->name, true)));
 }
 
-$canrate = has_capability('mod/peerforum:rate', $modcontext);
-peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $displaymode, $canreply, $canrate);
+$canratepeer = has_capability('mod/peerforum:ratepeer', $modcontext);
+$cangrade = has_capability('mod/peerforum:grade', $modcontext);
+
+// Pagination of peerforum
+$enable_pagination = $peerforum->pagination;
+
+if ($enable_pagination) {
+    $total_posts = count($DB->get_records('peerforum_posts', array('discussion' => $discussion->id)));
+
+    $perpage = $peerforum->postsperpage;
+    $start = $currentpage * $perpage;
+
+    if ($start > $total_posts) {
+        $currentpage = 0;
+        $start = 0;
+    }
+    peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $displaymode, $canreply, $canratepeer, $cangrade,
+            false, true, null, null, $start, $perpage, $enable_pagination);
+
+    //pagination of peerforum
+    echo '</br>';
+    $pageurl = new moodle_url('/mod/peerforum/discuss.php', array('d' => $discussion->id, 'page' => $currentpage));
+    echo $OUTPUT->paging_bar($total_posts, $currentpage, $perpage, $pageurl);
+} else {
+    peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $displaymode, $canreply, $canratepeer, $cangrade,
+            false, true, null, null);
+}
 
 echo $OUTPUT->footer();
-
-
-

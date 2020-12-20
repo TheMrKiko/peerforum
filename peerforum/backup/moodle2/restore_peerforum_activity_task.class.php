@@ -113,13 +113,10 @@ class restore_peerforum_activity_task extends restore_activity_task {
         $rules[] = new restore_log_rule('peerforum', 'delete discussi', 'view.php?id={course_module}', '{peerforum}',
                 null, 'delete discussion');
         $rules[] = new restore_log_rule('peerforum', 'delete discussion', 'view.php?id={course_module}', '{peerforum}');
-        $rules[] =
-                new restore_log_rule('peerforum', 'add post', 'discuss.php?d={peerforum_discussion}&parent={peerforum_post}',
-                        '{peerforum_post}');
-        $rules[] =
-                new restore_log_rule('peerforum', 'update post',
-                        'discuss.php?d={peerforum_discussion}#p{peerforum_post}&parent={peerforum_post}',
-                        '{peerforum_post}');
+        $rules[] = new restore_log_rule('peerforum', 'add post', 'discuss.php?d={peerforum_discussion}&parent={peerforum_post}',
+                '{peerforum_post}');
+        $rules[] = new restore_log_rule('peerforum', 'update post',
+                'discuss.php?d={peerforum_discussion}#p{peerforum_post}&parent={peerforum_post}', '{peerforum_post}');
         $rules[] = new restore_log_rule('peerforum', 'update post', 'discuss.php?d={peerforum_discussion}&parent={peerforum_post}',
                 '{peerforum_post}');
         $rules[] = new restore_log_rule('peerforum', 'prune post', 'discuss.php?d={peerforum_discussion}', '{peerforum_post}');

@@ -232,7 +232,7 @@ if ($generalpeerforums) {
 
                 if (($peerforum->trackingtype == PEERFORUM_TRACKING_FORCED) && ($CFG->peerforum_allowforcedreadtracking)) {
                     $trackedlink = $stryes;
-                } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackpeerforums == 0)) {
+                } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackforums == 0)) {
                     $trackedlink = '-';
                 } else {
                     $aurl = new moodle_url('/mod/peerforum/settracking.php', array(
@@ -369,7 +369,7 @@ if ($course->id != SITEID) {    // Only real courses have learning peerforums
 
                     if (($peerforum->trackingtype == PEERFORUM_TRACKING_FORCED) && ($CFG->peerforum_allowforcedreadtracking)) {
                         $trackedlink = $stryes;
-                    } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackpeerforums == 0)) {
+                    } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackforums == 0)) {
                         $trackedlink = '-';
                     } else {
                         $aurl = new moodle_url('/mod/peerforum/settracking.php', array('id' => $peerforum->id));
@@ -480,4 +480,3 @@ if ($learningpeerforums) {
 }
 
 echo $OUTPUT->footer();
-

@@ -210,8 +210,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -286,8 +286,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -405,8 +405,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -528,8 +528,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
