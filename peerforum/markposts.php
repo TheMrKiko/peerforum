@@ -55,12 +55,11 @@ if (!$cm = get_coursemodule_from_instance("peerforum", $peerforum->id, $course->
 $user = $USER;
 
 require_login($course, false, $cm);
-require_sesskey();
 
 if ($returnpage == 'index.php') {
-    $returnto = new moodle_url("/mod/peerforum/$returnpage", array('id' => $course->id));
+    $returnto = peerforum_go_back_to(new moodle_url("/mod/peerforum/$returnpage", array('id' => $course->id)));
 } else {
-    $returnto = new moodle_url("/mod/peerforum/$returnpage", array('f' => $peerforum->id));
+    $returnto = peerforum_go_back_to(new moodle_url("/mod/peerforum/$returnpage", array('f' => $peerforum->id)));
 }
 
 if (isguestuser()) {   // Guests can't change peerforum

@@ -71,7 +71,7 @@ class backup_peerforum_activity_task extends backup_activity_task {
         $content = preg_replace($search, '$@PEERFORUMVIEWBYF*$2@$', $content);
 
         // Link to peerforum discussion with parent syntax
-        $search = "/(" . $base . "\/mod\/peerforum\/discuss.php\?d\=)([0-9]+)(?:\&amp;|\&)parent\=([0-9]+)/";
+        $search = "/(" . $base . "\/mod\/peerforum\/discuss.php\?d\=)([0-9]+)\&parent\=([0-9]+)/";
         $content = preg_replace($search, '$@PEERFORUMDISCUSSIONVIEWPARENT*$2*$3@$', $content);
 
         // Link to peerforum discussion with relative syntax

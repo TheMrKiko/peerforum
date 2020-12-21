@@ -37,7 +37,7 @@ $ratingpeerarea = required_param('ratingpeerarea', PARAM_AREA);
 $itemid = required_param('itemid', PARAM_INT);
 $scaleid = required_param('scaleid', PARAM_INT);
 $userratingpeer = required_param('ratingpeer', PARAM_INT);
-$ratepeerduserid = required_param('ratepeerduserid', PARAM_INT);//which user is being ratepeerd. Required to update their grade
+$ratedpeeruserid = required_param('ratedpeeruserid', PARAM_INT);//which user is being ratedpeer. Required to update their grade
 $aggregationmethod = optional_param('aggregation', RATINGPEER_AGGREGATE_NONE,
         PARAM_INT);//we're going to calculate the aggregate and return it to the client
 
@@ -57,7 +57,7 @@ $contextid = null;//now we have a context object throw away the id from the user
 $PAGE->set_context($context);
 $PAGE->set_url('/ratingpeer/ratepeer_ajax.php', array('contextid' => $context->id));
 
-if (!confirm_sesskey() || !has_capability('moodle/ratingpeer:ratepeer', $context)) {
+if (!confirm_sesskey() || !has_capability('mod/peerforum:rateratingpeer', $context)) {
     echo $OUTPUT->header();
     echo get_string('ratepeerpermissiondenied', 'ratingpeer');
     echo $OUTPUT->footer();
@@ -82,7 +82,7 @@ if (!$pluginpermissionsarray['ratepeer']) {
             'itemid' => $itemid,
             'scaleid' => $scaleid,
             'ratingpeer' => $userratingpeer,
-            'ratepeerduserid' => $ratepeerduserid,
+            'ratedpeeruserid' => $ratedpeeruserid,
             'aggregation' => $aggregationmethod
     );
     if (!$rm->check_ratingpeer_is_valid($params)) {
@@ -125,7 +125,7 @@ if ($context->contextlevel == CONTEXT_MODULE) {
         $functionname = $cm->modname . '_update_grades';
         require_once($CFG->dirroot . "/mod/{$cm->modname}/lib.php");
         if (function_exists($functionname)) {
-            $functionname($modinstance, $ratepeerduserid);
+            $functionname($modinstance, $ratedpeeruserid);
         }
     }
 }

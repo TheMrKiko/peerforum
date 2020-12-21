@@ -6,9 +6,9 @@ Feature: A teacher can set one of 3 possible options for tracking read peerforum
 
   Background:
     Given the following "users" exist:
-      | username | firstname | lastname | email                | trackpeerforums |
-      | student1 | Student   | 1        | student1@example.com | 1               |
-      | student2 | Student   | 2        | student2@example.com | 0               |
+      | username | firstname | lastname | email                | trackforums |
+      | student1 | Student   | 1        | student1@example.com | 1           |
+      | student2 | Student   | 2        | student2@example.com | 0           |
     And the following "courses" exist:
       | fullname | shortname | category |
       | Course 1 | C1        | 0        |

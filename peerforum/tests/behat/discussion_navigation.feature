@@ -47,7 +47,6 @@ Feature: A user can navigate to previous and next discussions
     And I add a new discussion to "Test peerforum name" peerforum with:
       | Subject | Discussion 3      |
       | Message | Test post message |
-    And I wait "1" seconds
     When I follow "Discussion 3"
     Then I should not see "Discussion 1"
     And I should see "Discussion 2"

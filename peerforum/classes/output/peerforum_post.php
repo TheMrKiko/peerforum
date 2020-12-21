@@ -34,77 +34,77 @@ defined('MOODLE_INTERNAL') || die();
  *
  * @property boolean $viewfullnames Whether to override fullname()
  */
-class peerforum_post implements \renderable, \templatable {
+class peerforum_post implements \renderable {
 
     /**
      * The course that the peerforum post is in.
      *
      * @var object $course
      */
-    protected $course = null;
+    private $course = null;
 
     /**
      * The course module for the peerforum.
      *
      * @var object $cm
      */
-    protected $cm = null;
+    private $cm = null;
 
     /**
      * The peerforum that the post is in.
      *
      * @var object $peerforum
      */
-    protected $peerforum = null;
+    private $peerforum = null;
 
     /**
      * The discussion that the peerforum post is in.
      *
      * @var object $discussion
      */
-    protected $discussion = null;
+    private $discussion = null;
 
     /**
      * The peerforum post being displayed.
      *
      * @var object $post
      */
-    protected $post = null;
+    private $post = null;
 
     /**
      * Whether the user can reply to this post.
      *
      * @var boolean $canreply
      */
-    protected $canreply = false;
+    private $canreply = false;
 
     /**
      * Whether to override peerforum display when displaying usernames.
      *
      * @var boolean $viewfullnames
      */
-    protected $viewfullnames = false;
+    private $viewfullnames = false;
 
     /**
      * The user that is reading the post.
      *
      * @var object $userto
      */
-    protected $userto = null;
+    private $userto = null;
 
     /**
      * The user that wrote the post.
      *
      * @var object $author
      */
-    protected $author = null;
+    private $author = null;
 
     /**
      * An associative array indicating which keys on this object should be writeable.
      *
      * @var array $writablekeys
      */
-    protected $writablekeys = array(
+    private $writablekeys = array(
             'viewfullnames' => true,
     );
 
@@ -134,66 +134,10 @@ class peerforum_post implements \renderable, \templatable {
     /**
      * Export this data so it can be used as the context for a mustache template.
      *
-     * @param \base_renderer $renderer The render to be used for formatting the message and attachments
-     * @param bool $plaintext Whethe the target is a plaintext target
-     * @return stdClass Data ready for use in a mustache template
-     */
-    public function export_for_template(\renderer_base $renderer, $plaintext = false) {
-        if ($plaintext) {
-            return $this->export_for_template_text($renderer);
-        } else {
-            return $this->export_for_template_html($renderer);
-        }
-    }
-
-    /**
-     * Export this data so it can be used as the context for a mustache template.
-     *
      * @param \mod_peerforum_renderer $renderer The render to be used for formatting the message and attachments
      * @return stdClass Data ready for use in a mustache template
      */
-    protected function export_for_template_text(\mod_peerforum_renderer $renderer) {
-        return array(
-                'id' => html_entity_decode($this->post->id),
-                'coursename' => html_entity_decode($this->get_coursename()),
-                'courselink' => html_entity_decode($this->get_courselink()),
-                'peerforumname' => html_entity_decode($this->get_peerforumname()),
-                'showdiscussionname' => html_entity_decode($this->get_showdiscussionname()),
-                'discussionname' => html_entity_decode($this->get_discussionname()),
-                'subject' => html_entity_decode($this->get_subject()),
-                'authorfullname' => html_entity_decode($this->get_author_fullname()),
-                'postdate' => html_entity_decode($this->get_postdate()),
-
-            // Format some components according to the renderer.
-                'message' => html_entity_decode($renderer->format_message_text($this->cm, $this->post)),
-                'attachments' => html_entity_decode($renderer->format_message_attachments($this->cm, $this->post)),
-
-                'canreply' => $this->canreply,
-                'permalink' => $this->get_permalink(),
-                'firstpost' => $this->get_is_firstpost(),
-                'replylink' => $this->get_replylink(),
-                'unsubscribediscussionlink' => $this->get_unsubscribediscussionlink(),
-                'unsubscribepeerforumlink' => $this->get_unsubscribepeerforumlink(),
-                'parentpostlink' => $this->get_parentpostlink(),
-
-                'peerforumindexlink' => $this->get_peerforumindexlink(),
-                'peerforumviewlink' => $this->get_peerforumviewlink(),
-                'discussionlink' => $this->get_discussionlink(),
-
-                'authorlink' => $this->get_authorlink(),
-                'authorpicture' => $this->get_author_picture(),
-
-                'grouppicture' => $this->get_group_picture(),
-        );
-    }
-
-    /**
-     * Export this data so it can be used as the context for a mustache template.
-     *
-     * @param \mod_peerforum_renderer $renderer The render to be used for formatting the message and attachments
-     * @return stdClass Data ready for use in a mustache template
-     */
-    protected function export_for_template_html(\mod_peerforum_renderer $renderer) {
+    public function export_for_template(\mod_peerforum_renderer $renderer) {
         return array(
                 'id' => $this->post->id,
                 'coursename' => $this->get_coursename(),
@@ -379,9 +323,6 @@ class peerforum_post implements \renderable, \templatable {
      * @return string
      */
     public function get_unsubscribepeerforumlink() {
-        if (!\mod_peerforum\subscriptions::is_subscribable($this->peerforum)) {
-            return null;
-        }
         $link = new \moodle_url(
                 '/mod/peerforum/subscribe.php', array(
                         'id' => $this->peerforum->id,
@@ -397,11 +338,8 @@ class peerforum_post implements \renderable, \templatable {
      * @return string
      */
     public function get_unsubscribediscussionlink() {
-        if (!\mod_peerforum\subscriptions::is_subscribable($this->peerforum)) {
-            return null;
-        }
         $link = new \moodle_url(
-                '/mod/peerforum/subscribe.php', array(
+                '/mod/discussion/subscribe.php', array(
                         'id' => $this->peerforum->id,
                         'd' => $this->discussion->id,
                 )
@@ -511,15 +449,7 @@ class peerforum_post implements \renderable, \templatable {
      * @return string.
      */
     public function get_postdate() {
-        global $CFG;
-
-        $postmodified = $this->post->modified;
-        if (!empty($CFG->peerforum_enabletimedposts) && ($this->discussion->timestart > $postmodified)) {
-            $postmodified = $this->discussion->timestart;
-        }
-
-        return userdate($postmodified, "", \core_date::get_user_timezone($this->get_postto()));
-
+        return userdate($this->post->modified, "", \core_date::get_user_timezone($this->get_postto()));
     }
 
     /**

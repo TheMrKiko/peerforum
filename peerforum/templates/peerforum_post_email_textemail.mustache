@@ -45,20 +45,14 @@
 {{{ coursename }}} -> {{# str }} peerforums, peerforum {{/ str }} -> {{{ peerforumname }}}{{# showdiscussionname }} -> {{{ discussionname }}} {{/ showdiscussionname }}
 {{ discussionlink }}
 {{{ subject }}}
-{{# str }} bynameondate, peerforum, {
-"name": {{# quote }}{{{ authorfullname }}}{{/ quote }},
-"date": {{# quote}}{{ postdate }}{{/ quote }}
-} {{/ str }}
+{{# str }} bynameondate, peerforum, { "name": "{{{ authorfullname }}}", "date": "{{ postdate }}" } {{/ str }}
 ---------------------------------------------------------------------
 {{{ message }}}
 
 {{{ attachments }}}
 ---------------------------------------------------------------------
 {{# canreply }}
-    {{# str }} postmailinfolink, peerforum, {
-    "coursename": {{# quote }}{{{ coursename }}}{{/ quote }},
-    "replylink": {{# quote }}{{ replylink }}{{/ quote }}
-    } {{/ str }}
+    {{# str }} postmailinfolink, peerforum, { "coursename": "{{{ coursename }}}", "replylink": "{{ replylink }}" } {{/ str }}
 {{/ canreply }}
 {{# unsubscribepeerforumlink }}
     {{# str }} unsubscribelink, peerforum, {{{ unsubscribepeerforumlink }}} {{/ str }}

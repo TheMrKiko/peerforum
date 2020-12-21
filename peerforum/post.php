@@ -23,6 +23,15 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+/**
+ * Custom functions to allow peergrading of PeerForum posts
+ *
+ * @package    mod
+ * @subpackage peerforum
+ * @author     2016 Jessica Ribeiro <jessica.ribeiro@tecnico.ulisboa.pt>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 require_once('../../config.php');
 require_once('lib.php');
 require_once($CFG->libdir . '/completionlib.php');
@@ -322,7 +331,7 @@ if (!empty($peerforum)) {      // User is starting a new discussion in a peerfor
         }
 
         if ($post->totalscore) {
-            notice(get_string('couldnotdeleteratings', 'rating'),
+            notice(get_string('couldnotdeleteratings', 'peerforum'),
                     peerforum_go_back_to(new moodle_url("/mod/peerforum/discuss.php", array('d' => $post->discussion))));
 
         } else if ($replycount && !has_capability('mod/peerforum:deleteanypost', $modcontext)) {
@@ -714,7 +723,7 @@ if ($mform_post->is_cancelled()) {
 
         $updatepost = $fromform; //realpost
         $updatepost->peerforum = $peerforum->id;
-        if (!peerforum_update_post($updatepost, $mform_post)) {
+        if (!peerforum_update_post($updatepost, $mform_post, $message)) {
             print_error("couldnotupdate", "peerforum", $errordestination);
         }
 
@@ -732,10 +741,10 @@ if ($mform_post->is_cancelled()) {
         }
 
         if ($realpost->userid == $USER->id) {
-            $message .= get_string("postupdated", "peerforum");
+            $message .= '<br />' . get_string("postupdated", "peerforum");
         } else {
             $realuser = $DB->get_record('user', array('id' => $realpost->userid));
-            $message .= get_string("editedpostupdated", "peerforum", fullname($realuser));
+            $message .= '<br />' . get_string("editedpostupdated", "peerforum", fullname($realuser));
         }
 
         if ($subscribemessage = peerforum_post_subscription($fromform, $peerforum, $discussion)) {
@@ -780,7 +789,7 @@ if ($mform_post->is_cancelled()) {
         $message = '';
         $addpost = $fromform;
         $addpost->peerforum = $peerforum->id;
-        if ($fromform->id = peerforum_add_new_post($addpost, $mform_post)) {
+        if ($fromform->id = peerforum_add_new_post($addpost, $mform_post, $message)) {
             $timemessage = 2;
             if (!empty($message)) { // if we're printing stuff about the file upload
                 $timemessage = 4;
@@ -826,6 +835,14 @@ if ($mform_post->is_cancelled()) {
             if ($completion->is_enabled($cm) &&
                     ($peerforum->completionreplies || $peerforum->completionposts)) {
                 $completion->update_state($cm, COMPLETION_COMPLETE);
+            }
+
+            // Assign posts for user to peergrade
+            $peergraders = assign_peergraders($USER, $fromform->id, $course->id, $peerforum->id);
+
+            if ($peergraders) {
+                $all_peergraders = implode(';', $peergraders);
+                insert_peergraders($fromform->id, $all_peergraders, $course->id, $USER->id);
             }
 
             redirect(peerforum_go_back_to($discussionurl), $message . $subscribemessage, $timemessage);
@@ -890,7 +907,7 @@ if ($mform_post->is_cancelled()) {
 
             $discussion->groupid = $group;
             $message = '';
-            if ($discussion->id = peerforum_add_discussion($discussion, $mform_post)) {
+            if ($discussion->id = peerforum_add_discussion($discussion, $mform_post, $message)) {
 
                 $params = array(
                         'context' => $modcontext,
@@ -1043,4 +1060,3 @@ if (!empty($formheading)) {
 $mform_post->display();
 
 echo $OUTPUT->footer();
-

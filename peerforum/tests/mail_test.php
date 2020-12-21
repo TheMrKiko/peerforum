@@ -184,8 +184,6 @@ class mod_peerforum_mail_testcase extends advanced_testcase {
         // Add a post to the discussion.
         $record = new stdClass();
         $record->course = $peerforum->course;
-        $strre = get_string('re', 'peerforum');
-        $record->subject = $strre . ' ' . $discussion->subject;
         $record->userid = $author->id;
         $record->peerforum = $peerforum->id;
         $record->discussion = $discussion->id;
@@ -838,33 +836,6 @@ class mod_peerforum_mail_testcase extends advanced_testcase {
     }
 
     /**
-     * Test inital email and reply email subjects
-     */
-    public function test_subjects() {
-        $this->resetAfterTest(true);
-
-        $course = $this->getDataGenerator()->create_course();
-
-        $options = array('course' => $course->id, 'forcesubscribe' => PEERFORUM_FORCESUBSCRIBE);
-        $peerforum = $this->getDataGenerator()->create_module('peerforum', $options);
-
-        list($author) = $this->helper_create_users($course, 1);
-        list($commenter) = $this->helper_create_users($course, 1);
-
-        $strre = get_string('re', 'peerforum');
-
-        // New posts should not have Re: in the subject.
-        list($discussion, $post) = $this->helper_post_to_peerforum($peerforum, $author);
-        $messages = $this->helper_run_cron_check_count($post, 2);
-        $this->assertNotContains($strre, $messages[0]->subject);
-
-        // Replies should have Re: in the subject.
-        $reply = $this->helper_post_to_discussion($peerforum, $discussion, $commenter);
-        $messages = $this->helper_run_cron_check_count($reply, 2);
-        $this->assertContains($strre, $messages[0]->subject);
-    }
-
-    /**
      * dataProvider for test_peerforum_post_email_templates().
      */
     public function peerforum_post_email_templates_provider() {
@@ -909,8 +880,10 @@ class mod_peerforum_mail_testcase extends advanced_testcase {
 
         // Single and double quotes everywhere.
         $newcase = $base;
-        $newcase['user']['lastname'] = 'Moodle\'"';
-        $newcase['course']['shortname'] = '101\'"';
+        $newcase['user']['lastname'] = 'Moodle\'';
+        // $newcase['user']['lastname'] = 'Moodle\'"'; // TODO: This breaks badly. See MDL-52136.
+        $newcase['course']['shortname'] = '101\'';
+        // $newcase['course']['shortname'] = '101\'"'; // TODO: This breaks badly. See MDL-52136.
         $newcase['peerforums'][0]['name'] = 'Moodle PeerForum\'"';
         $newcase['peerforums'][0]['peerforumposts'][0]['name'] = 'Hello Moodle\'"';
         $newcase['peerforums'][0]['peerforumposts'][0]['message'] = 'Welcome to Moodle\'"';
@@ -929,8 +902,8 @@ class mod_peerforum_mail_testcase extends advanced_testcase {
         $newcase['peerforums'][0]['peerforumposts'][0]['name'] = 'Hello Moodle>';
         $newcase['peerforums'][0]['peerforumposts'][0]['message'] = 'Welcome to Moodle>';
         $newcase['expectations'][0]['contents'] = array(
-                'Attachment example.txt:', '~{\$a', '~&amp;gt;', 'Love Moodle>', '101>', 'Moodle PeerForum>',
-                'Hello Moodle>', 'Welcome to Moodle>');
+                'Attachment example.txt:', '~{\$a', '~&amp;gt;', 'Love Moodle>', '101&gt;', 'Moodle PeerForum&gt;',
+                'Hello Moodle&gt;', 'Welcome to Moodle>');
         $textcases['Text mail with gt and lt everywhere'] = array('data' => $newcase);
 
         // Ampersands everywhere. This case is completely borked because format_string()
@@ -942,27 +915,9 @@ class mod_peerforum_mail_testcase extends advanced_testcase {
         $newcase['peerforums'][0]['peerforumposts'][0]['name'] = 'Hello Moodle&';
         $newcase['peerforums'][0]['peerforumposts'][0]['message'] = 'Welcome to Moodle&';
         $newcase['expectations'][0]['contents'] = array(
-                'Attachment example.txt:', '~{\$a', '~&amp;amp;', 'Love Moodle&', '101&', 'Moodle PeerForum&',
-                'Hello Moodle&', 'Welcome to Moodle&');
+                'Attachment example.txt:', '~{\$a', '~&amp;amp;', 'Love Moodle&', '101&amp;', 'Moodle PeerForum&amp;',
+                'Hello Moodle&amp;', 'Welcome to Moodle&');
         $textcases['Text mail with ampersands everywhere'] = array('data' => $newcase);
-
-        // Text+image message i.e. @@PLUGINFILE@@ token handling.
-        $newcase = $base;
-        $newcase['peerforums'][0]['peerforumposts'][0]['name'] = 'Text and image';
-        $newcase['peerforums'][0]['peerforumposts'][0]['message'] = 'Welcome to Moodle, '
-                . '@@PLUGINFILE@@/Screen%20Shot%202016-03-22%20at%205.54.36%20AM%20%281%29.png !';
-        $newcase['expectations'][0]['subject'] = '.*101.*Text and image';
-        $newcase['expectations'][0]['contents'] = array(
-                '~{$a',
-                '~&(amp|lt|gt|quot|\#039);(?!course)',
-                'Attachment example.txt:\n' .
-                'http://www.example.com/moodle/pluginfile.php/\d*/mod_peerforum/attachment/\d*/example.txt\n',
-                'Text and image', 'Moodle PeerForum',
-                'Welcome to Moodle, *\n.*'
-                . 'http://www.example.com/moodle/pluginfile.php/\d+/mod_peerforum/post/\d+/'
-                . 'Screen%20Shot%202016-03-22%20at%205\.54\.36%20AM%20%281%29\.png *\n.*!',
-                'Love Moodle', '1\d1');
-        $textcases['Text mail with text+image message i.e. @@PLUGINFILE@@ token handling'] = array('data' => $newcase);
 
         // Now the html cases.
         $htmlcases = array();
@@ -973,43 +928,26 @@ class mod_peerforum_mail_testcase extends advanced_testcase {
         $htmlbase['expectations'][0]['contents'] = array(
                 '~{\$a',
                 '~&(amp|lt|gt|quot|\#039);(?!course)',
-                '<div class="attachments">( *\n *)?<a href',
-                '<div class="subject">\n.*Hello Moodle', '>Moodle PeerForum', '>Welcome.*Moodle', '>Love Moodle', '>1\d1');
+                '<div class=3D"attachments">( *\n *)?<a href',
+                '<div class=3D"subject">\n.*Hello Moodle', '>Moodle PeerForum', '>Welcome.*Moodle', '>Love Moodle', '>1\d1');
         $htmlcases['HTML mail without ampersands, quotes or lt/gt'] = array('data' => $htmlbase);
 
         // Single and double quotes, lt and gt, ampersands everywhere.
         $newcase = $htmlbase;
-        $newcase['user']['lastname'] = 'Moodle\'">&';
-        $newcase['course']['shortname'] = '101\'">&';
+        $newcase['user']['lastname'] = 'Moodle\'>&';
+        // $newcase['user']['lastname'] = 'Moodle\'">&'; // TODO: This breaks badly. See MDL-52136.
+        $newcase['course']['shortname'] = '101\'>&';
+        // $newcase['course']['shortname'] = '101\'">&'; // TODO: This breaks badly. See MDL-52136.
         $newcase['peerforums'][0]['name'] = 'Moodle PeerForum\'">&';
         $newcase['peerforums'][0]['peerforumposts'][0]['name'] = 'Hello Moodle\'">&';
         $newcase['peerforums'][0]['peerforumposts'][0]['message'] = 'Welcome to Moodle\'">&';
         $newcase['expectations'][0]['contents'] = array(
                 '~{\$a',
                 '~&amp;(amp|lt|gt|quot|\#039);',
-                '<div class="attachments">( *\n *)?<a href',
-                '<div class="subject">\n.*Hello Moodle\'"&gt;&amp;', '>Moodle PeerForum\'"&gt;&amp;',
-                '>Welcome.*Moodle\'"&gt;&amp;', '>Love Moodle&\#039;&quot;&gt;&amp;', '>101\'"&gt;&amp');
+                '<div class=3D"attachments">( *\n *)?<a href',
+                '<div class=3D"subject">\n.*Hello Moodle\'"&gt;&amp;', '>Moodle PeerForum\'"&gt;&amp;',
+                '>Welcome.*Moodle\'"&gt;&amp;', '>Love Moodle&\#039;&gt;&amp;', '>1\d1\'&gt;&amp');
         $htmlcases['HTML mail with quotes, gt, lt and ampersand  everywhere'] = array('data' => $newcase);
-
-        // Text+image message i.e. @@PLUGINFILE@@ token handling.
-        $newcase = $htmlbase;
-        $newcase['peerforums'][0]['peerforumposts'][0]['name'] = 'HTML text and image';
-        $newcase['peerforums'][0]['peerforumposts'][0]['message'] = '<p>Welcome to Moodle, '
-                . '<img src="@@PLUGINFILE@@/Screen%20Shot%202016-03-22%20at%205.54.36%20AM%20%281%29.png"'
-                . ' alt="" width="200" height="393" class="img-responsive" />!</p>';
-        $newcase['expectations'][0]['subject'] = '.*101.*HTML text and image';
-        $newcase['expectations'][0]['contents'] = array(
-                '~{\$a',
-                '~&(amp|lt|gt|quot|\#039);(?!course)',
-                '<div class="attachments">( *\n *)?<a href',
-                '<div class="subject">\n.*HTML text and image', '>Moodle PeerForum',
-                '<p>Welcome to Moodle, '
-                . '<img src="http://www.example.com/moodle/pluginfile.php/\d+/mod_peerforum/post/\d+/'
-                . 'Screen%20Shot%202016-03-22%20at%205\.54\.36%20AM%20%281%29\.png"'
-                . ' alt="" width="200" height="393" class="img-responsive" />!</p>',
-                '>Love Moodle', '>1\d1');
-        $htmlcases['HTML mail with text+image message i.e. @@PLUGINFILE@@ token handling'] = array('data' => $newcase);
 
         return $textcases + $htmlcases;
     }
@@ -1125,7 +1063,6 @@ class mod_peerforum_mail_testcase extends advanced_testcase {
 
             // If we have found the expectation and have contents to match, let's do it.
             if (isset($foundexpectation) and isset($foundexpectation['contents'])) {
-                $mail->body = quoted_printable_decode($mail->body);
                 if (!is_array($foundexpectation['contents'])) { // Accept both string and array.
                     $foundexpectation['contents'] = array($foundexpectation['contents']);
                 }
@@ -1133,7 +1070,6 @@ class mod_peerforum_mail_testcase extends advanced_testcase {
                     if (strpos($content, '~') !== 0) {
                         $this->assertRegexp('#' . $content . '#m', $mail->body);
                     } else {
-                        preg_match('#' . substr($content, 1) . '#m', $mail->body, $matches);
                         $this->assertNotRegexp('#' . substr($content, 1) . '#m', $mail->body);
                     }
                 }

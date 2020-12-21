@@ -174,11 +174,11 @@ switch ($peerforum->type) {
         }
 
         $canreply = peerforum_user_can_post($peerforum, $discussion, $USER, $cm, $course, $context);
-        $canrate = has_capability('mod/peerforum:rate', $context);
+        $canratepeer = has_capability('mod/peerforum:ratepeer', $context);
         $displaymode = get_user_preferences("peerforum_displaymode", $CFG->peerforum_displaymode);
 
         echo '&nbsp;'; // this should fix the floating in FF
-        peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $displaymode, $canreply, $canrate);
+        peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $displaymode, $canreply, $canratepeer);
         break;
 
     case 'eachuser':

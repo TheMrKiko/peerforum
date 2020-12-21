@@ -26,6 +26,159 @@ defined('MOODLE_INTERNAL') || die();
 
 $capabilities = array(
 
+    //---- New capabilities of PeerForum ----//
+        'mod/peerforum:viewpanelpeergrades' => array(
+
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'frontpage' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewallpeergrades' => array(
+
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:view' => array(
+
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_COURSE,
+                'archetypes' => array(
+                        'user' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewany' => array(
+
+                'riskbitmask' => RISK_PERSONAL,
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_COURSE,
+                'archetypes' => array(
+                        'user' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewall' => array(
+
+                'riskbitmask' => RISK_PERSONAL,
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_COURSE,
+                'archetypes' => array(
+                        'user' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:peergrade' => array(
+
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_COURSE,
+                'archetypes' => array(
+                        'user' => CAP_ALLOW,
+                        'student' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewallratingpeer' => array(
+
+                'riskbitmask' => RISK_PERSONAL,
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                ),
+                'clonepermissionsfrom' => 'mod/peerforum:viewanyratingpeer'
+        ),
+
+        'mod/peerforum:ratepeer' => array(
+
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:grade' => array(
+
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'student' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewratingpeer' => array(
+
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_COURSE,
+                'archetypes' => array(
+                        'user' => CAP_ALLOW,
+                        'student' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewanyratingpeer' => array(
+
+                'riskbitmask' => RISK_PERSONAL,
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_COURSE,
+                'archetypes' => array(
+                        'user' => CAP_ALLOW,
+                        'student' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:rateratingpeer' => array(
+
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_COURSE,
+                'archetypes' => array(
+                        'user' => CAP_ALLOW,
+                        'student' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+    //---------------------------------------//
+
         'mod/peerforum:addinstance' => array(
                 'riskbitmask' => RISK_XSS,
 
@@ -356,4 +509,3 @@ $capabilities = array(
                 )
         ),
 );
-

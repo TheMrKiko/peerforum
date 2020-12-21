@@ -43,7 +43,6 @@ function lockoptions(formid, master, subitems) {
     return (true);
 }
 
-
 function lockoption(form, item) {
     form[item].setAttribute('disabled', 'disabled');
     if (form.elements['h' + item]) {

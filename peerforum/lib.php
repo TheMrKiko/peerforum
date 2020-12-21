@@ -20,12 +20,23 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+/**
+ * Custom functions that allow peergrading in PeerForum's
+ *
+ * @package    mod
+ * @subpackage peerforum
+ * @author     2016 Jessica Ribeiro <jessica.ribeiro@tecnico.ulisboa.pt>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ **/
+
 defined('MOODLE_INTERNAL') || die();
 
 /** Include required files */
 require_once(__DIR__ . '/deprecatedlib.php');
 require_once($CFG->libdir . '/filelib.php');
 require_once($CFG->libdir . '/eventslib.php');
+require_once($CFG->dirroot . '/peergrade/lib.php');
+require_once($CFG->dirroot . '/ratingpeer/lib.php');
 
 /// CONSTANTS ///////////////////////////////////////////////////////////
 
@@ -69,6 +80,2269 @@ if (!defined('PEERFORUM_CRON_USER_CACHE')) {
  */
 define('PEERFORUM_POSTS_ALL_USER_GROUPS', -2);
 
+//---------- New functions of PeerForum ----------//
+
+define('PEERFORUM_MODE_PROFESSOR', 1);
+define('PEERFORUM_MODE_STUDENT', 2);
+define('PEERFORUM_MODE_PROFESSORSTUDENT', 3);
+
+define('MANAGEPOSTS_MODE_SEEALL', 1);
+define('MANAGEPOSTS_MODE_SEEGRADED', 2);
+define('MANAGEPOSTS_MODE_SEENOTGRADED', 3);
+define('MANAGEPOSTS_MODE_SEENOTEXPIRED', 4);
+define('MANAGEPOSTS_MODE_SEEEXPIRED', 5);
+
+define('MANAGEGRADERS_MODE_SEEALL', 1);
+define('MANAGEGRADERS_MODE_SEENOTEXPIRED', 2);
+define('MANAGEGRADERS_MODE_SEEEXPIRED', 3);
+define('MANAGEGRADERS_MODE_SEENOTGRADED', 4);
+
+define('VIEWPEERGRADES_MODE_SEEALL', 1);
+define('VIEWPEERGRADES_MODE_SEEWARNINGS', 2);
+define('VIEWPEERGRADES_MODE_SEEOUTLIERS', 3);
+
+/**
+ * Updates the database
+ *
+ * @return
+ * @global object
+ * @global object
+ */
+function adjust_database() {
+    global $DB, $COURSE;
+
+    $all_enrolled = get_all_enroled_id($COURSE->id);
+
+    $all_users = $DB->get_records('peerforum_peergrade_users', array('courseid' => $COURSE->id));
+
+    foreach ($all_users as $i => $value) {
+        $id_user = $all_users[$i]->iduser;
+
+        if (!in_array($id_user, $all_enrolled)) {
+            $DB->delete_records('peerforum_peergrade_users', array('courseid' => $COURSE->id, 'iduser' => $id_user));
+        }
+    }
+
+    $posts_users = $DB->get_records('peerforum_peergrade_users');
+
+    foreach ($posts_users as $key => $value) {
+
+        $poststopeergrade = $posts_users[$key]->poststopeergrade;
+        $postspeergradedone = $posts_users[$key]->postspeergradedone;
+        $postsblocked = $posts_users[$key]->postsblocked;
+        $postsexpired = $posts_users[$key]->postsexpired;
+
+        $numpostsassigned = $posts_users[$key]->numpostsassigned;
+
+        $poststopeergrade = explode(';', $poststopeergrade);
+        $poststopeergrade = array_filter($poststopeergrade);
+
+        if (!empty($poststopeergrade)) {
+            $num_poststopeergrade = count($poststopeergrade);
+        } else {
+            $num_poststopeergrade = 0;
+        }
+
+        $postspeergradedone = explode(';', $postspeergradedone);
+        $postspeergradedone = array_filter($postspeergradedone);
+
+        if (!empty($postspeergradedone)) {
+            $num_postspeergradedone = count($postspeergradedone);
+        } else {
+            $num_postspeergradedone = 0;
+        }
+
+        $postsblocked = explode(';', $postsblocked);
+        $postsblocked = array_filter($postsblocked);
+
+        if (!empty($postsblocked)) {
+            $num_postsblocked = count($postsblocked);
+        } else {
+            $num_postsblocked = 0;
+        }
+
+        $postsexpired = explode(';', $postsexpired);
+        $postsexpired = array_filter($postsexpired);
+
+        if (!empty($postsexpired)) {
+            $num_postsexpired = count($postsexpired);
+        } else {
+            $num_postsexpired = 0;
+        }
+
+        $total_posts = $num_postspeergradedone + $num_poststopeergrade + $num_postsblocked + $num_postsexpired;
+
+        if ($numpostsassigned == 0 && $total_posts != 0) {
+            $numpostsassigned = $total_posts;
+            $data = new stdClass();
+            $data->id = $posts_users[$key]->id;
+            $data->numpostsassigned = $numpostsassigned;
+            $DB->update_record('peerforum_peergrade_users', $data);
+
+        } else if ($numpostsassigned != $total_posts) {
+            $numpostsassigned = $total_posts;
+            $data = new stdClass();
+            $data->id = $posts_users[$key]->id;
+            $data->numpostsassigned = $numpostsassigned;
+            $DB->update_record('peerforum_peergrade_users', $data);
+        }
+    }
+}
+
+/**
+ * Returns all the users enrolled in a course
+ *
+ * @param int $courseid
+ * @return array of all enrolled users in a course.
+ * @global object
+ */
+function get_all_enroled_id($courseid) {
+    global $DB;
+
+    //get all enroled users in course
+    $sql = "SELECT DISTINCT u.id
+            FROM mdl_course c
+            JOIN mdl_context ct ON c.id = ct.instanceid
+            JOIN mdl_role_assignments ra ON ra.contextid = ct.id
+            JOIN mdl_user u ON u.id = ra.userid
+            JOIN mdl_role r ON r.id = ra.roleid
+            WHERE c.id = $courseid AND r.id = 5 OR r.id = 3 OR r.id = 2";
+
+    $enroled_sql = $DB->get_records_sql($sql);
+
+    $enroled = array();
+    foreach ($enroled_sql as $key => $value) {
+        $id = $enroled_sql[$key]->id;
+        $enroled[$id] = $id;
+    }
+
+    return $enroled;
+}
+
+/**
+ * Returns all the information about all the posts in a course
+ *
+ * @param int $courseid
+ * @return array with posts' information.
+ * @global object
+ */
+function get_all_posts_info($courseid) {
+    global $DB;
+
+    $discussions_course = $DB->get_records('peerforum_discussions', array('course' => $courseid));
+
+    $sql = "SELECT pp.id, pp.userid, pp.subject, pp.peergraders, pp.discussion
+            FROM {peerforum_discussions} as pd
+            INNER JOIN {peerforum_posts} as pp ON pp.discussion = pd.id
+            WHERE pd.course = $courseid AND pp.peergraders !=0 OR pp.peergraders != NULL";
+
+    $posts = $DB->get_records_sql($sql);
+
+    $all_posts = array();
+
+    foreach ($posts as $postid => $values) {
+
+        $post_author_id = $DB->get_record('peerforum_posts', array('id' => $postid))->userid;
+        $post_author = $DB->get_record('user', array('id' => $post_author_id));
+
+        $info_post = new stdClass;
+        $info_post->postid = $postid;
+        $info_post->authorid = $post_author_id;
+        $info_post->authorname = $post_author->firstname . ' ' . $post_author->lastname;
+        $info_post->subject = $posts[$postid]->subject;
+        $info_post->discussion = $posts[$postid]->discussion;
+        $peergraders = explode(";", $posts[$postid]->peergraders);
+        $info_post->peergraders = array();
+
+        //$info_post->peergraders = array_filter($peergraders);
+
+        foreach ($peergraders as $id => $value) {
+            $info_peer = new stdClass();
+            $author = $DB->get_record('user', array('id' => $peergraders[$id]));
+            $name = $author->firstname . ' ' . $author->lastname;
+            $info_peer->id = $peergraders[$id];
+            $info_peer->authorname = $name;
+
+            array_push($info_post->peergraders, $info_peer);
+        }
+
+        array_push($all_posts, $info_post);
+    }
+    return $all_posts;
+}
+
+/**
+ * Returns all the peergrades in a course
+ *
+ * @param int $courseid
+ * @return array with peergrades.
+ * @global object
+ */
+function get_all_peergrades($courseid) {
+    global $DB;
+
+    //get all the posts
+    $sql = "SELECT p.iduser, p.poststopeergrade, p.postspeergradedone
+            FROM {peerforum_peergrade_users} p
+            WHERE p.courseid = $courseid";
+
+    $posts = $DB->get_records_sql($sql);
+
+    //get all the grades and feedbacks
+    $sql2 = "SELECT p.id, p.itemid, p.peergrade, p.userid, p.feedback
+            FROM {peerforum_peergrade} p";
+
+    $posts_grades = $DB->get_records_sql($sql2);
+
+    $all_posts = array();
+
+    foreach ($posts as $userid => $values) {
+        $all_posts[$userid] = array();
+
+        $user_db = $DB->get_record('user', array('id' => $userid));
+
+        $info_post = new stdClass;
+        $info_post->authorid = $userid;
+        $info_post->authorname = $user_db->firstname . ' ' . $user_db->lastname;
+
+        $topeergrade = explode(";", $posts[$userid]->poststopeergrade);
+        $info_post->poststopeergrade = array_filter($topeergrade);
+
+        $donepeergrade = explode(";", $posts[$userid]->postspeergradedone);
+        $info_post->postspeergradedone = array_filter($donepeergrade);
+
+        if (!empty($info_post->postspeergradedone)) {
+            $info_post->postsdonegrade = array();
+            $info_post->postsdonefeedback = array();
+
+            foreach ($info_post->postspeergradedone as $i => $value) {
+                $postid = $info_post->postspeergradedone[$i];
+
+                foreach ($posts_grades as $d => $value) {
+                    if (!empty($posts_grades[$d])) {
+                        if ($posts_grades[$d]->itemid == $postid) {
+                            $info_post->postsdonegrade[$postid] = $posts_grades[$d]->peergrade;
+                            $info_post->postsdonefeedback[$postid] = $posts_grades[$d]->feedback;
+                        }
+                    }
+                }
+            }
+        }
+        array_push($all_posts[$userid], $info_post);
+    }
+    return $all_posts;
+}
+
+/**
+ * Returns all the peergrades given in a course
+ *
+ * @param int $courseid
+ * @return array all the peergrades.
+ * @global object
+ */
+function get_all_peergrades_done($courseid) {
+    global $DB;
+
+    $info_user = $DB->get_records('peerforum_peergrade_users', array('courseid' => $courseid));
+
+    $data_user = array();
+
+    foreach ($info_user as $key => $value) {
+        if ($info_user[$key]->postspeergradedone != null) {
+            $userid = $info_user[$key]->iduser;
+
+            $posts = explode(';', $info_user[$key]->postspeergradedone);
+            $posts = array_filter($posts);
+            $data_posts = array();
+
+            foreach ($posts as $k => $value) {
+                $data = new stdClass();
+                $postid = $posts[$k];
+
+                $info_post = $DB->get_record('peerforum_peergrade', array('itemid' => $postid, 'userid' => $userid));
+                if (!empty($info_post)) {
+                    $data->grade = $info_post->peergrade;
+                    $data->feedback = $info_post->feedback;
+                    $data->time = $info_post->timemodified;
+
+                    $data_posts[$postid] = $data;
+                }
+
+                $info_post_blocked = $DB->get_record('peerforum_blockedgrades', array('itemid' => $postid, 'userid' => $userid));
+                if (!empty($info_post_blocked)) {
+                    $data->grade = $info_post_blocked->peergrade;
+                    $data->feedback = $info_post_blocked->feedback;
+                    $data->time = $info_post_blocked->timemodified;
+
+                    $data_posts[$postid] = $data;
+                }
+            }
+            $user_db = $DB->get_record('user', array('id' => $userid));
+            $info = new stdClass();
+            $info->authorname = $user_db->firstname . ' ' . $user_db->lastname;
+            $info->posts = $data_posts;
+            $data_user[$userid] = $info;
+        }
+    }
+    return $data_user;
+}
+
+/**
+ * Returns all the grades of all the posts
+ *
+ * @param int $courseid
+ * @return array all the posts with all te.
+ * @global object
+ */
+function get_posts_grades($courseid) {
+    global $DB;
+
+    $info = $DB->get_records('peerforum_peergrade');
+
+    $students_enroled = get_students_enroled($courseid);
+
+    $array_posts = array();
+
+    foreach ($info as $i => $value) {
+
+        if (in_array($info[$i]->userid, $students_enroled)) {
+            $postid = $info[$i]->itemid;
+
+            if (empty($array_posts[$postid])) {
+                $array_posts[$postid] = array();
+            }
+
+            $post = new stdClass();
+            $post->user = $info[$i]->userid;
+            $post->postid = $info[$i]->itemid;
+            $post->peergrade = $info[$i]->peergrade;
+            $post->feedback = $info[$i]->feedback;
+            array_push($array_posts[$postid], $post);
+
+        } else {
+            continue;
+        }
+    }
+    return $array_posts;
+}
+
+/**
+ * Returns all the students alphabetically ordered
+ *
+ * @param int $info_students
+ * @return array all the students alphabetically ordered.
+ * @global object
+ */
+function order_students_by_name($info_students) {
+    global $DB;
+
+    foreach ($info_students as $key => $value) {
+        $iduser = $info_students[$key]->iduser;
+
+        $user_name = $DB->get_record('user', array('id' => $iduser));
+        $info_students[$key]->name = $user_name->firstname . ' ' . $user_name->lastname;
+    }
+
+    uasort($info_students, function($a, $b) {
+        return strcmp($a->name, $b->name);
+    });
+    return $info_students;
+}
+
+/**
+ * Returns all the students enrolled in a course
+ *
+ * @param int $courseid
+ * @return array all the students enrolled in a course.
+ * @global object
+ */
+function get_students_enroled($courseid) {
+    global $DB;
+
+    //get all enroled users in course
+    $sql = "SELECT u.id, c.id as courseid, u.id as userid
+            FROM mdl_course c
+            JOIN mdl_context ct ON c.id = ct.instanceid
+            JOIN mdl_role_assignments ra ON ra.contextid = ct.id
+            JOIN mdl_user u ON u.id = ra.userid
+            JOIN mdl_role r ON r.id = ra.roleid
+            WHERE c.id = $courseid AND r.id = 5";
+
+    $enroled = $DB->get_records_sql($sql);
+
+    return $enroled;
+}
+
+/**
+ * Returns array of peerforum grade modes
+ *
+ * @return array
+ */
+function peerforum_get_final_grade_modes() {
+    return array(PEERFORUM_MODE_PROFESSOR => get_string('onlyprofessorpeergrade', 'peerforum'),
+            PEERFORUM_MODE_STUDENT => get_string('onlystudentpeergrade', 'peerforum'),
+            PEERFORUM_MODE_PROFESSORSTUDENT => get_string('professorstudentpeergrade', 'peerforum'));
+}
+
+/**
+ * Assign a user to peer grade a post
+ *
+ * @param stdClass $user
+ * @param int $postid
+ * @param int $courseid
+ * @param int $peerforumid
+ * @return array all the peergraders assigned to peergrade the post.
+ * @global object
+ * @global object
+ * @global object
+ */
+function assign_peergraders($user, $postid, $courseid, $peerforumid) {
+    global $CFG, $DB, $PAGE;
+
+    $post = $DB->get_record('peerforum_posts', array('id' => $postid));
+
+    $postauthor = $post->userid;
+    $postparent = $post->parent;
+
+    $grandparent = $DB->get_record('peerforum_posts', array('id' => $postparent));
+
+    if ($grandparent->parent != 0) {
+        return null;
+    }
+
+    $gradeprofessorposts = $DB->get_record('peerforum', array('id' => $peerforumid, 'course' => $courseid))->gradeprofessorpost;
+
+    if ($gradeprofessorposts == 1) {
+        //if (!user_has_role_assignment($postauthor, 5)) {
+        $isstudent = true;
+    } else {
+        if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            //if (user_has_role_assignment($postauthor, 5)) {
+            $isstudent = true;
+        } else {
+            $isstudent = false;
+        }
+    }
+
+    if ($isstudent) {
+        $student = $user->id;
+
+        $postdiscussion = $DB->get_record('peerforum_posts', array('id' => $postid))->discussion;
+        $peerforumid = $DB->get_record('peerforum_discussions', array('id' => $postdiscussion))->peerforum;
+        $peerforum = $DB->get_record('peerforum', array('id' => $peerforumid));
+
+        $array_peers = get_students_can_be_assigned($courseid, $postid, $student, $peerforumid);
+
+        $max_peers = $peerforum->selectpeergraders;
+        $min_peers = $peerforum->minpeergraders;
+        $min_std = min(array_keys($array_peers));
+        $max_std = max(array_keys($array_peers));
+        $num_enrolled = count($array_peers);
+
+        if ($num_enrolled < $max_peers) {
+            $max_peers = count($array_peers);
+        }
+
+        usort($array_peers, "cmp");
+
+        $peers_obj = array_slice($array_peers, 0, $max_peers);
+
+        $peers = array();
+
+        foreach ($peers_obj as $key => $value) {
+            $id = $peers_obj[$key]->id;
+            $peers[$id] = $id;
+        }
+
+        update_peergraders($peers, $postid, $courseid, $peerforumid);
+
+        return $peers;
+    } else {
+        return null;
+    }
+}
+
+/**
+ * Update the peergraders of a post in the database
+ *
+ * @param array $array_peergraders
+ * @param int $postid
+ * @param int $courseid
+ * @return
+ * @global object
+ */
+function update_peergraders($array_peergraders, $postid, $courseid) {
+    global $DB;
+
+    foreach ($array_peergraders as $i => $value) {
+        $userid = $array_peergraders[$i];
+        $existing_info = $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $userid));
+
+        $data = new stdClass;
+        $data->courseid = $courseid;
+        $data->iduser = $userid;
+
+        if (empty($existing_info)) {
+            $data->poststopeergrade = $postid;
+            $data->postspeergradedone = null;
+            $data->postsblocked = null;
+            $data->postsexpired = null;
+            $data->numpostsassigned = 1;
+
+            $DB->insert_record('peerforum_peergrade_users', $data);
+        } else {
+            $existing_posts = $existing_info->poststopeergrade;
+
+            //$array_posts = array();
+            $posts = explode(';', $existing_posts);
+            $posts = array_filter($posts);
+            $num = $existing_info->numpostsassigned;
+
+            adjust_database();
+
+            array_push($posts, $postid);
+
+            $array_posts = array_filter($posts);
+            $array_posts = implode(';', $array_posts);
+
+            $data->poststopeergrade = $array_posts;
+            $data->id = $existing_info->id;
+            $data->numpostsassigned = $num + 1;
+
+            $DB->update_record('peerforum_peergrade_users', $data);
+        }
+
+        $time = new stdclass();
+        $time->courseid = $courseid;
+        $time->postid = $postid;
+        $time->userid = $userid;
+        $time->timeassigned = time();
+        $time->timemodified = time();
+
+        $DB->insert_record('peerforum_time_assigned', $time);
+    }
+}
+
+/**
+ * Returns the id's of all students that can be assign to a post
+ *
+ * @param int $postid
+ * @return array of students' id that can be assigned
+ * @global object
+ */
+function get_students_can_be_assigned_id($postid) {
+    global $DB;
+
+    $post_info = $DB->get_record('peerforum_users_assigned', array('postid' => $postid));
+    $not_assigned = $post_info->not_assigned_users;
+    $not_assigned = explode(';', $not_assigned);
+    $not_assigned = array_filter($not_assigned);
+
+    $students_assign = array();
+
+    foreach ($not_assigned as $key => $value) {
+        $id = $not_assigned[$key];
+        $students_assign[$id] = $id;
+    }
+
+    return $students_assign;
+}
+
+/**
+ * Inserts a new peergraders in the peerforum_posts database
+ *
+ * @param int $itemid
+ * @param int $peerid
+ * @return
+ * @global object
+ */
+function update_peergrader_of_peerforum_posts($itemid, $peerid) {
+    global $DB;
+
+    $peergraders = $DB->get_record('peerforum_posts', array('id' => $itemid))->peergraders;
+
+    $peers = explode(';', $peergraders);
+
+    $peers = array_filter($peers);
+    array_push($peers, $peerid);
+    $peers = array_filter($peers);
+
+    $peers_updated = implode(';', $peers);
+
+    $data = new stdClass();
+    $data->id = $itemid;
+    $data->peergraders = $peers_updated;
+
+    $DB->update_record("peerforum_posts", $data);
+}
+
+/**
+ * Remove an assigned user to a post
+ *
+ * @param int $itemid
+ * @param int $peerid
+ * @return
+ * @global object
+ */
+function update_less_peerforum_users_assigned($itemid, $peerid) {
+    global $DB;
+
+    $postinfo = $DB->get_record('peerforum_users_assigned', array('postid' => $itemid));
+
+    if (empty($postinfo)) {
+        $data = new stdClass();
+        $data->not_assigned_users = $peerid;
+        $data->not_can_grade_users = $peerid;
+        $data->postid = $itemid;
+
+        $DB->insert_record('peerforum_users_assigned', $data);
+    } else {
+        $post_assigned_users = $postinfo->assigned_users;
+        $post_assigned_users = explode(';', $post_assigned_users);
+
+        $post_not_assigned_users = $postinfo->not_assigned_users;
+        $post_not_assigned_users = explode(';', $post_not_assigned_users);
+
+        //insert
+        array_push($post_not_assigned_users, $peerid);
+        $post_not_assigned_users = array_filter($post_not_assigned_users);
+        $post_not_assigned_users = implode(';', $post_not_assigned_users);
+
+        //remove
+        $key = array_search($peerid, $post_assigned_users);
+        unset($post_assigned_users[$key]);
+        $post_assigned_users = array_filter($post_assigned_users);
+        $post_assigned_users = implode(';', $post_assigned_users);
+
+        $data = new stdClass();
+        $data->id = $postinfo->id;
+        $data->assigned_users = $post_assigned_users;
+        $data->not_assigned_users = $post_not_assigned_users;
+
+        $DB->update_record('peerforum_users_assigned', $data);
+    }
+}
+
+/**
+ * Assign a user to a post
+ *
+ * @param int $itemid
+ * @param int $peerid
+ * @return
+ * @global object
+ */
+function update_more_peerforum_users_assigned($itemid, $peerid) {
+    global $DB;
+
+    $postinfo = $DB->get_record('peerforum_users_assigned', array('postid' => $itemid));
+    if (empty($postinfo)) {
+        $data = new stdClass();
+        $data->assigned_users = $peerid;
+        $data->can_grade_users = $peerid;
+        $data->postid = $itemid;
+
+        $DB->insert_record('peerforum_users_assigned', $data);
+    } else {
+        $assigned_users = $postinfo->assigned_users;
+        $assigned_users = explode(';', $assigned_users);
+
+        $not_assigned_users = $postinfo->not_assigned_users;
+        $not_assigned_users = explode(';', $not_assigned_users);
+
+        //insert
+        array_push($assigned_users, $peerid);
+        $assigned_users = array_filter($assigned_users);
+        $assigned_users = implode(';', $assigned_users);
+
+        //remove
+        $key = array_search($peerid, $not_assigned_users);
+        unset($not_assigned_users[$key]);
+        $not_assigned_users = array_filter($not_assigned_users);
+        $not_assigned_users = implode(';', $not_assigned_users);
+
+        $data = new stdClass();
+        $data->id = $postinfo->id;
+        $data->assigned_users = $assigned_users;
+        $data->not_assigned_users = $not_assigned_users;
+
+        $DB->update_record('peerforum_users_assigned', $data);
+    }
+}
+
+/**
+ * Remove a student from peergrading a post
+ *
+ * @param int $itemid
+ * @param int $peerid
+ * @return
+ * @global object
+ */
+function remove_peer_from_peerforum_posts($itemid, $peerid) {
+    global $DB;
+
+    $peergraders = $DB->get_record('peerforum_posts', array('id' => $itemid))->peergraders;
+    $peers = explode(';', $peergraders);
+    $peers = array_filter($peers);
+
+    //remove student from post peergraders
+    if (in_array($peerid, $peers)) {
+        $key = array_search($peerid, $peers);
+        unset($peers[$key]);
+        $peers = array_filter($peers);
+        $peers_updated = implode(';', $peers);
+
+        $data = new stdClass();
+        $data->id = $itemid;
+        $data->peergraders = $peers_updated;
+
+        $DB->update_record("peerforum_posts", $data);
+    }
+}
+
+/**
+ * Insert a new student in the peergrade_users
+ *
+ * @param stdClass $peer_info
+ * @return
+ * @global object
+ */
+function update_peer_peergrade_users($peer_info) {
+    global $DB;
+
+    $posts_blocked = $peer_info->postsblocked;
+    $posts_topeergrade = $peer_info->poststopeergrade;
+
+    $blocked = explode(';', $posts_blocked);
+    $blocked = array_filter($blocked);
+
+    $topeergrade = explode(';', $posts_topeergrade);
+    $topeergrade = array_filter($topeergrade);
+
+    //verify if post is blocked
+    if (in_array($itemid, $blocked)) {
+        $key = array_search($itemid, $blocked);
+        unset($blocked[$key]);
+        $blocked = array_filter($blocked);
+        $blocked_updated = implode(';', $blocked);
+
+        $data2 = new stdClass();
+        $data2->id = $peer_info->id;
+        $data2->postsblocked = $blocked_updated;
+
+        $DB->update_record("peerforum_peergrade_users", $data2);
+    }
+
+    //verify if post is assigned to peergrade
+    if (in_array($itemid, $topeergrade)) {
+        $key = array_search($itemid, $topeergrade);
+        unset($topeergrade[$key]);
+        $topeergrade = array_filter($topeergrade);
+        $topeergrade_updated = implode(';', $topeergrade);
+
+        $numpostsassigned = $peer_info->numpostsassigned;
+        $numposts = $numpostsassigned - 1;
+
+        $data2 = new stdClass();
+        $data2->id = $peer_info->id;
+        $data2->poststopeergrade = $topeergrade_updated;
+        $data2->numpostsassigned = $numposts;
+
+        $DB->update_record("peerforum_peergrade_users", $data2);
+    }
+
+    //remove post from student to peer grade
+    $DB->delete_records("peerforum_time_assigned", array('postid' => $itemid, 'userid' => $peer_info->iduser));
+}
+
+/**
+ * Insert a new peergrader information in the database
+ *
+ * @param stdClass $peers_info
+ * @param int $itemid
+ * @param int optional $peerforumid
+ * @return
+ * @global object
+ */
+function update_peergrader_of_peergrade_users($peers_info, $itemid) {
+    global $DB;
+
+    $poststograde = $peers_info->poststopeergrade;
+
+    $posts = explode(';', $poststograde);
+
+    $posts = array_filter($posts);
+    array_push($posts, $itemid);
+    $posts = array_filter($posts);
+
+    $posts_updated = array();
+    $posts_updated = implode(';', $posts);
+
+    $numpostsassigned = $peers_info->numpostsassigned;
+
+    $numposts = $numpostsassigned + 1;
+
+    $data = new stdClass();
+    $data->id = $peers_info->id;
+    $data->poststopeergrade = $posts_updated;
+    $data->numpostsassigned = $numposts;
+
+    $DB->update_record("peerforum_peergrade_users", $data);
+}
+
+/**
+ * Returns the students that can be assigned to peer grade a post
+ *
+ * @param int $courseid
+ * @param int $postid
+ * @param int $postauthor
+ * @param int optional $peerforumid
+ * @return array with students that can be assigned.
+ * @global object
+ */
+function get_students_can_be_assigned($courseid, $postid, $postauthor, $peerforumid = null) {
+    global $DB;
+
+    $can_be_assigned = array();
+
+    $students = get_students_enroled($courseid);
+
+    adjust_database();
+
+    // Verify students that was already assigned to the post
+    $peergraders_db = $DB->get_record('peerforum_posts', array('id' => $postid));
+
+    if (!empty($peergraders_db)) {
+        $peergraders = $peergraders_db->peergraders;
+        $peergraders = explode(';', $peergraders);
+        $peergraders = array_filter($peergraders);
+
+        foreach ($students as $id => $value) {
+            $student = $students[$id]->id;
+
+            if (!in_array($student, $peergraders)) {
+
+                $peergraders_info =
+                        $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $student));
+
+                if (!empty($peergraders_info)) {
+                    $topeergrade = $peergraders_info->poststopeergrade;
+                    $blocked = $peergraders_info->postsblocked;
+                    $donepeergrade = $peergraders_info->postspeergradedone;
+
+                    $num_posts = $peergraders_info->numpostsassigned;
+
+                    $posts_tograde = explode(';', $topeergrade);
+                    $posts_tograde = array_filter($posts_tograde);
+                    $block = explode(';', $blocked);
+                    $block = array_filter($block);
+                    $posts_graded = explode(';', $donepeergrade);
+                    $posts_graded = array_filter($posts_graded);
+
+                    // Can peergrade
+                    if (!(in_array($postid, $posts_tograde)) && !(in_array($postid, $block)) &&
+                            !(in_array($postid, $posts_graded))) {
+                        $std = new stdClass();
+                        $std->id = $students[$id]->id;
+                        $std->numpostsassigned = $num_posts;
+
+                        $can_be_assigned[$id] = $std;
+                        continue;
+                    } // Cannot peergrade
+                    else if ((in_array($postid, $posts_tograde)) || (in_array($postid, $block)) ||
+                            (in_array($postid, $posts_graded))) {
+                        continue;
+
+                    }
+                } else {
+                    // Can peergrade
+                    $std = new stdClass();
+                    $std->id = $students[$id]->id;
+                    $std->numpostsassigned = 0;
+                    $can_be_assigned[$id] = $std;
+                    continue;
+                }
+            } else {
+                // Cannot peergrade (is in array of peergraders)
+                continue;
+            }
+        }
+    } else if (empty($peergraders)) {
+
+        foreach ($students as $id => $value) {
+            $num_posts_user =
+                    $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $students[$id]->id));
+            if (!empty($num_posts_user)) {
+                $num_posts = $num_posts_user->numpostsassigned;
+            } else {
+                $num_posts = 0;
+            }
+            $std = new stdClass();
+            $std->id = $students[$id]->id;
+            $std->numpostsassigned = $num_posts;
+            $can_be_assigned[$id] = $std;
+
+        }
+    }
+
+    // Not assigned to the post
+    foreach ($students as $id => $value) {
+        if (!in_array($students[$id]->id, $peergraders)) {
+            if (!in_array($students[$id]->id, $can_be_assigned)) {
+                $num_posts_user = $DB->get_record('peerforum_peergrade_users',
+                        array('courseid' => $courseid, 'iduser' => $students[$id]->id));
+                if (!empty($num_posts_user)) {
+                    $num_posts = $num_posts_user->numpostsassigned;
+                } else {
+                    $num_posts = 0;
+                }
+                $std = new stdClass();
+                $std->id = $students[$id]->id;
+                $std->numpostsassigned = $num_posts;
+                $can_be_assigned[$id] = $std;
+
+            }
+        }
+    }
+
+    foreach ($can_be_assigned as $key => $value) {
+        if ($can_be_assigned[$key]->id == $postauthor) {
+            unset($can_be_assigned[$key]);
+        }
+    }
+
+    // Verify conflicts
+    $conflicts = $DB->get_records('peerforum_peergrade_conflict', array('courseid' => $courseid));
+
+    foreach ($conflicts as $key => $value) {
+        $conflictstds = $conflicts[$key]->idstudents;
+        $conflictstds = explode(';', $conflictstds);
+        $conflictstds = array_filter($conflictstds);
+
+        foreach ($can_be_assigned as $k => $value) {
+            if (in_array($postauthor, $conflictstds)) {
+                $id = $can_be_assigned[$k]->id;
+
+                if (in_array($id, $conflictstds)) {
+                    unset($can_be_assigned[$k]);
+                }
+            }
+        }
+    }
+    return $can_be_assigned;
+}
+
+/**
+ * Compares two stdClass
+ *
+ * @param stdClass $a
+ * @param stdClass $b
+ * @return int
+ */
+function cmp($a, $b) {
+    return strcmp($a->numpostsassigned, $b->numpostsassigned);
+}
+
+/**
+ * Returns the users not assigned to a given post
+ *
+ * @param int $postid
+ * @param array $usersassigned
+ * @param int $courseid
+ * @param int $postauthor
+ * @return array of users not assigned to a post
+ */
+function get_users_not_assigned($postid, $usersassigned, $courseid, $postauthor) {
+    $users_enrolled = get_students_enroled_id($courseid);
+
+    $usersassigned = explode(';', $usersassigned);
+
+    // Remove users already assigned
+    foreach ($usersassigned as $k => $value) {
+        $key = array_search($usersassigned[$k], $users_enrolled);
+        unset($users_enrolled[$key]);
+    }
+
+    $key = array_search($postauthor, $usersassigned);
+    unset($usersassigned[$key]);
+
+    $usersnotassigned = array_filter($users_enrolled);
+
+    $usersnotassigned = implode(';', $usersnotassigned);
+
+    return $usersnotassigned;
+}
+
+/**
+ * Insert the peergraders of a post in the database
+ *
+ * @param int $postid
+ * @param array $all_peergraders
+ * @param int $courseid
+ * @param int $postauthor
+ * @return
+ * @global object
+ */
+function insert_peergraders($postid, $all_peergraders, $courseid, $postauthor) {
+    global $DB;
+
+    $data = new stdClass();
+    $data->id = $postid;
+    $data->peergraders = $all_peergraders;
+    $DB->update_record('peerforum_posts', $data);
+
+    $data2 = new stdClass();
+    $data2->postid = $postid;
+    $data2->assigned_users = $all_peergraders;
+    $data2->can_grade_users = $all_peergraders;
+
+    $usersnotassigned = get_users_not_assigned($postid, $all_peergraders, $courseid, $postauthor);
+
+    $data2->not_assigned_users = $usersnotassigned;
+    $DB->insert_record('peerforum_users_assigned', $data2);
+}
+
+/**
+ * Returns the time when a given post will expire to a given user
+ *
+ * @param int $postid
+ * @param int $userid
+ * @return DateTime time when a post will expire.
+ * @global object
+ * @global object
+ */
+function get_time_expire($postid, $userid) {
+    global $CFG, $DB;
+    // When the post was assigned
+    $time_assign = time_assigned($postid, $userid);
+
+    if (!empty($time_assign)) {
+
+        $time_assigned_db = usergetdate($time_assign);
+
+        $date_time_assigned = new stdClass();
+        $date_time_assigned->year = $time_assigned_db['year'];
+        $date_time_assigned->mon = $time_assigned_db['mon'];
+        $date_time_assigned->mday = $time_assigned_db['mday'];
+        $date_time_assigned->hours = $time_assigned_db['hours'];
+        $date_time_assigned->minutes = $time_assigned_db['minutes'];
+        $date_time_assigned->seconds = $time_assigned_db['seconds'];
+
+        $time_assigned =
+                new DateTime("$date_time_assigned->year-$date_time_assigned->mon-$date_time_assigned->mday $date_time_assigned->hours:$date_time_assigned->minutes:$date_time_assigned->seconds");
+
+        $postdiscussion = $DB->get_record('peerforum_posts', array('id' => $postid))->discussion;
+        $peerforumid = $DB->get_record('peerforum_discussions', array('id' => $postdiscussion))->peerforum;
+        $peerforum = $DB->get_record('peerforum', array('id' => $peerforumid));
+
+        // How much time the user have to peergrade
+        $time_to_peergrade = $peerforum->timetopeergrade;
+        $time = 'P' . $time_to_peergrade . 'D';
+
+        // When the time to peergrade ends
+        $time_finish = $time_assigned;
+        $time_finish->add(new DateInterval("$time"));
+
+        // Current time
+        $time_current_db = usergetdate(time());
+
+        $date_time_current = new stdClass();
+        $date_time_current->year = $time_current_db['year'];
+        $date_time_current->mon = $time_current_db['mon'];
+        $date_time_current->mday = $time_current_db['mday'];
+        $date_time_current->hours = $time_current_db['hours'];
+        $date_time_current->minutes = $time_current_db['minutes'];
+        $date_time_current->seconds = $time_current_db['seconds'];
+
+        $time_current =
+                new DateTime("$date_time_current->year-$date_time_current->mon-$date_time_current->mday $date_time_current->hours:$date_time_current->minutes:$date_time_current->seconds");
+
+        // Time period to peergrade
+        $time_interval = date_diff($time_finish, $time_current);
+
+        if ($time_interval->invert == 0) {
+            return null;
+        } else {
+            return $time_interval;
+        }
+
+    } else {
+        return 0;
+    }
+}
+
+/**
+ * Returns the time when a given post was assigned to a given user
+ *
+ * @param int $postid
+ * @param int $userid
+ * @return int time when a post was assigned assigned.
+ * @global object
+ */
+function time_assigned($postid, $userid) {
+    global $DB;
+
+    $time = $DB->get_record('peerforum_time_assigned', array('postid' => $postid, 'userid' => $userid));
+
+    if (!empty($time)) {
+        return $time->timeassigned;
+    } else {
+        return null;
+    }
+}
+
+/**
+ * Returns the posts not peergraded of a given user
+ *
+ * @param int $userid
+ * @param int $courseid
+ * @return array of not peergraded posts.
+ * @global object
+ */
+function peerforum_get_user_posts_to_peergrade($userid, $courseid) {
+    global $DB;
+
+    // Get all the posts
+    $sql = "SELECT p.id, p.poststopeergrade
+            FROM {peerforum_peergrade_users} p
+            WHERE p.iduser = $userid AND p.courseid = $courseid";
+
+    $all_posts = $DB->get_records_sql($sql);
+
+    $posts_to_peergrade = array();
+
+    // Verify which posts the user have to peergrade
+    foreach ($all_posts as $postid => $value) {
+        if (!empty($all_posts[$postid]->poststopeergrade)) {
+            $posts_to_peergrade = explode(";", ($all_posts[$postid]->poststopeergrade));
+            $posts_to_peergrade = array_filter($posts_to_peergrade);
+        }
+    }
+    return $posts_to_peergrade;
+}
+
+/**
+ * Returns the posts already peergraded of a given user
+ *
+ * @param int $userid
+ * @param int $courseid
+ * @return array of peergraded posts.
+ * @global object
+ */
+function peerforum_get_user_posts_peergraded($userid, $courseid) {
+    global $DB;
+
+    // Get all the posts
+    $sql = "SELECT p.id, p.postspeergradedone
+            FROM {peerforum_peergrade_users} p
+            WHERE p.iduser = $userid AND p.courseid = $courseid";
+
+    $all_posts = $DB->get_records_sql($sql);
+
+    $posts_peergraded = array();
+
+    // Verify which posts the user have already peergraded
+    foreach ($all_posts as $postid => $value) {
+        if (!empty($all_posts[$postid]->postspeergradedone)) {
+            $posts_peergraded = explode(";", ($all_posts[$postid]->postspeergradedone));
+            $posts_peergraded = array_filter($posts_peergraded);
+        }
+    }
+    return $posts_peergraded;
+}
+
+/**
+ * Returns the expired posts of a given user
+ *
+ * @param int $userid
+ * @param int $courseid
+ * @return array of expired posts.
+ * @global object
+ */
+function peerforum_get_user_posts_expired($userid, $courseid) {
+    global $DB;
+
+    // Get all the posts
+    $sql = "SELECT p.id, p.postsexpired
+            FROM {peerforum_peergrade_users} p
+            WHERE p.iduser = $userid AND p.courseid = $courseid";
+
+    $all_posts = $DB->get_records_sql($sql);
+
+    $posts_expired = array();
+
+    // Verify which posts the user have already peergraded
+    foreach ($all_posts as $postid => $value) {
+        if (!empty($all_posts[$postid]->postsexpired)) {
+            $posts_expired = explode(";", ($all_posts[$postid]->postsexpired));
+            $posts_expired = array_filter($posts_expired);
+        }
+    }
+    return $posts_expired;
+}
+
+/**
+ * Returns array of peerforum posts filters
+ *
+ * @return array
+ */
+function peerforum_get_manage_posts_filters() {
+    return array(MANAGEPOSTS_MODE_SEEALL => get_string('managepostsmodeseeall', 'peerforum'),
+            MANAGEPOSTS_MODE_SEEGRADED => get_string('managepostsmodeseegraded', 'peerforum'),
+            MANAGEPOSTS_MODE_SEENOTGRADED => get_string('managepostsmodeseenotgraded', 'peerforum'),
+            MANAGEPOSTS_MODE_SEEEXPIRED => get_string('managepostsmodeseeexpired', 'peerforum'),
+            MANAGEPOSTS_MODE_SEENOTEXPIRED => get_string('managepostsmodeseenotexpired', 'peerforum'));
+}
+
+/**
+ * Returns the status of a post for a given user (blocked/peergraded)
+ *
+ * @param int $postid
+ * @param int $userid
+ * @param int $courseid
+ * @return int 0 -> post is not peergraded / 1 -> post is blocked
+ * @global object
+ */
+function get_post_status($postid, $userid, $courseid) {
+    global $DB;
+
+    $posts_user = $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $userid));
+
+    if (!empty($posts_user)) {
+        $posts_blocked = $posts_user->postsblocked;
+        $posts_topeergrade = $posts_user->poststopeergrade;
+
+        adjust_database();
+
+        if (!empty($posts_blocked)) {
+            $blocked = explode(';', $posts_blocked);
+            $blocked = array_filter($blocked);
+            if (in_array($postid, $blocked)) {
+                return 1;
+            }
+        }
+        if (!empty($posts_topeergrade)) {
+            $topeergrade = explode(';', $posts_topeergrade);
+            $topeergrade = array_filter($topeergrade);
+            if (in_array($postid, $topeergrade)) {
+                return 0;
+            }
+        }
+    }
+}
+
+/**
+ * Verify if a given peergrade was given to a post by a peergrader (user)
+ *
+ * @param int $postid
+ * @param int $peergrader
+ * @return int 0 -> peergrade do not exist / 1 -> peergrade exists
+ * @global object
+ */
+function verify_peergrade($postid, $peergrader) {
+    global $DB;
+
+    $peergrade = $DB->get_record('peerforum_peergrade', array('itemid' => $postid, 'userid' => $peergrader));
+
+    if (empty($peergrade)) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+/**
+ * Returns the posts graded
+ *
+ * @param array $posts
+ * @return array of posts already peergraded
+ */
+function get_posts_graded($posts) {
+    $array_posts = array();
+
+    foreach ($posts as $i => $value) {
+        $postid = $posts[$i]->postid;
+        $count_graders = count($posts[$i]->peergraders);
+        $peergraders = $posts[$i]->peergraders;
+
+        if (!empty($peergraders)) {
+            for ($k = 0; $k < $count_graders; $k++) {
+                $peergraderid = $posts[$i]->peergraders[$k]->id;
+                $peergradedone = verify_peergrade($postid, $peergraderid);
+
+                if ($peergradedone == 0) {
+                    foreach ($peergraders as $x => $value) {
+                        $id_user = $peergraders[$x]->id;
+                        if ($peergraderid == $id_user) {
+                            unset($peergraders[$x]);
+                            break;
+                        }
+                    }
+                }
+            }
+            $peergraders = array_values($peergraders);
+
+            $posts[$i]->peergraders = $peergraders;
+            array_push($array_posts, $posts[$i]);
+        }
+    }
+
+    foreach ($array_posts as $y => $value) {
+        if (empty($array_posts[$y]->peergraders)) {
+            unset($array_posts[$y]);
+        }
+    }
+
+    return $array_posts;
+}
+
+/**
+ * Returns the posts not graded
+ *
+ * @param array $posts
+ * @return array of posts not peergraded
+ */
+function get_posts_not_graded($posts) {
+    $array_posts = array();
+
+    foreach ($posts as $i => $value) {
+        $postid = $posts[$i]->postid;
+        $count_graders = count($posts[$i]->peergraders);
+        $peergraders = $posts[$i]->peergraders;
+
+        for ($k = 0; $k < $count_graders; $k++) {
+            $peergraderid = $posts[$i]->peergraders[$k]->id;
+            $peergradedone = verify_peergrade($postid, $peergraderid);
+
+            if ($peergradedone == 1) {
+                foreach ($peergraders as $x => $value) {
+                    $id_user = $peergraders[$x]->id;
+                    if ($peergraderid == $id_user) {
+                        unset($peergraders[$x]);
+                        break;
+                    }
+                }
+            }
+        }
+        $peergraders = array_values($peergraders);
+
+        $posts[$i]->peergraders = $peergraders;
+        array_push($array_posts, $posts[$i]);
+    }
+
+    foreach ($array_posts as $y => $value) {
+        if (empty($array_posts[$y]->peergraders)) {
+            unset($array_posts[$y]);
+        }
+    }
+
+    return $array_posts;
+}
+
+/**
+ * Returns the posts already expired
+ *
+ * @param array $posts
+ * @return array of posts expired
+ */
+function get_posts_expired($posts) {
+    $array_posts = array();
+
+    foreach ($posts as $i => $value) {
+        $postid = $posts[$i]->postid;
+        $count_graders = count($posts[$i]->peergraders);
+        $peergraders = $posts[$i]->peergraders;
+
+        for ($k = 0; $k < $count_graders; $k++) {
+            $peergraderid = $posts[$i]->peergraders[$k]->id;
+            $time_expire = get_time_expire($postid, $peergraderid);
+
+            if ($time_expire->invert == 1) {
+                //    array_push($array_posts, $posts[$i]);
+                $key = array_search($peergraderid, $peergraders);
+                unset($peergraders[$key]);
+                $peergraders = array_values($peergraders);
+            }
+        }
+
+        $posts[$i]->peergraders = $peergraders;
+        if (!empty($peergraders)) {
+            array_push($array_posts, $posts[$i]);
+        }
+    }
+    return $array_posts;
+}
+
+/**
+ * Returns the posts not expired
+ *
+ * @param array $posts
+ * @return array of posts not expired
+ */
+function get_posts_not_expired($posts) {
+
+    $array_posts = array();
+
+    foreach ($posts as $i => $value) {
+        $postid = $posts[$i]->postid;
+        $count_graders = count($posts[$i]->peergraders);
+        $peergraders = $posts[$i]->peergraders;
+
+        for ($k = 0; $k < $count_graders; $k++) {
+            $peergraderid = $posts[$i]->peergraders[$k]->id;
+            $time_expire = get_time_expire($postid, $peergraderid);
+
+            if ($time_expire->invert == 0) {
+                //array_push($array_posts, $posts[$i]);
+                $key = array_search($peergraderid, $peergraders);
+                unset($peergraders[$key]);
+                $peergraders = array_values($peergraders);
+
+            }
+        }
+
+        $posts[$i]->peergraders = $peergraders;
+
+        if (!empty($peergraders)) {
+            array_push($array_posts, $posts[$i]);
+        }
+    }
+    return $array_posts;
+}
+
+/**
+ * Returns array of peerforum graders filters
+ *
+ * @return array
+ */
+function peerforum_get_manage_graders_filters() {
+    return array(MANAGEGRADERS_MODE_SEEEXPIRED => get_string('managegradersmodeseeexpired', 'peerforum'),
+            MANAGEGRADERS_MODE_SEENOTGRADED => get_string('managegradersmodeseenotgraded', 'peerforum'));
+}
+
+/**
+ * Returns array of peerforum view peergrades filters
+ *
+ * @return array
+ */
+function peerforum_get_view_peergrades_filters() {
+    return array(VIEWPEERGRADES_MODE_SEEALL => get_string('viewpeergradesmodeseeall', 'peerforum'),
+            VIEWPEERGRADES_MODE_SEEWARNINGS => get_string('viewpeergradesmodeseewarnings', 'peerforum'),
+            VIEWPEERGRADES_MODE_SEEOUTLIERS => get_string('viewpeergradesmodeseeoutliers', 'peerforum'));
+}
+
+/**
+ * Returns the status of a user (blocked or unblocked)
+ *
+ * @param int $iduser
+ * @param int $courseid
+ * @return int status of a user (0 -> unblocked , 1 -> blocked).
+ * @global object
+ */
+function get_student_status($userid, $courseid) {
+    global $DB;
+
+    $status_db = $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $userid));
+
+    if (!empty($status_db)) {
+        return $status_db->userblocked;
+    }
+}
+
+/**
+ * Returns all the posts expired of a user in a course for the Peer Grade panel
+ *
+ * @param int $infograder
+ * @param int $courseid
+ * @return stdClass $infograder with the posts expired updated.
+ * @global object
+ */
+function get_posts_expired_infograder($infograder, $courseid) {
+    global $DB;
+
+    foreach ($infograder as $id => $value) {
+        $posts_to_print = array();
+        $authorid = $infograder[$id][0]->authorid;
+        $postsexpired =
+                $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $authorid))->postsexpired;
+        $posts = array();
+        if (!empty($postsexpired)) {
+            $postsexpired = explode(';', $postsexpired);
+            $postsexpired = array_filter($postsexpired);
+
+            $infograder[$id][0]->poststopeergrade = $postsexpired;
+        }
+    }
+    return $infograder;
+}
+
+/**
+ * Updates all the posts expired in the database
+ *
+ * @return
+ * @global object
+ */
+function update_all_posts_expired() {
+    global $DB;
+    adjust_database();
+
+    $users = $DB->get_records('peerforum_peergrade_users');
+
+    if (!empty($users)) {
+        foreach ($users as $key => $value) {
+            $userid = $users[$key]->iduser;
+            $poststopeergrade = $users[$key]->poststopeergrade;
+
+            if (!empty($poststopeergrade)) {
+                $poststopeergrade = explode(';', $poststopeergrade);
+                $poststopeergrade = array_filter($poststopeergrade);
+
+                foreach ($poststopeergrade as $id => $value) {
+                    $post = peerforum_get_post_full($poststopeergrade[$id]);
+                    $discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion));
+                    $peerforum = $DB->get_record('peerforum', array('id' => $discussion->peerforum));
+                    $course = $DB->get_record('course', array('id' => $peerforum->course));
+
+                    verify_post_expired($post->id, $peerforum, $userid, $course->id);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Verifies if a post already expired and returns time information about the post
+ *
+ * @param int $postid
+ * @param stdClass $peerforum
+ * @param int $userid
+ * @param int $courseid
+ * @return stdClass time information about the post.
+ * @global object
+ * @global object
+ */
+function verify_post_expired($postid, $peerforum, $userid, $courseid) {
+    global $DB, $PAGE;
+
+    //verify if the user can peergrade in a period of time
+    $time_assign = get_time_assigned($postid, $userid);
+
+    if (!empty($time_assign)) {
+        $time_assigned_db = usergetdate($time_assign);
+
+        $time_to_peergrade = $peerforum->timetopeergrade;
+
+        $date_time_assigned = new stdClass();
+        $date_time_assigned->year = $time_assigned_db['year'];
+        $date_time_assigned->mon = $time_assigned_db['mon'];
+        $date_time_assigned->mday = $time_assigned_db['mday'];
+        $date_time_assigned->hours = $time_assigned_db['hours'];
+        $date_time_assigned->minutes = $time_assigned_db['minutes'];
+        $date_time_assigned->seconds = $time_assigned_db['seconds'];
+
+        $time_assigned =
+                new DateTime("$date_time_assigned->year-$date_time_assigned->mon-$date_time_assigned->mday $date_time_assigned->hours:$date_time_assigned->minutes:$date_time_assigned->seconds");
+
+        $time = 'P' . $time_to_peergrade . 'D';
+
+        $time_finish = $time_assigned;
+
+        $time_finish->add(new DateInterval("$time"));
+
+        $time_current_db = usergetdate(time());
+
+        $date_time_current = new stdClass();
+        $date_time_current->year = $time_current_db['year'];
+        $date_time_current->mon = $time_current_db['mon'];
+        $date_time_current->mday = $time_current_db['mday'];
+        $date_time_current->hours = $time_current_db['hours'];
+        $date_time_current->minutes = $time_current_db['minutes'];
+        $date_time_current->seconds = $time_current_db['seconds'];
+
+        $time_current =
+                new DateTime("$date_time_current->year-$date_time_current->mon-$date_time_current->mday $date_time_current->hours:$date_time_current->minutes:$date_time_current->seconds");
+
+        $time_interval = date_diff($time_finish, $time_current);
+
+        $post_expired = true;
+
+        $data = new stdclass();
+
+        if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            $data->post_expired = false;
+            $data->time_interval = $time_interval;
+            $data->time_current = $time_current;
+
+        } else if ($time_current <= $time_finish && $time_interval->invert > 0) {
+            $data->post_expired = false;
+            $data->time_interval = $time_interval;
+            $data->time_current = $time_current;
+
+        } else {
+            $data->post_expired = true;
+            $data->time_interval = 0;
+            $data->time_current = 0;
+
+            update_post_expired($postid, $userid, $courseid);
+        }
+
+        return $data;
+    } else {
+        return null;
+    }
+}
+
+/**
+ * Updates a post which expired in the database
+ *
+ * @param int $postid
+ * @param int $userid
+ * @param int $courseid
+ * @return
+ * @global object
+ */
+function update_post_expired($postid, $userid, $courseid) {
+    global $DB;
+
+    adjust_database();
+
+    $posts_user = $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $userid));
+
+    if (user_has_role_assignment($userid, 5)) {
+        $isstudent = true;
+    } else {
+        $isstudent = false;
+    }
+
+    if (!empty($posts_user)) {
+
+        if ($isstudent) {
+
+            $data = new stdClass();
+            $data->id = $posts_user->id;
+
+            if (!empty($posts_user)) {
+
+                $poststopeergrade = $posts_user->poststopeergrade;
+                $poststopeergrade = explode(';', $poststopeergrade);
+                $poststopeergrade = array_filter($poststopeergrade);
+
+                if (in_array($postid, $poststopeergrade)) {
+                    $key = array_search($postid, $poststopeergrade);
+                    unset($poststopeergrade[$key]);
+                    $poststopeergrade = array_filter($poststopeergrade);
+
+                    $poststopeergrade = implode(';', $poststopeergrade);
+                    $data->poststopeergrade = $poststopeergrade;
+
+                    $DB->update_record("peerforum_peergrade_users", $data);
+
+                    $posts_expired = $posts_user->postsexpired;
+                    $posts_expired = explode(';', $posts_expired);
+                    $posts_expired = array_filter($posts_expired);
+
+                    if (!in_array($postid, $posts_expired)) {
+                        array_push($posts_expired, $postid);
+                        $posts_expired = array_filter($posts_expired);
+                        $posts_expired = implode(';', $posts_expired);
+
+                        $data->postsexpired = $posts_expired;
+
+                        $DB->update_record('peerforum_peergrade_users', $data);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Returns the peergrades given by the professors to a user
+ *
+ * @param stdClass $peerforum
+ * @param int $userid
+ * @return stdClass grade
+ * @global object
+ */
+function peerforum_get_user_professors_peergrades($peerforum, $userid = 0) {
+    global $CFG;
+
+    if ($peerforum->peergradeassessed) {
+        require_once($CFG->dirroot . '/peergrade/lib.php');
+
+        $peergradeoptions = new stdClass;
+        $peergradeoptions->component = 'mod_peerforum';
+        $peergradeoptions->peergradearea = 'post';
+
+        //need these to work backwards to get a context id. Is there a better way to get contextid from a module instance?
+        $peergradeoptions->modulename = 'peerforum';
+        $peergradeoptions->moduleid = $peerforum->id;
+        $peergradeoptions->userid = $userid;
+        $peergradeoptions->aggregationmethod = $peerforum->peergradeassessed;
+        $peergradeoptions->peergradescaleid = $peerforum->peergradescale;
+        $peergradeoptions->itemtable = 'peerforum_posts';
+        $peergradeoptions->itemtableusercolumn = 'userid';
+
+        $pm = new peergrade_manager();
+        return $pm->get_user_professors_peergrades($peergradeoptions);
+    } else {
+        return null;
+    }
+}
+
+/**
+ * Returns the mode of an array of int's
+ *
+ * @param array $array
+ * @return int mode
+ */
+function mode($array) {
+    if (count(array_unique($array)) < count($array)) {
+        // Array has duplicates
+        $values = array_count_values($array);
+        $mode = array_search(max($values), $values);
+    } else {
+        $mode = null;
+    }
+
+    return $mode;
+}
+
+/**
+ * Returns the average of an array of int's
+ *
+ * @param array $array
+ * @return float average
+ */
+function average($array) {
+    if (!count($array)) {
+        return 0;
+    }
+
+    $sum = 0;
+    for ($i = 0; $i < count($array); $i++) {
+        $sum += $array[$i];
+    }
+
+    return $sum / count($array);
+}
+
+/**
+ * Returns the square of value - mean of an array
+ *
+ * @param array $array
+ * @return float mean
+ */
+function sd_square($x, $mean) {
+    return pow($x - $mean, 2);
+}
+
+/**
+ * Returns the standard deviation (uses sd_square) of an array
+ *
+ * @param array $array
+ * @return float standard deviation
+ */
+function standart_deviation($array) {
+    $div = (count($array) - 1);
+    if ($div != 0) {
+        // square root of sum of squares devided by N-1
+        return sqrt(array_sum(array_map("sd_square", $array, array_fill(0, count($array), (array_sum($array) / count($array))))) /
+                $div);
+    }
+}
+
+/**
+ * Returns the grading related permissions
+ *
+ * @param int $contextid
+ * @param string $component
+ * @param string $gradingarea
+ * @return array with permissions
+ */
+function peerforum_grading_permissions($contextid, $component, $gradingarea) {
+
+    $context = context::instance_by_id($contextid, MUST_EXIST);
+    if ($component != 'mod_peerforum' || $gradingarea != 'post') {
+        // We don't know about this component/ratingpeerarea so just return null to get the
+        // default restrictive permissions.
+        return null;
+    }
+    return array(
+            'view' => has_capability('mod/peerforum:viewgrade', $context),
+            'viewany' => has_capability('mod/peerforum:viewanygrade', $context),
+            'viewall' => has_capability('mod/peerforum:viewallgrades', $context),
+            'grade' => has_capability('mod/peerforum:grade', $context)
+    );
+}
+
+/**
+ * Returns the name of all students enrolled in a given course
+ *
+ * @param int $courseid
+ * @return array with student names enrolled to a course
+ * @global object
+ */
+function get_students_enroled_name($courseid) {
+    global $DB;
+    $students = get_students_enroled($courseid);
+
+    $all_students = array(); //[id]->nome completo
+
+    $sql = "SELECT u.id, concat(u.firstname, ' ', u.lastname) as name
+            FROM mdl_user u";
+
+    $result = $DB->get_records_sql($sql);
+
+    foreach ($students as $id => $value) {
+        $all_students[$id] = $result[$id]->name;
+    }
+
+    return $all_students;
+}
+
+/**
+ * Returns the time when a post was assigned to peergrade to a given user
+ *
+ * @param int $courseid
+ * @return int time when post was assigned to the user.
+ * @global object
+ */
+function get_time_assigned($postid, $userid) {
+    global $DB;
+
+    $time = $DB->get_record('peerforum_time_assigned', array('postid' => $postid, 'userid' => $userid));
+
+    if (!empty($time)) {
+        return $time->timeassigned;
+    } else {
+        return null;
+    }
+}
+
+/**
+ * Verifies if a user can peer grade, depending on the final grade mode (only student, only teacher, student and teacher)
+ *
+ * @param int $isstudent
+ * @param int $final_grade_mode
+ * @return boolean true if the user can peer grade the post.
+ */
+function can_user_peergrade_opt($isstudent, $final_grade_mode) {
+    if (($isstudent && $final_grade_mode != 1) || (!$isstudent && $final_grade_mode != 2) || $final_grade_mode == 3) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/**
+ * Verifies if a user can still edit a post
+ *
+ * @param int $itemid
+ * @param int $userid
+ * @return int 0 -> user cannot edit (time expired) / 1 -> user can edit.
+ * @global object
+ * @global object
+ */
+function verify_time_to_edit($itemid, $userid) {
+    global $CFG, $DB;
+
+    $peergrade_timecreated_db = $DB->get_record('peerforum_peergrade', array('itemid' => $itemid, 'userid' => $userid));
+
+    if (!empty($peergrade_timecreated_db)) {
+        $peergrade_timecreated = $peergrade_timecreated_db->timecreated;
+
+        if ((time() - $peergrade_timecreated) < $CFG->maxeditingtime) {
+            $time_to_edit = 1;
+        } else {
+            $time_to_edit = 0;
+        }
+    } else {
+        $time_to_edit = 0;
+    }
+
+    return $time_to_edit;
+}
+
+/**
+ * Returns an array of users that must peergrade a given post
+ *
+ * @param int $postid
+ * @return array of post' peergraders.
+ * @global object
+ */
+function get_post_peergraders($postid) {
+    global $DB;
+
+    $post = $DB->get_record('peerforum_posts', array('id' => $postid));
+    $peergraders = $post->peergraders;
+
+    $peers = explode(';', $peergraders);
+    $peers = array_filter($peers);
+
+    return $peers;
+}
+
+/**
+ * Returns an array of users assigned to peer grade a given post
+ *
+ * @param int $itemid
+ * @return array of user's assigned.
+ * @global object
+ */
+function get_peers_assigned_to_post($itemid) {
+    global $DB;
+
+    $peers_topeergrade = $DB->get_record('peerforum_users_assigned', array('postid' => $itemid))->assigned_users;
+
+    $peers_topeergrade = explode(';', $peers_topeergrade);
+    $peers_topeergrade = array_filter($peers_topeergrade);
+
+    return $peers_topeergrade;
+}
+
+/**
+ * Returns an array of students' names
+ *
+ * @param array $students
+ * @return array of students' names.
+ */
+function get_students_name($students) {
+    $assigned_students = array();
+
+    foreach ($students as $key => $value) {
+        $assigned_students[$key] = get_student_name($students[$key]);
+    }
+
+    return $assigned_students;
+}
+
+/**
+ * Returns the name of a given student
+ *
+ * @param int $userid
+ * @return string of student's name.
+ * @global object
+ */
+function get_student_name($userid) {
+    global $DB;
+
+    $sql = "SELECT u.id, concat(u.firstname, ' ', u.lastname) as name
+            FROM mdl_user u
+            WHERE u.id = $userid";
+
+    $student = $DB->get_records_sql($sql);
+
+    return $student[$userid]->name;
+}
+
+/**
+ * Returns an array of students assigned to a post
+ *
+ * @param int $postid
+ * @return array of student's assigned.
+ * @global object
+ */
+function get_assigned_users($postid) {
+    global $DB;
+
+    $info = $DB->get_record('peerforum_users_assigned', array('postid' => $postid));
+
+    $assigned = array();
+
+    if (!empty($info)) {
+        $users_assigned = $info->assigned_users;
+        $users_assigned = explode(';', $users_assigned);
+        $users_assigned = array_filter($users_assigned);
+
+        foreach ($users_assigned as $key => $value) {
+            $id = $users_assigned[$key];
+            $assigned[$id] = $users_assigned[$key];
+        }
+    }
+    return $assigned;
+}
+
+/**
+ * Returns an array of students not assigned to a post
+ *
+ * @param int $postid
+ * @return array of student's not assigned.
+ * @global object
+ */
+function get_not_assigned_users($postid) {
+    global $DB;
+
+    $info = $DB->get_record('peerforum_users_assigned', array('postid' => $postid));
+
+    $not_assigned = array();
+
+    if (!empty($info)) {
+        $users_not_assigned = $info->not_assigned_users;
+        $users_not_assigned = explode(';', $users_not_assigned);
+        $users_not_assigned = array_filter($users_not_assigned);
+
+        foreach ($users_not_assigned as $key => $value) {
+            $id = $users_not_assigned[$key];
+            $not_assigned[$id] = $users_not_assigned[$key];
+        }
+    }
+    return $not_assigned;
+}
+
+/**
+ * Returns an array of students assigned to a post in a given course
+ *
+ * @param int $courseid
+ * @param int $postid
+ * @return array of student's assigned to a post in a course.
+ * @global object
+ */
+function get_students_assigned($courseid, $postid) {
+    global $DB;
+
+    $peergraders = $DB->get_record('peerforum_posts', array('id' => $postid))->peergraders;
+
+    $peers = explode(';', $peergraders);
+    $peers = array_filter($peers);
+
+    $assigned = array();
+
+    adjust_database();
+
+    foreach ($peers as $i => $value) {
+        $id = $peers[$i];
+        //verify if post was not already peer graded by this student, cannot remove student if post was already peer graded by him
+        $posts_done_db = $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $id));
+
+        if (!empty($posts_done_db)) {
+            $posts_done = $posts_done_db->postspeergradedone;
+
+            $posts = explode(';', $posts_done);
+            $posts = array_filter($posts);
+
+            if (!in_array($postid, $posts)) {
+                $assigned[$id] = $peers[$i];
+            }
+        }
+    }
+    return $assigned;
+}
+
+/**
+ * Verifies if a given user can peer grade a post
+ *
+ * @param int $already_peergraded_by_user
+ * @param int $editpostid
+ * @param int $post_topeergrade
+ * @return boolean true if the user can peer grade the post/ false otherwise.
+ */
+function can_user_peergrade($already_peergraded_by_user, $editpostid, $post_topeergrade) {
+    if ((!$already_peergraded_by_user && $editpostid == -2) || ($already_peergraded_by_user && $editpostid == -2) ||
+            (!$already_peergraded_by_user && $editpostid == -1) ||
+            ($already_peergraded_by_user && $editpostid == $post_topeergrade)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/**
+ * Returns the peergrader's names ofa given post to peer grade
+ *
+ * @param array $peers_topeergrade
+ * @param int $post_topeergrade
+ * @return array of peergrader's names.
+ * @global object
+ */
+function get_peersnames($peers_topeergrade, $post_topeergrade) {
+    global $DB;
+
+    $peers_assigned = array();
+    $last_key = max(array_keys($peers_topeergrade));
+    $peernames = array();
+    $peerids = null;
+
+    foreach ($peers_topeergrade as $key => $value) {
+        $graded =
+                $DB->get_record('peerforum_peergrade', array('itemid' => $post_topeergrade, 'userid' => $peers_topeergrade[$key]));
+        if (!empty($graded)) {
+            $color = '#339966';
+        } else {
+            $color = '#cc3300';
+        }
+
+        $peer_name = get_student_name($peers_topeergrade[$key]);
+
+        if ($key != $last_key) {
+            array_push($peernames, html_writer::tag('span', $peer_name,
+                    array('id' => 'peersassigned' . $post_topeergrade, 'style' => 'color:' . $color . ';')));
+            array_push($peernames, html_writer::tag('span', '; ', array('style' => 'color:grey;')));
+
+        } else {
+            array_push($peernames, html_writer::tag('span', $peer_name, array('style' => 'color:' . $color . ';')));
+        }
+    }
+    return $peernames;
+}
+
+/**
+ * Returns the time left of a given time interval
+ *
+ * @param stdClass $time_interval
+ * @return string with time formatted.
+ */
+function get_time_left($time_interval) {
+    $days = $time_interval->d;
+    $months = $time_interval->m;
+    $years = $time_interval->y;
+
+    if (!empty($years)) {
+        $time_left = $time_interval->d . 'y:' . $time_interval->d . 'M:' . $time_interval->d . 'd:' . $time_interval->h . 'h:' .
+                $time_interval->i . 'm';
+    } else if (!empty($months)) {
+        $time_left = $time_interval->d . 'M:' . $time_interval->d . 'd:' . $time_interval->h . 'h:' . $time_interval->i . 'm';
+    } else if (!empty($days)) {
+        $time_left = $time_interval->d . 'd:' . $time_interval->h . 'h:' . $time_interval->i . 'm';
+    } else {
+        $time_left = $time_interval->h . 'h:' . $time_interval->i . 'm';
+    }
+
+    return $time_left;
+}
+
+/**
+ * Validates a submitted peergrade
+ *
+ * @param array $params submitted data
+ *            context => object the context in which the peergraded items exists [required]
+ *            component => The component for this module - should always be mod_peerforum [required]
+ *            peergradearea => object the context in which the peergraded items exists [required]
+ *            itemid => int the ID of the object being peergraded [required]
+ *            scaleid => int the scale from which the user can select a peergrade. Used for bounds checking. [required]
+ *            ratingpeer => int the submitted peergrade [required]
+ *            ratedpeeruserid => int the id of the user whose items have been peergraded. NOT the user who submitted the
+ *         peergrading. 0 to update all. [required] aggregation => int the aggregation method to apply when calculating grades ie
+ *         PEERGRADE_AGGREGATE_AVERAGE [required]
+ * @return boolean true if the peergrade is valid. Will throw peergrade_exception if not
+ */
+function peerforum_peergrade_validate($params) {
+    global $DB, $USER;
+
+    // Check the component is mod_peerforum
+    if ($params['component'] != 'mod_peerforum') {
+        throw new peergrade_exception('invalidcomponent');
+    }
+
+    // Check the peergradearea is post (the only ratingpeer area in peerforum)
+    if ($params['peergradearea'] != 'post') {
+        throw new peergrade_exception('invalidpeergradearea');
+    }
+
+    // Check the ratedpeeruserid is not the current user .. you can't ratepeer your own posts
+    if ($params['peergradeduserid'] == $USER->id) {
+        throw new peergrade_exception('nopermissiontopeergrade');
+    }
+
+    // Fetch all the related records ... we need to do this anyway to call peerforum_user_can_see_post
+    $post = $DB->get_record('peerforum_posts', array('id' => $params['itemid'], 'userid' => $params['peergradeduserid']), '*',
+            MUST_EXIST);
+    $discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion), '*', MUST_EXIST);
+    $peerforum = $DB->get_record('peerforum', array('id' => $discussion->peerforum), '*', MUST_EXIST);
+    $course = $DB->get_record('course', array('id' => $peerforum->course), '*', MUST_EXIST);
+    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id, $course->id, false, MUST_EXIST);
+    $context = context_module::instance($cm->id);
+
+    // Make sure the context provided is the context of the peerforum
+    if ($context->id != $params['context']->id) {
+        throw new peergrade_exception('invalidcontext');
+    }
+
+    if ($peerforum->peergradescale != $params['peergradescaleid']) {
+        //the scale being submitted doesnt match the one in the database
+        throw new peergrade_exception('invalidscaleid');
+    }
+
+    // check the item we're ratingpeer was created in the assessable time window
+    if (!empty($peerforum->assesstimestart) && !empty($peerforum->assesstimefinish)) {
+        if ($post->created < $peerforum->assesstimestart || $post->created > $peerforum->assesstimefinish) {
+            throw new peergrade_exception('notavailable');
+        }
+    }
+
+    //check that the submitted ratingpeer is valid for the scale
+
+    // lower limit
+    if ($params['peergrade'] < 0 && $params['peergrade'] != PEERGRADE_UNSET_PEERGRADE) {
+        throw new peergrade_exception('invalidnum4');
+    }
+
+    // upper limit
+
+    if ($peerforum->peergradescale < 0) {
+        //its a custom scale
+        $peergradescalerecord = $DB->get_record('peergradescale', array('id' => -$peerforum->peergradescale));
+
+        if ($peergradescalerecord) {
+            $peergradescalearray = explode(',', $peergradescalerecord->peergradescale);
+            if ($params['peergrade'] > count($peergradescalearray)) {
+                throw new peergrade_exception('invalidnum');
+            }
+        } else {
+            throw new peergrade_exception('invalidscaleid');
+        }
+    } else if ($params['peergrade'] > $peerforum->peergradescale) {
+        //if its numeric and submitted peergrade is above maximum
+        throw new peergrade_exception('invalidnum8');
+    }
+
+    // Make sure groups allow this user to see the item they're ratingpeer
+    if ($discussion->groupid > 0 and $groupmode = groups_get_activity_groupmode($cm, $course)) {   // Groups are being used
+        if (!groups_group_exists($discussion->groupid)) { // Can't find group
+            throw new peergrade_exception('cannotfindgroup');//something is wrong
+        }
+
+        if (!groups_is_member($discussion->groupid) and !has_capability('moodle/site:accessallgroups', $context)) {
+            // do not allow ratingpeer of posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS
+            throw new peergrade_exception('notmemberofgroup');
+        }
+    }
+
+    // perform some final capability checks
+    if (!peerforum_user_can_see_post($peerforum, $discussion, $post, $USER, $cm)) {
+        throw new peergrade_exception('nopermissiontoratepeer');
+    }
+
+    return true;
+}
+
+/**
+ * Returns the students that can be removed from peer grading a post
+ *
+ * @param int $courseid
+ * @param int $postid
+ * @param int $postauthor
+ * @param int optional $peerforumid
+ * @return array with students that can be removed.
+ * @global object
+ */
+function get_students_can_be_removed($courseid, $postid, $postauthor, $peerforumid = null) {
+    global $DB;
+
+    $peergraders_db = $DB->get_record('peerforum_posts', array('id' => $postid, 'userid' => $postauthor));
+
+    if (!empty($peergraders_db)) {
+        $peergraders = $peergraders_db->peergraders;
+        $peergraders = explode(';', $peergraders);
+        $peergraders = array_filter($peergraders);
+
+        return $peergraders;
+    } else {
+        return null;
+    }
+}
+
+//------------------------------------------------//
+
 /// STANDARD FUNCTIONS ///////////////////////////////////////////////////////////
 
 /**
@@ -90,7 +2364,7 @@ function peerforum_add_instance($peerforum, $mform = null) {
         $peerforum->assessed = 0;
     }
 
-    if (empty($peerforum->ratingtime) or empty($peerforum->assessed)) {
+    if (empty($peerforum->ratingpeertime) or empty($peerforum->assessed)) {
         $peerforum->assesstimestart = 0;
         $peerforum->assesstimefinish = 0;
     }
@@ -120,9 +2394,8 @@ function peerforum_add_instance($peerforum, $mform = null) {
             $post = $DB->get_record('peerforum_posts', array('id' => $discussion->firstpost), '*', MUST_EXIST);
 
             $options = array('subdirs' => true); // Use the same options as intro field!
-            $post->message =
-                    file_save_draft_area_files($draftid, $modcontext->id, 'mod_peerforum', 'post', $post->id, $options,
-                            $post->message);
+            $post->message = file_save_draft_area_files($draftid, $modcontext->id, 'mod_peerforum', 'post', $post->id, $options,
+                    $post->message);
             $DB->set_field('peerforum_posts', 'message', $post->message, array('id' => $post->id));
         }
     }
@@ -168,15 +2441,20 @@ function peerforum_update_instance($peerforum, $mform) {
         $peerforum->assessed = 0;
     }
 
-    if (empty($peerforum->ratingtime) or empty($peerforum->assessed)) {
+    if (empty($peerforum->ratingpeertime) or empty($peerforum->assessed)) {
         $peerforum->assesstimestart = 0;
         $peerforum->assesstimefinish = 0;
+    }
+
+    if (empty($peerforum->peergradetime) or empty($peerforum->peergradeassessed)) {
+        $peerforum->peergradeassesstimestart = 0;
+        $peerforum->peergradeassesstimefinish = 0;
     }
 
     $oldpeerforum = $DB->get_record('peerforum', array('id' => $peerforum->id));
 
     // MDL-3942 - if the aggregation type or scale (i.e. max grade) changes then recalculate the grades for the entire peerforum
-    // if  scale changes - do we need to recheck the ratings, if ratings higher than scale how do we want to respond?
+    // if  scale changes - do we need to recheck the ratingpeers, if ratingpeers higher than scale how do we want to respond?
     // for count and sum aggregation types the grade we check to make sure they do not exceed the scale (i.e. max score) when calculating the grade
     if (($oldpeerforum->assessed <> $peerforum->assessed) or ($oldpeerforum->scale <> $peerforum->scale)) {
         peerforum_update_grades($peerforum); // recalculate grades for the peerforum
@@ -228,9 +2506,8 @@ function peerforum_update_instance($peerforum, $mform) {
         if ($mform and $draftid = file_get_submitted_draft_itemid('introeditor')) {
             // Ugly hack - we need to copy the files somehow.
             $options = array('subdirs' => true); // Use the same options as intro field!
-            $post->message =
-                    file_save_draft_area_files($draftid, $modcontext->id, 'mod_peerforum', 'post', $post->id, $options,
-                            $post->message);
+            $post->message = file_save_draft_area_files($draftid, $modcontext->id, 'mod_peerforum', 'post', $post->id, $options,
+                    $post->message);
         }
 
         $DB->update_record('peerforum_posts', $post);
@@ -780,6 +3057,14 @@ function peerforum_cron() {
                         'Auto-Submitted: auto-generated',
                 );
 
+                if ($post->parent) {
+                    // This post is a reply, so add headers for threading (see MDL-22551).
+                    $userfrom->customheaders[] =
+                            'In-Reply-To: ' . peerforum_get_email_message_id($post->parent, $userto->id, $hostname);
+                    $userfrom->customheaders[] =
+                            'References: ' . peerforum_get_email_message_id($post->parent, $userto->id, $hostname);
+                }
+
                 $shortname = format_string($course->shortname, true, array('context' => context_course::instance($course->id)));
 
                 // Generate a reply-to address from using the Inbound Message handler.
@@ -817,30 +3102,6 @@ function peerforum_cron() {
                 $a->peerforumname = $cleanpeerforumname;
                 $a->subject = $data->get_subject();
                 $postsubject = html_to_text(get_string('postmailsubject', 'peerforum', $a), 0);
-
-                $rootid = peerforum_get_email_message_id($discussion->firstpost, $userto->id, $hostname);
-
-                if ($post->parent) {
-                    // This post is a reply, so add reply header (RFC 2822).
-                    $parentid = peerforum_get_email_message_id($post->parent, $userto->id, $hostname);
-                    $userfrom->customheaders[] = "In-Reply-To: $parentid";
-
-                    // If the post is deeply nested we also reference the parent message id and
-                    // the root message id (if different) to aid threading when parts of the email
-                    // conversation have been deleted (RFC1036).
-                    if ($post->parent != $discussion->firstpost) {
-                        $userfrom->customheaders[] = "References: $rootid $parentid";
-                    } else {
-                        $userfrom->customheaders[] = "References: $parentid";
-                    }
-                }
-
-                // MS Outlook / Office uses poorly documented and non standard headers, including
-                // Thread-Topic which overrides the Subject and shouldn't contain Re: or Fwd: etc.
-                $a->subject = $discussion->name;
-                $threadtopic = html_to_text(get_string('postmailsubject', 'peerforum', $a), 0);
-                $userfrom->customheaders[] = "Thread-Topic: $threadtopic";
-                $userfrom->customheaders[] = "Thread-Index: " . substr($rootid, 1, 28);
 
                 // Send the post now!
                 mtrace('Sending ', '');
@@ -1036,7 +3297,7 @@ function peerforum_cron() {
 
                 $headerdata = new stdClass();
                 $headerdata->sitename = format_string($site->fullname, true);
-                $headerdata->userprefs = $CFG->wwwroot . '/user/peerforum.php?id=' . $userid . '&amp;course=' . $site->id;
+                $headerdata->userprefs = $CFG->wwwroot . '/user/edit.php?id=' . $userid . '&amp;course=' . $site->id;
 
                 $posttext = get_string('digestmailheader', 'peerforum', $headerdata) . "\n\n";
                 $headerdata->userprefs =
@@ -1329,7 +3590,8 @@ function peerforum_user_complete($course, $user, $mod, $peerforum) {
             }
             $discussion = $discussions[$post->discussion];
 
-            peerforum_print_post($post, $discussion, $peerforum, $cm, $course, false, false, false);
+            peerforum_print_post($post, $discussion, $peerforum, $cm, $course, false, false, false, "", "", null, true, null, false,
+                    true, false, true, null);
         }
     } else {
         echo "<p>" . get_string("noposts", "peerforum") . "</p>";
@@ -1442,11 +3704,8 @@ function peerforum_print_overview($courses, &$htmlarray) {
             . 'JOIN {peerforum_posts} p ON p.discussion = d.id '
             . "WHERE ($coursessql) "
             . 'AND p.userid != ? '
-            . 'AND (d.timestart <= ? AND (d.timeend = 0 OR d.timeend > ?)) '
             . 'GROUP BY d.id, d.peerforum, d.course, d.groupid '
             . 'ORDER BY d.course, d.peerforum';
-    $params[] = time();
-    $params[] = time();
 
     // Avoid warnings.
     if (!$discussions = $DB->get_records_sql($sql, $params)) {
@@ -1491,12 +3750,8 @@ function peerforum_print_overview($courses, &$htmlarray) {
             $params[] = $groupid;
         }
         $sql = substr($sql, 0, -3); // take off the last OR
-        $sql .= ') AND p.modified >= ? AND r.id is NULL ';
-        $sql .= 'AND (d.timestart < ? AND (d.timeend = 0 OR d.timeend > ?)) ';
-        $sql .= 'GROUP BY d.peerforum,d.course';
+        $sql .= ') AND p.modified >= ? AND r.id is NULL GROUP BY d.peerforum,d.course';
         $params[] = $cutoffdate;
-        $params[] = time();
-        $params[] = time();
 
         if (!$unread = $DB->get_records_sql($sql, $params)) {
             $unread = array();
@@ -1526,8 +3781,7 @@ function peerforum_print_overview($courses, &$htmlarray) {
         }
         if ($count > 0 || $thisunread > 0) {
             $str .= '<div class="overview peerforum"><div class="name">' . $strpeerforum . ': <a title="' . $strpeerforum .
-                    '" href="' .
-                    $CFG->wwwroot . '/mod/peerforum/view.php?f=' . $peerforum->id . '">' .
+                    '" href="' . $CFG->wwwroot . '/mod/peerforum/view.php?f=' . $peerforum->id . '">' .
                     $peerforum->name . '</a></div>';
             $str .= '<div class="info"><span class="postsincelogin">';
             $str .= get_string('overviewnumpostssince', 'peerforum', $count) . "</span>";
@@ -1636,8 +3890,7 @@ function peerforum_print_recent_activity($course, $viewfullnames, $timestart) {
             echo '"<a href="' . $CFG->wwwroot . '/mod/peerforum/discuss.php?d=' . $post->discussion . '">';
         } else {
             echo '"<a href="' . $CFG->wwwroot . '/mod/peerforum/discuss.php?d=' . $post->discussion . '&amp;parent=' .
-                    $post->parent .
-                    '#p' . $post->id . '">';
+                    $post->parent . '#p' . $post->id . '">';
         }
         $post->subject = break_up_long_words(format_string($post->subject, true));
         echo $post->subject;
@@ -1650,34 +3903,178 @@ function peerforum_print_recent_activity($course, $viewfullnames, $timestart) {
 }
 
 /**
- * Return grade for given user or all users.
+ * Return the grades of all the users.
  *
  * @param object $peerforum
- * @param int $userid optional user id, 0 means all users
- * @return array array of grades, false if none
- * @global object
+ * @param int $userid optional user id
+ * @return array grades, null if none
  * @global object
  */
 function peerforum_get_user_grades($peerforum, $userid = 0) {
     global $CFG;
 
-    require_once($CFG->dirroot . '/rating/lib.php');
+    if ($peerforum->assessed) {
+        require_once($CFG->dirroot . '/ratingpeer/lib.php');
 
-    $ratingoptions = new stdClass;
-    $ratingoptions->component = 'mod_peerforum';
-    $ratingoptions->ratingarea = 'post';
+        $ratingpeeroptions = new stdClass;
+        $ratingpeeroptions->component = 'mod_peerforum';
+        $ratingpeeroptions->ratingpeerarea = 'post';
 
-    //need these to work backwards to get a context id. Is there a better way to get contextid from a module instance?
-    $ratingoptions->modulename = 'peerforum';
-    $ratingoptions->moduleid = $peerforum->id;
-    $ratingoptions->userid = $userid;
-    $ratingoptions->aggregationmethod = $peerforum->assessed;
-    $ratingoptions->scaleid = $peerforum->scale;
-    $ratingoptions->itemtable = 'peerforum_posts';
-    $ratingoptions->itemtableusercolumn = 'userid';
+        //need these to work backwards to get a context id. Is there a better way to get contextid from a module instance?
+        $ratingpeeroptions->modulename = 'peerforum';
+        $ratingpeeroptions->moduleid = $peerforum->id;
+        $ratingpeeroptions->userid = $userid;
+        $ratingpeeroptions->aggregationmethod = $peerforum->assessed;
+        $ratingpeeroptions->scaleid = $peerforum->scale;
+        $ratingpeeroptions->itemtable = 'peerforum_posts';
+        $ratingpeeroptions->itemtableusercolumn = 'userid';
 
-    $rm = new rating_manager();
-    return $rm->get_user_grades($ratingoptions);
+        $rm = new ratingpeer_manager();
+        return $rm->get_user_grades($ratingpeeroptions);
+
+    } else {
+        return null;
+    }
+}
+
+/**
+ * Returns user's/student's grades
+ *
+ * @param object $peerforum
+ * @param int $userid
+ * @return array the array of the user's grades
+ * @global object
+ */
+function peerforum_get_user_students_peergrades($peerforum, $userid = 0) {
+    global $CFG;
+
+    if ($peerforum->peergradeassessed) {
+        require_once($CFG->dirroot . '/peergrade/lib.php');
+
+        $peergradeoptions = new stdClass;
+        $peergradeoptions->component = 'mod_peerforum';
+        $peergradeoptions->peergradearea = 'post';
+
+        //need these to work backwards to get a context id. Is there a better way to get contextid from a module instance?
+        $peergradeoptions->modulename = 'peerforum';
+        $peergradeoptions->moduleid = $peerforum->id;
+        $peergradeoptions->userid = $userid;
+        $peergradeoptions->aggregationmethod = $peerforum->peergradeassessed;
+        $peergradeoptions->peergradescaleid = $peerforum->peergradescale;
+        $peergradeoptions->itemtable = 'peerforum_posts';
+        $peergradeoptions->itemtableusercolumn = 'userid';
+
+        $pm = new peergrade_manager();
+        return $pm->get_user_students_peergrades($peergradeoptions);
+    } else {
+        return null;
+    }
+}
+
+/**
+ * Returns the time when the post was created
+ *
+ * @param int $postid
+ * @return int time when post was created.
+ * @global object
+ */
+function time_created($postid) {
+    global $DB;
+
+    $sql = "SELECT p.id, p.created
+              FROM {peerforum_posts} p
+             WHERE p.id = $postid ";
+    $post_time_created = $DB->get_records_sql($sql);
+
+    return $post_time_created[$postid]->created;
+
+}
+
+/**
+ * Returns the id of a given user
+ *
+ * @param int $iduser
+ * @return int id of a user.
+ * @global object
+ */
+function get_id($iduser) {
+    global $DB;
+
+    $sql = "SELECT p.iduser, p.id
+              FROM {peerforum_peergrade_users} p
+             WHERE p.iduser = $iduser";
+    $id_sql = $DB->get_records_sql($sql);
+
+    return $id_sql[$iduser]->id;
+}
+
+/**
+ * Returns a random number
+ *
+ * @param array $array
+ * @param int $quantity
+ * @param int $selected
+ * @return int a random number.
+ */
+function randomGen($array, $quantity, $selected) {
+    //$numbers = range($min, $max);
+    $numbers = array_rand($array, $selected);
+    shuffle($numbers);
+    return array_slice($numbers, 0, $quantity);
+}
+
+/**
+ * Returns all the professors enrolled in a course
+ *
+ * @param int $courseid
+ * @return array all the professors enrolled in a course.
+ * @global object
+ */
+function get_professors_enroled($courseid) {
+    global $DB;
+
+    //get all enroled users in course
+    $sql = "SELECT u.id, c.id as courseid, u.id as userid
+            FROM mdl_course c
+            JOIN mdl_context ct ON c.id = ct.instanceid
+            JOIN mdl_role_assignments ra ON ra.contextid = ct.id
+            JOIN mdl_user u ON u.id = ra.userid
+            JOIN mdl_role r ON r.id = ra.roleid
+            WHERE c.id = $courseid AND r.id = 3";
+
+    $enroled = $DB->get_records_sql($sql);
+
+    return $enroled;
+}
+
+/**
+ * Returns all the students' id enrolled in a course
+ *
+ * @param int $courseid
+ * @return array all the students' id enrolled in a course.
+ * @global object
+ */
+function get_students_enroled_id($courseid) {
+    global $DB;
+
+    //get all enroled users in course
+    $sql = "SELECT u.id
+            FROM mdl_course c
+            JOIN mdl_context ct ON c.id = ct.instanceid
+            JOIN mdl_role_assignments ra ON ra.contextid = ct.id
+            JOIN mdl_user u ON u.id = ra.userid
+            JOIN mdl_role r ON r.id = ra.roleid
+            WHERE c.id = $courseid AND r.id = 5";
+
+    $enroled_sql = $DB->get_records_sql($sql);
+
+    $enroled = array();
+    foreach ($enroled_sql as $key => $value) {
+        $id = $enroled_sql[$key]->id;
+        $enroled[$id] = $id;
+    }
+
+    return $enroled;
 }
 
 /**
@@ -1690,20 +4087,47 @@ function peerforum_get_user_grades($peerforum, $userid = 0) {
  * @category grade
  */
 function peerforum_update_grades($peerforum, $userid = 0, $nullifnone = true) {
+
     global $CFG, $DB;
+
     require_once($CFG->libdir . '/gradelib.php');
 
-    if (!$peerforum->assessed) {
+    if (!$peerforum->peergradeassessed || !$peerforum->assessed) {
         peerforum_grade_item_update($peerforum);
+    }
+    $peergradesstudents = peerforum_get_user_students_peergrades($peerforum, $userid);
 
-    } else if ($grades = peerforum_get_user_grades($peerforum, $userid)) {
-        peerforum_grade_item_update($peerforum, $grades);
+    $peergradesprofessors = peerforum_get_user_professors_peergrades($peerforum, $userid);
 
+    $ratepeergrades = peerforum_get_user_grades($peerforum, $userid);
+
+    if (!empty($peergradesstudents) && $peerforum->peergradeassessed) {
+        peerforum_grade_item_update($peerforum, null, $peergradesstudents, null);
+    }
+
+    if (!empty($peergradesprofessors) && $peerforum->peergradeassessed) {
+        peerforum_grade_item_update($peerforum, $peergradesprofessors, null, null);
+    }
+
+    if (!empty($ratepeergrades) && $peerforum->assessed) {
+        peerforum_grade_item_update($peerforum, null, null, $ratepeergrades);
     } else if ($userid and $nullifnone) {
+
         $grade = new stdClass();
         $grade->userid = $userid;
         $grade->rawgrade = null;
-        peerforum_grade_item_update($peerforum, $grade);
+
+        if (empty($peergradesprofessors)) {
+            $peergradesprofessors = $grade;
+        }
+        if (empty($peergradesstudents)) {
+            $peergradesstudents = $grade;
+        }
+        if (empty($ratepeergrades)) {
+            $ratepeergrades = $grade;
+        }
+
+        peerforum_grade_item_update($peerforum, $peergradesprofessors, $peergradesstudents, $ratepeergrades);
 
     } else {
         peerforum_grade_item_update($peerforum);
@@ -1721,33 +4145,89 @@ function peerforum_update_grades($peerforum, $userid = 0, $nullifnone = true) {
  * @uses GRADE_TYPE_NONE
  * @uses GRADE_TYPE_VALUE
  */
-function peerforum_grade_item_update($peerforum, $grades = null) {
+function peerforum_grade_item_update($peerforum, $peergradesprofessors = null, $peergradesstudents = null, $ratepeergrades = null) {
+
     global $CFG;
+
     if (!function_exists('grade_update')) { //workaround for buggy PHP versions
         require_once($CFG->libdir . '/gradelib.php');
     }
 
-    $params = array('itemname' => $peerforum->name, 'idnumber' => $peerforum->cmidnumber);
+    $a = new stdclass();
+    $a->peerforumname = clean_param($peerforum->name, PARAM_NOTAGS);
 
-    if (!$peerforum->assessed or $peerforum->scale == 0) {
-        $params['gradetype'] = GRADE_TYPE_NONE;
+    /*Peer grade professor*/
+    $item = array();
+    $item['idnumber'] = $peerforum->cmidnumber;
+    $item['itemname'] = get_string('gradeitemprofessorpeergrade', 'peerforum', $a);
 
+    if (!$peerforum->peergradeassessed || $peerforum->peergradescale == 0) {
+        $item['gradetype'] = GRADE_TYPE_NONE;
+    } else if ($peerforum->finalgrademode == 1) {
+        $item['gradetype'] = GRADE_TYPE_NONE;
+    } else if ($peerforum->peergradescale > 0) {
+        $item['gradetype'] = GRADE_TYPE_VALUE;
+        $item['grademax'] = $peerforum->professorpercentage;
+        $item['grademin'] = 0;
+    } else if ($peerforum->peergradescale < 0) {
+        $item['gradetype'] = GRADE_TYPE_SCALE;
+        $item['scaleid'] = -$peerforum->peergradescale;
+    }
+
+    if ($peergradesprofessors === 'reset') {
+        $item['reset'] = true;
+        $peergradesprofessors = null;
+    }
+
+    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 1, $peergradesprofessors, $item);
+
+    /*Peer grade student*/
+    $item2 = array();
+    $item2['idnumber'] = $peerforum->cmidnumber;
+    $item2['itemname'] = get_string('gradeitemstudentpeergrade', 'peerforum', $a);
+
+    if (!$peerforum->peergradeassessed || $peerforum->peergradescale == 0) {
+        $item2['gradetype'] = GRADE_TYPE_NONE;
+    } else if ($peerforum->finalgrademode == 1) {
+        $item2['gradetype'] = GRADE_TYPE_NONE;
+    } else if ($peerforum->peergradescale > 0) {
+        $item2['gradetype'] = GRADE_TYPE_VALUE;
+        $item2['grademax'] = $peerforum->studentpercentage;
+        $item2['grademin'] = 0;
+    } else if ($peerforum->peergradescale < 0) {
+        $item2['gradetype'] = GRADE_TYPE_SCALE;
+        $item2['scaleid'] = -$peerforum->peergradescale;
+    }
+
+    if ($peergradesstudents === 'reset') {
+        $item2['reset'] = true;
+        $peergradesstudents = null;
+    }
+
+    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 0, $peergradesstudents, $item2);
+    /*Rate*/
+
+    $item3 = array();
+    $item3['idnumber'] = $peerforum->cmidnumber;
+    $item3['itemname'] = get_string('gradeitemratepeer', 'peerforum', $a);
+
+    if (!$peerforum->assessed || $peerforum->scale == 0) {
+        $item3['gradetype'] = GRADE_TYPE_NONE;
     } else if ($peerforum->scale > 0) {
-        $params['gradetype'] = GRADE_TYPE_VALUE;
-        $params['grademax'] = $peerforum->scale;
-        $params['grademin'] = 0;
-
+        $item3['gradetype'] = GRADE_TYPE_VALUE;
+        $item3['grademax'] = $peerforum->scale;
+        $item3['grademin'] = 0;
     } else if ($peerforum->scale < 0) {
-        $params['gradetype'] = GRADE_TYPE_SCALE;
-        $params['scaleid'] = -$peerforum->scale;
+        $item3['gradetype'] = GRADE_TYPE_SCALE;
+        $item3['scaleid'] = -$peerforum->scale;
     }
 
-    if ($grades === 'reset') {
-        $params['reset'] = true;
-        $grades = null;
+    if ($ratepeergrades === 'reset') {
+        $item3['reset'] = true;
+        $ratepeergrades = null;
     }
 
-    return grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 0, $grades, $params);
+    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 2, $ratepeergrades, $item3);
 }
 
 /**
@@ -2035,9 +4515,8 @@ function peerforum_search_posts($searchterms, $courseid = 0, $limitfrom = 0, $li
         if (!$peerforum->viewhiddentimedposts) {
             $select[] =
                     "(d.userid = :userid{$peerforumid} OR (d.timestart < :timestart{$peerforumid} AND (d.timeend = 0 OR d.timeend > :timeend{$peerforumid})))";
-            $params = array_merge($params,
-                    array('userid' . $peerforumid => $USER->id, 'timestart' . $peerforumid => $now,
-                            'timeend' . $peerforumid => $now));
+            $params = array_merge($params, array('userid' . $peerforumid => $USER->id, 'timestart' . $peerforumid => $now,
+                    'timeend' . $peerforumid => $now));
         }
 
         $cm = $peerforum->cm;
@@ -2155,21 +4634,18 @@ function peerforum_get_unmailed_posts($starttime, $endtime, $now = null) {
         if (empty($now)) {
             $now = time();
         }
-        $selectsql = "AND (p.created >= :ptimestart OR d.timestart >= :pptimestart)";
-        $params['pptimestart'] = $starttime;
         $timedsql = "AND (d.timestart < :dtimestart AND (d.timeend = 0 OR d.timeend > :dtimeend))";
         $params['dtimestart'] = $now;
         $params['dtimeend'] = $now;
     } else {
         $timedsql = "";
-        $selectsql = "AND p.created >= :ptimestart";
     }
 
     return $DB->get_records_sql("SELECT p.*, d.course, d.peerforum
                                  FROM {peerforum_posts} p
                                  JOIN {peerforum_discussions} d ON d.id = p.discussion
                                  WHERE p.mailed = :mailed
-                                 $selectsql
+                                 AND p.created >= :ptimestart
                                  AND (p.created < :ptimeend OR p.mailnow = :mailnow)
                                  $timedsql
                                  ORDER BY p.modified ASC", $params);
@@ -3090,10 +5566,44 @@ function peerforum_get_course_peerforum($courseid, $type) {
  * @uses CONTEXT_MODULE
  */
 function peerforum_print_post($post, $discussion, $peerforum, &$cm, $course, $ownpost = false, $reply = false, $link = false,
-        $footer = "", $highlight = "", $postisread = null, $dummyifcantsee = true, $istracked = null, $return = false) {
-    global $USER, $CFG, $OUTPUT;
+        $footer = "", $highlight = "", $postisread = null, $dummyifcantsee = true, $istracked = null, $return = false,
+        $peergrade = true, $showincontext = false, $to_peergrade_block = true, $url_block = null, $actual_page = null) {
+
+    global $USER, $CFG, $OUTPUT, $DB, $PAGE;
 
     require_once($CFG->libdir . '/filelib.php');
+
+    if ($actual_page != null) {
+        $data_page = new stdClass();
+        $data_page->id = $post->id;
+        $data_page->page = $actual_page;
+        $DB->update_record('peerforum_posts', $data_page);
+    }
+
+    // get 'page' from url
+    $actual_url = $_SERVER['REQUEST_URI'];
+    $values = parse_url($actual_url, PHP_URL_QUERY);
+    $getvalues = explode('&', $values);
+
+    $currentpage = 0;
+
+    foreach ($getvalues as $i => $values) {
+        $val = explode('=', $getvalues[$i]);
+        if ($val[0] == 'page') {
+            $currentpage = $val[1];
+        }
+    }
+
+    $peerforum_db = $DB->get_record('peerforum', array('id' => $peerforum->id));
+
+    $allowpeergrade = $peerforum_db->allowpeergrade;
+
+    if ($allowpeergrade) {
+        $peergrade = true;
+    }
+    if (!$allowpeergrade) {
+        $peergrade = false;
+    }
 
     // String cache
     static $str;
@@ -3126,7 +5636,7 @@ function peerforum_print_post($post, $discussion, $peerforum, &$cm, $course, $ow
         $cm->cache->caps['mod/peerforum:splitdiscussions'] = has_capability('mod/peerforum:splitdiscussions', $modcontext);
         $cm->cache->caps['mod/peerforum:deleteownpost'] = has_capability('mod/peerforum:deleteownpost', $modcontext);
         $cm->cache->caps['mod/peerforum:deleteanypost'] = has_capability('mod/peerforum:deleteanypost', $modcontext);
-        $cm->cache->caps['mod/peerforum:viewanyrating'] = has_capability('mod/peerforum:viewanyrating', $modcontext);
+        $cm->cache->caps['mod/peerforum:viewanyratingpeer'] = has_capability('mod/peerforum:viewanyratingpeer', $modcontext);
         $cm->cache->caps['mod/peerforum:exportpost'] = has_capability('mod/peerforum:exportpost', $modcontext);
         $cm->cache->caps['mod/peerforum:exportownpost'] = has_capability('mod/peerforum:exportownpost', $modcontext);
     }
@@ -3189,6 +5699,8 @@ function peerforum_print_post($post, $discussion, $peerforum, &$cm, $course, $ow
         $str->displaymode = get_user_preferences('peerforum_displaymode', $CFG->peerforum_displaymode);
         $str->markread = get_string('markread', 'peerforum');
         $str->markunread = get_string('markunread', 'peerforum');
+        $str->peergrade = get_string('peergrade', 'peerforum');
+        $str->post = get_string('showpost', 'peerforum');
     }
 
     $discussionlink = new moodle_url('/mod/peerforum/discuss.php', array('d' => $post->discussion));
@@ -3250,6 +5762,17 @@ function peerforum_print_post($post, $discussion, $peerforum, &$cm, $course, $ow
         $commands[] = array('url' => $url, 'text' => $str->parent);
     }
 
+    // Show post in context
+    if ($showincontext) {
+        $url = new moodle_url($discussionlink);
+        if ($str->displaymode == PEERFORUM_MODE_THREADED) {
+            $url->param('parent', $post->id);
+        } else {
+            $url->set_anchor('p' . $post->id);
+        }
+        $commands[] = array('url' => $url, 'text' => $str->post);
+    }
+
     // Hack for allow to edit news posts those are not displayed yet until they are displayed
     $age = time() - $post->created;
     if (!$post->parent && $peerforum->type == 'news' && $discussion->timestart > time()) {
@@ -3279,9 +5802,27 @@ function peerforum_print_post($post, $discussion, $peerforum, &$cm, $course, $ow
                 array('url' => new moodle_url('/mod/peerforum/post.php', array('delete' => $post->id)), 'text' => $str->delete);
     }
 
-    if ($reply) {
-        $commands[] = array('url' => new moodle_url('/mod/peerforum/post.php#mformpeerforum', array('reply' => $post->id)),
-                'text' => $str->reply);
+    //if ($reply) {
+    //    $commands[] = array('url'=>new moodle_url('/mod/peerforum/post.php#mformpeerforum', array('reply'=>$post->id)), 'text'=>$str->reply);
+    //}
+    if ($reply && !$showincontext) {
+        $commands[] = array('url' => new moodle_url('/mod/peerforum/post.php#mformpeerforum',
+                array('reply' => $post->id, 'page' => $currentpage)), 'text' => $str->reply);
+    }
+
+    if ($allowpeergrade) {
+        $admins = get_admins();
+        $isadmin = false;
+
+        foreach ($admins as $admin) {
+            if ($post->userid == $admin->id) {
+                $isadmin = true;
+                break;
+            }
+        }
+        if (!($isadmin) && ($USER->id != $post->userid)) {
+            $coursecontext = context_course::instance($course->id, MUST_EXIST);
+        }
     }
 
     if ($CFG->enableportfolios &&
@@ -3417,9 +5958,37 @@ function peerforum_print_post($post, $discussion, $peerforum, &$cm, $course, $ow
         $output .= html_writer::tag('div', $attachments, array('class' => 'attachments'));
     }
 
-    // Output ratings
-    if (!empty($post->rating)) {
-        $output .= html_writer::tag('div', $OUTPUT->render($post->rating), array('class' => 'peerforum-post-rating'));
+    if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+        if ($peerforum_db->showpostid) {
+            print_object('Post id: ' . $post->id);
+        }
+    }
+
+    $output .= html_writer::tag('br', ''); // Should produce <br />
+
+    // Output ratingpeers
+    if (!empty($post->ratingpeer)) {
+        $renderer = $PAGE->get_renderer('mod_peerforum');
+        $post->ratingpeer->to_peergrade_block = $to_peergrade_block;
+        $post->ratingpeer->peerforum = $post->peerforum;
+        $post->ratingpeer->userid = $postuser->id;
+        $output .= html_writer::tag('div', $renderer->render_ratingpeer($post->ratingpeer),
+                array('class' => 'peerforum-post-ratingpeer'));
+        if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            $output .= html_writer::tag('br', ''); // Should produce <br />
+        }
+    }
+
+    // Output peergrades PEERGRADE
+    if (!empty($post->peergrade)) {
+        $post->peergrade->to_peergrade_block = $to_peergrade_block;
+        $post->peergrade->returnurl = $url_block;
+        $post->peergrade->peerforum = $post->peerforum;
+        $post->peergrade->userid = $postuser->id;
+
+        $renderer = $PAGE->get_renderer('mod_peerforum');
+        $output .= html_writer::tag('div', $renderer->render_peergrade($post->peergrade),
+                array('class' => 'peerforum-post-peergrade'));
     }
 
     // Output the commands
@@ -3479,61 +6048,61 @@ function peerforum_print_post($post, $discussion, $peerforum, &$cm, $course, $ow
 }
 
 /**
- * Return rating related permissions
+ * Return ratingpeer related permissions
  *
  * @param string $options the context id
- * @return array an associative array of the user's rating permissions
+ * @return array an associative array of the user's ratingpeer permissions
  */
-function peerforum_rating_permissions($contextid, $component, $ratingarea) {
+function peerforum_ratingpeer_permissions($contextid, $component, $ratingpeerarea) {
     $context = context::instance_by_id($contextid, MUST_EXIST);
-    if ($component != 'mod_peerforum' || $ratingarea != 'post') {
-        // We don't know about this component/ratingarea so just return null to get the
+    if ($component != 'mod_peerforum' || $ratingpeerarea != 'post') {
+        // We don't know about this component/ratingpeerarea so just return null to get the
         // default restrictive permissions.
         return null;
     }
     return array(
-            'view' => has_capability('mod/peerforum:viewrating', $context),
-            'viewany' => has_capability('mod/peerforum:viewanyrating', $context),
-            'viewall' => has_capability('mod/peerforum:viewallratings', $context),
-            'rate' => has_capability('mod/peerforum:rate', $context)
+            'view' => has_capability('mod/peerforum:viewratingpeer', $context),
+            'viewany' => has_capability('mod/peerforum:viewanyratingpeer', $context),
+            'viewall' => has_capability('mod/peerforum:viewallratingpeer', $context),
+            'ratepeer' => has_capability('mod/peerforum:ratepeer', $context)
     );
 }
 
 /**
- * Validates a submitted rating
+ * Validates a submitted ratingpeer
  *
  * @param array $params submitted data
  *            context => object the context in which the rated items exists [required]
  *            component => The component for this module - should always be mod_peerforum [required]
- *            ratingarea => object the context in which the rated items exists [required]
+ *            ratingpeerarea => object the context in which the rated items exists [required]
  *            itemid => int the ID of the object being rated [required]
- *            scaleid => int the scale from which the user can select a rating. Used for bounds checking. [required]
- *            rating => int the submitted rating [required]
- *            rateduserid => int the id of the user whose items have been rated. NOT the user who submitted the ratings. 0 to
+ *            scaleid => int the scale from which the user can select a ratingpeer. Used for bounds checking. [required]
+ *            ratingpeer => int the submitted ratingpeer [required]
+ *            rateduserid => int the id of the user whose items have been rated. NOT the user who submitted the ratingpeers. 0 to
  *         update all. [required] aggregation => int the aggregation method to apply when calculating grades ie
  *         RATING_AGGREGATE_AVERAGE [required]
- * @return boolean true if the rating is valid. Will throw rating_exception if not
+ * @return boolean true if the ratingpeer is valid. Will throw ratingpeer_exception if not
  */
-function peerforum_rating_validate($params) {
+function peerforum_ratingpeer_validate($params) {
     global $DB, $USER;
 
     // Check the component is mod_peerforum
     if ($params['component'] != 'mod_peerforum') {
-        throw new rating_exception('invalidcomponent');
+        throw new ratingpeer_exception('invalidcomponent');
     }
 
-    // Check the ratingarea is post (the only rating area in peerforum)
-    if ($params['ratingarea'] != 'post') {
-        throw new rating_exception('invalidratingarea');
+    // Check the ratingpeerarea is post (the only ratingpeer area in peerforum)
+    if ($params['ratingpeerarea'] != 'post') {
+        throw new ratingpeer_exception('invalidratingpeerarea');
     }
 
-    // Check the rateduserid is not the current user .. you can't rate your own posts
-    if ($params['rateduserid'] == $USER->id) {
-        throw new rating_exception('nopermissiontorate');
+    // Check the ratedpeeruserid is not the current user .. you can't ratepeer your own posts
+    if ($params['ratedpeeruserid'] == $USER->id) {
+        throw new ratingpeer_exception('nopermissiontoratepeer');
     }
 
     // Fetch all the related records ... we need to do this anyway to call peerforum_user_can_see_post
-    $post = $DB->get_record('peerforum_posts', array('id' => $params['itemid'], 'userid' => $params['rateduserid']), '*',
+    $post = $DB->get_record('peerforum_posts', array('id' => $params['itemid'], 'userid' => $params['ratedpeeruserid']), '*',
             MUST_EXIST);
     $discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion), '*', MUST_EXIST);
     $peerforum = $DB->get_record('peerforum', array('id' => $discussion->peerforum), '*', MUST_EXIST);
@@ -3543,26 +6112,26 @@ function peerforum_rating_validate($params) {
 
     // Make sure the context provided is the context of the peerforum
     if ($context->id != $params['context']->id) {
-        throw new rating_exception('invalidcontext');
+        throw new ratingpeer_exception('invalidcontext');
     }
 
     if ($peerforum->scale != $params['scaleid']) {
         //the scale being submitted doesnt match the one in the database
-        throw new rating_exception('invalidscaleid');
+        throw new ratingpeer_exception('invalidscaleid');
     }
 
-    // check the item we're rating was created in the assessable time window
+    // check the item we're ratingpeer was created in the assessable time window
     if (!empty($peerforum->assesstimestart) && !empty($peerforum->assesstimefinish)) {
         if ($post->created < $peerforum->assesstimestart || $post->created > $peerforum->assesstimefinish) {
-            throw new rating_exception('notavailable');
+            throw new ratingpeer_exception('notavailable');
         }
     }
 
-    //check that the submitted rating is valid for the scale
+    //check that the submitted ratingpeer is valid for the scale
 
     // lower limit
-    if ($params['rating'] < 0 && $params['rating'] != RATING_UNSET_RATING) {
-        throw new rating_exception('invalidnum');
+    if ($params['ratingpeer'] < 0 && $params['ratingpeer'] != RATINGPEER_UNSET_RATINGPEER) {
+        throw new ratingpeer_exception('invalidnum');
     }
 
     // upper limit
@@ -3571,65 +6140,65 @@ function peerforum_rating_validate($params) {
         $scalerecord = $DB->get_record('scale', array('id' => -$peerforum->scale));
         if ($scalerecord) {
             $scalearray = explode(',', $scalerecord->scale);
-            if ($params['rating'] > count($scalearray)) {
-                throw new rating_exception('invalidnum');
+            if ($params['ratingpeer'] > count($scalearray)) {
+                throw new ratingpeer_exception('invalidnum');
             }
         } else {
-            throw new rating_exception('invalidscaleid');
+            throw new ratingpeer_exception('invalidscaleid');
         }
-    } else if ($params['rating'] > $peerforum->scale) {
-        //if its numeric and submitted rating is above maximum
-        throw new rating_exception('invalidnum');
+    } else if ($params['ratingpeer'] > $peerforum->scale) {
+        //if its numeric and submitted ratingpeer is above maximum
+        throw new ratingpeer_exception('invalidnum');
     }
 
-    // Make sure groups allow this user to see the item they're rating
+    // Make sure groups allow this user to see the item they're ratingpeer
     if ($discussion->groupid > 0 and $groupmode = groups_get_activity_groupmode($cm, $course)) {   // Groups are being used
         if (!groups_group_exists($discussion->groupid)) { // Can't find group
-            throw new rating_exception('cannotfindgroup');//something is wrong
+            throw new ratingpeer_exception('cannotfindgroup');//something is wrong
         }
 
         if (!groups_is_member($discussion->groupid) and !has_capability('moodle/site:accessallgroups', $context)) {
-            // do not allow rating of posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS
-            throw new rating_exception('notmemberofgroup');
+            // do not allow ratingpeer of posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS
+            throw new ratingpeer_exception('notmemberofgroup');
         }
     }
 
     // perform some final capability checks
     if (!peerforum_user_can_see_post($peerforum, $discussion, $post, $USER, $cm)) {
-        throw new rating_exception('nopermissiontorate');
+        throw new ratingpeer_exception('nopermissiontoratepeer');
     }
 
     return true;
 }
 
 /**
- * Can the current user see ratings for a given itemid?
+ * Can the current user see ratingpeers for a given itemid?
  *
  * @param array $params submitted data
  *            contextid => int contextid [required]
  *            component => The component for this module - should always be mod_peerforum [required]
- *            ratingarea => object the context in which the rated items exists [required]
+ *            ratingpeerarea => object the context in which the rated items exists [required]
  *            itemid => int the ID of the object being rated [required]
  *            scaleid => int scale id [optional]
  * @return bool
  * @throws coding_exception
- * @throws rating_exception
+ * @throws ratingpeer_exception
  */
-function mod_peerforum_rating_can_see_item_ratings($params) {
+function mod_peerforum_ratingpeer_can_see_item_ratingpeers($params) {
     global $DB, $USER;
 
     // Check the component is mod_peerforum.
     if (!isset($params['component']) || $params['component'] != 'mod_peerforum') {
-        throw new rating_exception('invalidcomponent');
+        throw new ratingpeer_exception('invalidcomponent');
     }
 
-    // Check the ratingarea is post (the only rating area in peerforum).
-    if (!isset($params['ratingarea']) || $params['ratingarea'] != 'post') {
-        throw new rating_exception('invalidratingarea');
+    // Check the ratingpeerarea is post (the only ratingpeer area in peerforum).
+    if (!isset($params['ratingpeerarea']) || $params['ratingpeerarea'] != 'post') {
+        throw new ratingpeer_exception('invalidratingpeerarea');
     }
 
     if (!isset($params['itemid'])) {
-        throw new rating_exception('invaliditemid');
+        throw new ratingpeer_exception('invaliditemid');
     }
 
     $post = $DB->get_record('peerforum_posts', array('id' => $params['itemid']), '*', MUST_EXIST);
@@ -3720,8 +6289,7 @@ function peerforum_print_discussion_header(&$post, $peerforum, $group = -1, $dat
     $fullname = fullname($postuser, has_capability('moodle/site:viewfullnames', $modcontext));
     echo '<td class="author">';
     echo '<a href="' . $CFG->wwwroot . '/user/view.php?id=' . $post->userid . '&amp;course=' . $peerforum->course . '">' .
-            $fullname .
-            '</a>';
+            $fullname . '</a>';
     echo "</td>\n";
 
     // Group picture
@@ -3760,8 +6328,7 @@ function peerforum_print_discussion_header(&$post, $peerforum, $group = -1, $dat
                     echo $post->unread;
                     echo '</a>';
                     echo '<a title="' . $strmarkalldread . '" href="' . $CFG->wwwroot . '/mod/peerforum/markposts.php?f=' .
-                            $peerforum->id . '&amp;d=' . $post->discussion . '&amp;mark=read&amp;returnpage=view.php&amp;sesskey=' .
-                            sesskey() . '">' .
+                            $peerforum->id . '&amp;d=' . $post->discussion . '&amp;mark=read&amp;returnpage=view.php">' .
                             '<img src="' . $OUTPUT->pix_url('t/markasread') . '" class="iconsmall" alt="' . $strmarkalldread .
                             '" /></a>';
                     echo '</span>';
@@ -3894,16 +6461,13 @@ function peerforum_get_discussion_subscription_icon_preloaders() {
 function peerforum_print_mode_form($id, $mode, $peerforumtype = '') {
     global $OUTPUT;
     if ($peerforumtype == 'single') {
-        $select =
-                new single_select(new moodle_url("/mod/peerforum/view.php", array('f' => $id)), 'mode',
-                        peerforum_get_layout_modes(), $mode,
-                        null, "mode");
+        $select = new single_select(new moodle_url("/mod/peerforum/view.php", array('f' => $id)), 'mode',
+                peerforum_get_layout_modes(), $mode, null, "mode");
         $select->set_label(get_string('displaymode', 'peerforum'), array('class' => 'accesshide'));
         $select->class = "peerforummode";
     } else {
         $select = new single_select(new moodle_url("/mod/peerforum/discuss.php", array('d' => $id)), 'mode',
-                peerforum_get_layout_modes(),
-                $mode, null, "mode");
+                peerforum_get_layout_modes(), $mode, null, "mode");
         $select->set_label(get_string('displaymode', 'peerforum'), array('class' => 'accesshide'));
     }
     echo $OUTPUT->render($select);
@@ -4351,13 +6915,16 @@ function peerforum_add_attachment($post, $peerforum, $cm, $mform = null, $unused
 /**
  * Add a new post in an existing discussion.
  *
- * @param stdClass $post The post data
- * @param mixed $mform The submitted form
- * @param string $unused
+ * @param object $post
+ * @param mixed $mform
+ * @param string $unused formerly $message, renamed in 2.8 as it was unused.
  * @return int
+ * @global object
+ * @global object
+ * @global object
  */
 function peerforum_add_new_post($post, $mform, $unused = null) {
-    global $USER, $DB;
+    global $USER, $CFG, $DB;
 
     $discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion));
     $peerforum = $DB->get_record('peerforum', array('id' => $discussion->peerforum));
@@ -4368,11 +6935,16 @@ function peerforum_add_new_post($post, $mform, $unused = null) {
     $post->mailed = PEERFORUM_MAILED_PENDING;
     $post->userid = $USER->id;
     $post->attachment = "";
+    $post->peergraders = 0;
+
     if (!isset($post->totalscore)) {
         $post->totalscore = 0;
     }
     if (!isset($post->mailnow)) {
         $post->mailnow = 0;
+    }
+    if (!isset($post->page)) {
+        $post->page = 0;
     }
 
     $post->id = $DB->insert_record("peerforum_posts", $post);
@@ -4396,58 +6968,46 @@ function peerforum_add_new_post($post, $mform, $unused = null) {
 }
 
 /**
- * Update a post.
+ * Update a post
  *
- * @param stdClass $newpost The post to update
- * @param mixed $mform The submitted form
- * @param string $unused
- * @return  bool
+ * @param object $post
+ * @param mixed $mform
+ * @param string $message
+ * @return bool
+ * @global object
+ * @global object
+ * @global object
  */
-function peerforum_update_post($newpost, $mform, $unused = null) {
-    global $DB, $USER;
+function peerforum_update_post($post, $mform, &$message) {
+    global $USER, $CFG, $DB;
 
-    $post = $DB->get_record('peerforum_posts', array('id' => $newpost->id));
     $discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion));
     $peerforum = $DB->get_record('peerforum', array('id' => $discussion->peerforum));
     $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
     $context = context_module::instance($cm->id);
 
-    // Allowed modifiable fields.
-    $modifiablefields = [
-            'subject',
-            'message',
-            'messageformat',
-            'messagetrust',
-            'timestart',
-            'timeend',
-            'pinned',
-            'attachments',
-    ];
-    foreach ($modifiablefields as $field) {
-        if (isset($newpost->{$field})) {
-            $post->{$field} = $newpost->{$field};
-        }
-    }
     $post->modified = time();
 
-    // Last post modified tracking.
-    $discussion->timemodified = $post->modified;
-    $discussion->usermodified = $post->userid;
+    $DB->update_record('peerforum_posts', $post);
+
+    $discussion->timemodified = $post->modified; // last modified tracking
+    $discussion->usermodified = $post->userid;   // last modified tracking
 
     if (!$post->parent) {   // Post is a discussion starter - update discussion title and times too
         $discussion->name = $post->subject;
         $discussion->timestart = $post->timestart;
         $discussion->timeend = $post->timeend;
     }
-    $post->message = file_save_draft_area_files($newpost->itemid, $context->id, 'mod_peerforum', 'post', $post->id,
+    $post->message = file_save_draft_area_files($post->itemid, $context->id, 'mod_peerforum', 'post', $post->id,
             mod_peerforum_post_form::editor_options($context, $post->id), $post->message);
-    $DB->update_record('peerforum_posts', $post);
+    $DB->set_field('peerforum_posts', 'message', $post->message, array('id' => $post->id));
+
     $DB->update_record('peerforum_discussions', $discussion);
 
-    peerforum_add_attachment($post, $peerforum, $cm, $mform);
+    peerforum_add_attachment($post, $peerforum, $cm, $mform, $message);
 
     if (peerforum_tp_can_track_peerforums($peerforum) && peerforum_tp_is_tracked($peerforum)) {
-        peerforum_tp_mark_post_read($USER->id, $post, $peerforum->id);
+        peerforum_tp_mark_post_read($post->userid, $post, $post->peerforum);
     }
 
     // Let Moodle know that assessable content is uploaded (eg for plagiarism detection)
@@ -4496,6 +7056,7 @@ function peerforum_add_discussion($discussion, $mform = null, $unused = null, $u
     $post->peerforum = $peerforum->id;     // speedup
     $post->course = $peerforum->course; // speedup
     $post->mailnow = $discussion->mailnow;
+    $post->peergraders = 0;
 
     $post->id = $DB->insert_record("peerforum_posts", $post);
 
@@ -4617,15 +7178,19 @@ function peerforum_delete_post($post, $children, $course, $cm, $peerforum, $skip
         }
     }
 
-    // Delete ratings.
-    require_once($CFG->dirroot . '/rating/lib.php');
+    // Delete ratingpeers.
+    require_once($CFG->dirroot . '/ratingpeer/lib.php');
     $delopt = new stdClass;
     $delopt->contextid = $context->id;
     $delopt->component = 'mod_peerforum';
-    $delopt->ratingarea = 'post';
+    $delopt->ratingpeerarea = 'post';
     $delopt->itemid = $post->id;
-    $rm = new rating_manager();
-    $rm->delete_ratings($delopt);
+    $rm = new ratingpeer_manager();
+    $rm->delete_ratingpeers($delopt);
+
+    //Delete peergrades.
+    $pm = new peergrade_manager();
+    $pm->delete_peergrades($delopt);
 
     // Delete attachments.
     $fs = get_file_storage();
@@ -4846,28 +7411,22 @@ function peerforum_get_subscribe_link($peerforum, $context, $messages = array(),
 }
 
 /**
- * Returns true if user created new discussion already.
+ * Returns true if user created new discussion already
  *
- * @param int $peerforumid The peerforum to check for postings
- * @param int $userid The user to check for postings
- * @param int $groupid The group to restrict the check to
+ * @param int $peerforumid
+ * @param int $userid
  * @return bool
+ * @global object
+ * @global object
  */
-function peerforum_user_has_posted_discussion($peerforumid, $userid, $groupid = null) {
+function peerforum_user_has_posted_discussion($peerforumid, $userid) {
     global $CFG, $DB;
 
     $sql = "SELECT 'x'
               FROM {peerforum_discussions} d, {peerforum_posts} p
-             WHERE d.peerforum = ? AND p.discussion = d.id AND p.parent = 0 AND p.userid = ?";
+             WHERE d.peerforum = ? AND p.discussion = d.id AND p.parent = 0 and p.userid = ?";
 
-    $params = [$peerforumid, $userid];
-
-    if ($groupid) {
-        $sql .= " AND d.groupid = ?";
-        $params[] = $groupid;
-    }
-
-    return $DB->record_exists_sql($sql, $params);
+    return $DB->record_exists_sql($sql, array($peerforumid, $userid));
 }
 
 /**
@@ -4984,7 +7543,7 @@ function peerforum_user_can_post_discussion($peerforum, $currentgroup = null, $u
     }
 
     if ($peerforum->type == 'eachuser') {
-        if (peerforum_user_has_posted_discussion($peerforum->id, $USER->id, $currentgroup)) {
+        if (peerforum_user_has_posted_discussion($peerforum->id, $USER->id)) {
             return false;
         }
     }
@@ -5472,7 +8031,7 @@ function peerforum_print_latest_discussions($course, $peerforum, $maxdiscussions
                 if ($peerforumtracked) {
                     echo '<a title="' . get_string('markallread', 'peerforum') .
                             '" href="' . $CFG->wwwroot . '/mod/peerforum/markposts.php?f=' .
-                            $peerforum->id . '&amp;mark=read&amp;returnpage=view.php&amp;sesskey=' . sesskey() . '">' .
+                            $peerforum->id . '&amp;mark=read&amp;returnpage=view.php">' .
                             '<img src="' . $OUTPUT->pix_url('t/markasread') . '" class="iconsmall" alt="' .
                             get_string('markallread', 'peerforum') . '" /></a>';
                 }
@@ -5554,7 +8113,8 @@ function peerforum_print_latest_discussions($course, $peerforum, $maxdiscussions
                 $discussion->peerforum = $peerforum->id;
 
                 peerforum_print_post($discussion, $discussion, $peerforum, $cm, $course, $ownpost, 0, $link, false,
-                        '', null, true, $peerforumtracked);
+                        '', null, true, $peerforumtracked, false, true, false, $to_peergrade_block, $url_block);
+
                 break;
         }
     }
@@ -5590,17 +8150,22 @@ function peerforum_print_latest_discussions($course, $peerforum, $maxdiscussions
  * @param stdClass $post
  * @param int $mode
  * @param mixed $canreply
- * @param bool $canrate
+ * @param bool $canratepeer
  * @uses CONTEXT_MODULE
  * @uses PEERFORUM_MODE_FLATNEWEST
  * @uses PEERFORUM_MODE_FLATOLDEST
  * @uses PEERFORUM_MODE_THREADED
  * @uses PEERFORUM_MODE_NESTED
  */
-function peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $mode, $canreply = null, $canrate = false) {
+function peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $mode, $canreply = null, $canratepeer = false,
+        $cangrade = false, $showincontext = false, $to_peergrade_block = true, $url_block = null, $index = null, $start = null,
+        $perpage = null, $enable_pagination = null) {
     global $USER, $CFG;
 
-    require_once($CFG->dirroot . '/rating/lib.php');
+    require_once($CFG->dirroot . '/ratingpeer/lib.php');
+
+    adjust_database();
+    update_all_posts_expired();
 
     $ownpost = (isloggedin() && $USER->id == $post->userid);
 
@@ -5644,26 +8209,58 @@ function peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post
         unset($postersgroups);
     }
 
-    //load ratings
-    if ($peerforum->assessed != RATING_AGGREGATE_NONE) {
-        $ratingoptions = new stdClass;
-        $ratingoptions->context = $modcontext;
-        $ratingoptions->component = 'mod_peerforum';
-        $ratingoptions->ratingarea = 'post';
-        $ratingoptions->items = $posts;
-        $ratingoptions->aggregate = $peerforum->assessed;//the aggregation method
-        $ratingoptions->scaleid = $peerforum->scale;
-        $ratingoptions->userid = $USER->id;
+    //load ratingpeers
+    if ($peerforum->assessed != RATINGPEER_AGGREGATE_NONE) {
+        $ratingpeeroptions = new stdClass;
+        $ratingpeeroptions->context = $modcontext;
+        $ratingpeeroptions->component = 'mod_peerforum';
+        $ratingpeeroptions->ratingpeerarea = 'post';
+        $ratingpeeroptions->items = $posts;
+        $ratingpeeroptions->aggregate = $peerforum->assessed;//the aggregation method
+        $ratingpeeroptions->scaleid = $peerforum->scale;
+        $ratingpeeroptions->userid = $USER->id;
         if ($peerforum->type == 'single' or !$discussion->id) {
-            $ratingoptions->returnurl = "$CFG->wwwroot/mod/peerforum/view.php?id=$cm->id";
+            $ratingpeeroptions->returnurl = "$CFG->wwwroot/mod/peerforum/view.php?id=$cm->id";
         } else {
-            $ratingoptions->returnurl = "$CFG->wwwroot/mod/peerforum/discuss.php?d=$discussion->id";
+            $ratingpeeroptions->returnurl = "$CFG->wwwroot/mod/peerforum/discuss.php?d=$discussion->id";
         }
-        $ratingoptions->assesstimestart = $peerforum->assesstimestart;
-        $ratingoptions->assesstimefinish = $peerforum->assesstimefinish;
+        $ratingpeeroptions->assesstimestart = $peerforum->assesstimestart;
+        $ratingpeeroptions->assesstimefinish = $peerforum->assesstimefinish;
 
-        $rm = new rating_manager();
-        $posts = $rm->get_ratings($ratingoptions);
+        $rm = new ratingpeer_manager();
+        $posts = $rm->get_ratingpeers($ratingpeeroptions);
+    }
+
+    //load peergrades
+    if ($peerforum->peergradeassessed != PEERGRADE_AGGREGATE_NONE) {
+
+        $peergradeoptions = new stdClass;
+        $peergradeoptions->context = $modcontext;
+        $peergradeoptions->component = 'mod_peerforum';
+        $peergradeoptions->peergradearea = 'post';
+        $peergradeoptions->items = $posts;
+        $peergradeoptions->aggregate = $peerforum->peergradeassessed;//the aggregation method
+        $peergradeoptions->scaleid = $peerforum->scale;
+        $peergradeoptions->peergradescaleid = $peerforum->peergradescale;
+        $peergradeoptions->userid = $USER->id;
+        $peergradeoptions->feedback = 'null_feedback';
+
+        if ($peerforum->type == 'single' or !$discussion->id) {
+            $peergradeoptions->returnurl = "$CFG->wwwroot/mod/peerforum/view.php?id=$cm->id";
+        } else {
+            if (!$to_peergrade_block) {
+                $peergradeoptions->returnurl = "$CFG->wwwroot/mod/peerforum/discuss.php?d=$discussion->id";
+            }
+            if ($to_peergrade_block) {
+                $peergradeoptions->returnurl = $url_block;
+
+            }
+        }
+        $peergradeoptions->assesstimestart = $peerforum->assesstimestart;
+        $peergradeoptions->assesstimefinish = $peerforum->assesstimefinish;
+
+        $pm = new peergrade_manager();
+        $posts = $pm->get_peergrades($peergradeoptions);
     }
 
     $post->peerforum = $peerforum->id;   // Add the peerforum id to the post object, later used by peerforum_print_post
@@ -5672,24 +8269,51 @@ function peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post
     $post->subject = format_string($post->subject);
 
     $postread = !empty($post->postread);
+    $post->discussionname = format_string($discussion->name);
+    $post->peerforumname = format_string($peerforum->name);
 
     peerforum_print_post($post, $discussion, $peerforum, $cm, $course, $ownpost, $reply, false,
-            '', '', $postread, true, $peerforumtracked);
+            '', '', $postread, true, $peerforumtracked, false, true, $showincontext, $to_peergrade_block, $url_block);
 
-    switch ($mode) {
-        case PEERFORUM_MODE_FLATOLDEST :
-        case PEERFORUM_MODE_FLATNEWEST :
-        default:
-            peerforum_print_posts_flat($course, $cm, $peerforum, $discussion, $post, $mode, $reply, $peerforumtracked, $posts);
-            break;
+    // Pagination peerforum
+    if ($enable_pagination) {
 
-        case PEERFORUM_MODE_THREADED :
-            peerforum_print_posts_threaded($course, $cm, $peerforum, $discussion, $post, 0, $reply, $peerforumtracked, $posts);
-            break;
+        if (!empty($posts[$post->id]->children)) {
+            $total_posts = count($posts[$post->id]->children);
+        } else {
+            $total_posts = 0;
+        }
 
-        case PEERFORUM_MODE_NESTED :
-            peerforum_print_posts_nested($course, $cm, $peerforum, $discussion, $post, $reply, $peerforumtracked, $posts);
-            break;
+        if (!empty($perpage)) {
+            if (isset($posts[$post->id]->children)) {
+                $posts[$post->id]->children = array_slice($posts[$post->id]->children, $start, $perpage, true);
+            }
+        }
+
+        $actual_page = $start / $perpage;
+    } else {
+        $actual_page = 0;
+    }
+
+    if (!isset($index)) {
+        switch ($mode) {
+            case PEERFORUM_MODE_FLATOLDEST :
+            case PEERFORUM_MODE_FLATNEWEST :
+            default:
+                peerforum_print_posts_flat($course, $cm, $peerforum, $discussion, $post, $mode, $reply, $peerforumtracked, $posts,
+                        $showincontext, $to_peergrade_block, $url_block);
+                break;
+
+            case PEERFORUM_MODE_THREADED :
+                peerforum_print_posts_threaded($course, $cm, $peerforum, $discussion, $post, 0, $reply, $peerforumtracked, $posts,
+                        $showincontext, $to_peergrade_block, $url_block);
+                break;
+
+            case PEERFORUM_MODE_NESTED :
+                peerforum_print_posts_nested($course, $cm, $peerforum, $discussion, $post, $reply, $peerforumtracked, $posts,
+                        $showincontext, $to_peergrade_block, $url_block, $actual_page);
+                break;
+        }
     }
 }
 
@@ -5708,7 +8332,8 @@ function peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post
  * @global object
  * @uses PEERFORUM_MODE_FLATNEWEST
  */
-function peerforum_print_posts_flat($course, &$cm, $peerforum, $discussion, $post, $mode, $reply, $peerforumtracked, $posts) {
+function peerforum_print_posts_flat($course, &$cm, $peerforum, $discussion, $post, $mode, $reply, $peerforumtracked, $posts,
+        $showincontext = false, $to_peergrade_block = true, $url_block = null) {
     global $USER, $CFG;
 
     $link = false;
@@ -5729,7 +8354,7 @@ function peerforum_print_posts_flat($course, &$cm, $peerforum, $discussion, $pos
         $postread = !empty($post->postread);
 
         peerforum_print_post($post, $discussion, $peerforum, $cm, $course, $ownpost, $reply, $link,
-                '', '', $postread, true, $peerforumtracked);
+                '', '', $postread, true, $peerforumtracked, false, true, $showincontext, $to_peergrade_block, $url_block);
     }
 }
 
@@ -5741,8 +8366,8 @@ function peerforum_print_posts_flat($course, &$cm, $peerforum, $discussion, $pos
  * @todo Document this function
  *
  */
-function peerforum_print_posts_threaded($course, &$cm, $peerforum, $discussion, $parent, $depth, $reply, $peerforumtracked,
-        $posts) {
+function peerforum_print_posts_threaded($course, &$cm, $peerforum, $discussion, $parent, $depth, $reply, $peerforumtracked, $posts,
+        $showincontext = false, $to_peergrade_block = true, $url_block = null) {
     global $USER, $CFG;
 
     $link = false;
@@ -5763,7 +8388,7 @@ function peerforum_print_posts_threaded($course, &$cm, $peerforum, $discussion, 
                 $postread = !empty($post->postread);
 
                 peerforum_print_post($post, $discussion, $peerforum, $cm, $course, $ownpost, $reply, $link,
-                        '', '', $postread, true, $peerforumtracked);
+                        '', '', $postread, true, $peerforumtracked, false, true, $showincontext, $to_peergrade_block, $url_block);
             } else {
                 if (!peerforum_user_can_see_post($peerforum, $discussion, $post, null, $cm)) {
                     echo "</div>\n";
@@ -5790,7 +8415,7 @@ function peerforum_print_posts_threaded($course, &$cm, $peerforum, $discussion, 
             }
 
             peerforum_print_posts_threaded($course, $cm, $peerforum, $discussion, $post, $depth - 1, $reply, $peerforumtracked,
-                    $posts);
+                    $posts, $showincontext, $to_peergrade_block, $url_block);
             echo "</div>\n";
         }
     }
@@ -5802,7 +8427,8 @@ function peerforum_print_posts_threaded($course, &$cm, $peerforum, $discussion, 
  * @global object
  * @todo Document this function
  */
-function peerforum_print_posts_nested($course, &$cm, $peerforum, $discussion, $parent, $reply, $peerforumtracked, $posts) {
+function peerforum_print_posts_nested($course, &$cm, $peerforum, $discussion, $parent, $reply, $peerforumtracked, $posts,
+        $showincontext = false, $to_peergrade_block = true, $url_block = null, $actual_page = null) {
     global $USER, $CFG;
 
     $link = false;
@@ -5823,8 +8449,10 @@ function peerforum_print_posts_nested($course, &$cm, $peerforum, $discussion, $p
             $postread = !empty($post->postread);
 
             peerforum_print_post($post, $discussion, $peerforum, $cm, $course, $ownpost, $reply, $link,
-                    '', '', $postread, true, $peerforumtracked);
-            peerforum_print_posts_nested($course, $cm, $peerforum, $discussion, $post, $reply, $peerforumtracked, $posts);
+                    '', '', $postread, true, $peerforumtracked, false, true, $showincontext, $to_peergrade_block, $url_block,
+                    $actual_page);
+            peerforum_print_posts_nested($course, $cm, $peerforum, $discussion, $post, $reply, $peerforumtracked, $posts,
+                    $showincontext, $to_peergrade_block, $url_block, $actual_page);
             echo "</div>\n";
         }
     }
@@ -6293,12 +8921,12 @@ function peerforum_tp_get_course_unread_posts($userid, $courseid) {
     if ($CFG->peerforum_allowforcedreadtracking) {
         $trackingsql = "AND (f.trackingtype = " . PEERFORUM_TRACKING_FORCED . "
                             OR (f.trackingtype = " . PEERFORUM_TRACKING_OPTIONAL . " AND tf.id IS NULL
-                                AND (SELECT trackpeerforums FROM {user} WHERE id = ?) = 1))";
+                                AND (SELECT trackforums FROM {user} WHERE id = ?) = 1))";
     } else {
         $trackingsql =
                 "AND ((f.trackingtype = " . PEERFORUM_TRACKING_OPTIONAL . " OR f.trackingtype = " . PEERFORUM_TRACKING_FORCED . ")
                             AND tf.id IS NULL
-                            AND (SELECT trackpeerforums FROM {user} WHERE id = ?) = 1)";
+                            AND (SELECT trackforums FROM {user} WHERE id = ?) = 1)";
     }
 
     $sql = "SELECT f.id, COUNT(p.id) AS unread
@@ -6464,13 +9092,13 @@ function peerforum_tp_get_untracked_peerforums($userid, $courseid) {
     if ($CFG->peerforum_allowforcedreadtracking) {
         $trackingsql = "AND (f.trackingtype = " . PEERFORUM_TRACKING_OFF . "
                             OR (f.trackingtype = " . PEERFORUM_TRACKING_OPTIONAL . " AND (ft.id IS NOT NULL
-                                OR (SELECT trackpeerforums FROM {user} WHERE id = ?) = 0)))";
+                                OR (SELECT trackforums FROM {user} WHERE id = ?) = 0)))";
     } else {
         $trackingsql = "AND (f.trackingtype = " . PEERFORUM_TRACKING_OFF . "
                             OR ((f.trackingtype = " . PEERFORUM_TRACKING_OPTIONAL . " OR f.trackingtype = " .
                 PEERFORUM_TRACKING_FORCED . ")
                                 AND (ft.id IS NOT NULL
-                                    OR (SELECT trackpeerforums FROM {user} WHERE id = ?) = 0)))";
+                                    OR (SELECT trackforums FROM {user} WHERE id = ?) = 0)))";
     }
 
     $sql = "SELECT f.id
@@ -6524,7 +9152,7 @@ function peerforum_tp_can_track_peerforums($peerforum = false, $user = false) {
             // Since we can force tracking, assume yes without a specific peerforum.
             return true;
         } else {
-            return (bool) $user->trackpeerforums;
+            return (bool) $user->trackforums;
         }
     }
 
@@ -6539,10 +9167,10 @@ function peerforum_tp_can_track_peerforums($peerforum = false, $user = false) {
 
     if ($CFG->peerforum_allowforcedreadtracking) {
         // If we allow forcing, then forced peerforums takes procidence over user setting.
-        return ($peerforumforced || ($peerforumallows && (!empty($user->trackpeerforums) && (bool) $user->trackpeerforums)));
+        return ($peerforumforced || ($peerforumallows && (!empty($user->trackforums) && (bool) $user->trackforums)));
     } else {
         // If we don't allow forcing, user setting trumps.
-        return ($peerforumforced || $peerforumallows) && !empty($user->trackpeerforums);
+        return ($peerforumforced || $peerforumallows) && !empty($user->trackforums);
     }
 }
 
@@ -6860,7 +9488,7 @@ function peerforum_reset_gradebook($courseid, $type = '') {
  */
 function peerforum_reset_userdata($data) {
     global $CFG, $DB;
-    require_once($CFG->dirroot . '/rating/lib.php');
+    require_once($CFG->dirroot . '/ratingpeer/lib.php');
 
     $componentstr = get_string('modulenameplural', 'peerforum');
     $status = array();
@@ -6906,13 +9534,13 @@ function peerforum_reset_userdata($data) {
 
     $peerforumssql = $peerforums = $rm = null;
 
-    if ($removeposts || !empty($data->reset_peerforum_ratings)) {
+    if ($removeposts || !empty($data->reset_peerforum_ratingpeers)) {
         $peerforumssql = "$allpeerforumssql $typesql";
         $peerforums = $peerforums = $DB->get_records_sql($peerforumssql, $params);
-        $rm = new rating_manager();
-        $ratingdeloptions = new stdClass;
-        $ratingdeloptions->component = 'mod_peerforum';
-        $ratingdeloptions->ratingarea = 'post';
+        $rm = new ratingpeer_manager();
+        $ratingpeerdeloptions = new stdClass;
+        $ratingpeerdeloptions->component = 'mod_peerforum';
+        $ratingpeerdeloptions->ratingpeerarea = 'post';
     }
 
     if ($removeposts) {
@@ -6930,9 +9558,13 @@ function peerforum_reset_userdata($data) {
                 $fs->delete_area_files($context->id, 'mod_peerforum', 'attachment');
                 $fs->delete_area_files($context->id, 'mod_peerforum', 'post');
 
-                //remove ratings
-                $ratingdeloptions->contextid = $context->id;
-                $rm->delete_ratings($ratingdeloptions);
+                //remove ratingpeers
+                $ratingpeerdeloptions->contextid = $context->id;
+                $rm->delete_ratingpeers($ratingpeerdeloptions);
+
+                //remove peergrades
+                $peergradepeerdeloptions->contextid = $context->id;
+                $rm->delete_peergrades($peergradepeerdeloptions);
             }
         }
 
@@ -6968,8 +9600,8 @@ function peerforum_reset_userdata($data) {
         $status[] = array('component' => $componentstr, 'item' => $typesstr, 'error' => false);
     }
 
-    // remove all ratings in this course's peerforums
-    if (!empty($data->reset_peerforum_ratings)) {
+    // remove all ratingpeers in this course's peerforums
+    if (!empty($data->reset_peerforum_ratingpeers)) {
         if ($peerforums) {
             foreach ($peerforums as $peerforumid => $unused) {
                 if (!$cm = get_coursemodule_from_instance('peerforum', $peerforumid)) {
@@ -6977,9 +9609,30 @@ function peerforum_reset_userdata($data) {
                 }
                 $context = context_module::instance($cm->id);
 
-                //remove ratings
-                $ratingdeloptions->contextid = $context->id;
-                $rm->delete_ratings($ratingdeloptions);
+                //remove ratingpeers
+                $ratingpeerdeloptions->contextid = $context->id;
+                $rm->delete_ratingpeers($ratingpeerdeloptions);
+            }
+        }
+
+        // remove all grades from gradebook
+        if (empty($data->reset_gradebook_grades)) {
+            peerforum_reset_gradebook($data->courseid);
+        }
+    }
+
+    // remove all peergrades in this course's peerforums
+    if (!empty($data->reset_peerforum_peergrades)) {
+        if ($peerforums) {
+            foreach ($peerforums as $peerforumid => $unused) {
+                if (!$cm = get_coursemodule_from_instance('peerforum', $peerforumid)) {
+                    continue;
+                }
+                $context = context_module::instance($cm->id);
+
+                //remove peergrades
+                $peergradedeloptions->contextid = $context->id;
+                $rm->delete_peergrades($peergradedeloptions);
             }
         }
 
@@ -7028,8 +9681,7 @@ function peerforum_reset_course_form_definition(&$mform) {
     $mform->addElement('checkbox', 'reset_peerforum_all', get_string('resetpeerforumsall', 'peerforum'));
 
     $mform->addElement('select', 'reset_peerforum_types', get_string('resetpeerforums', 'peerforum'),
-            peerforum_get_peerforum_types_all(),
-            array('multiple' => 'multiple'));
+            peerforum_get_peerforum_types_all(), array('multiple' => 'multiple'));
     $mform->setAdvanced('reset_peerforum_types');
     $mform->disabledIf('reset_peerforum_types', 'reset_peerforum_all', 'checked');
 
@@ -7043,8 +9695,11 @@ function peerforum_reset_course_form_definition(&$mform) {
     $mform->setAdvanced('reset_peerforum_track_prefs');
     $mform->disabledIf('reset_peerforum_track_prefs', 'reset_peerforum_all', 'checked');
 
-    $mform->addElement('checkbox', 'reset_peerforum_ratings', get_string('deleteallratings'));
-    $mform->disabledIf('reset_peerforum_ratings', 'reset_peerforum_all', 'checked');
+    $mform->addElement('checkbox', 'reset_peerforum_ratingpeers', get_string('deleteallratingpeers'));
+    $mform->disabledIf('reset_peerforum_ratingpeers', 'reset_peerforum_all', 'checked');
+
+    $mform->addElement('checkbox', 'reset_peerforum_peergrades', get_string('deleteallpeergrades'));
+    $mform->disabledIf('reset_peerforum_peergrades', 'reset_peerforum_all', 'checked');
 }
 
 /**
@@ -7054,7 +9709,7 @@ function peerforum_reset_course_form_definition(&$mform) {
  */
 function peerforum_reset_course_form_defaults($course) {
     return array('reset_peerforum_all' => 1, 'reset_peerforum_digests' => 0, 'reset_peerforum_subscriptions' => 0,
-            'reset_peerforum_track_prefs' => 0, 'reset_peerforum_ratings' => 1);
+            'reset_peerforum_track_prefs' => 0, 'reset_peerforum_ratingpeers' => 1);
 }
 
 /**
@@ -7218,8 +9873,7 @@ function peerforum_extend_settings_navigation(settings_navigation $settingsnav, 
         $peerforumnode->add(get_string('showsubscribers', 'peerforum'), $url, navigation_node::TYPE_SETTING);
     }
 
-    if ($enrolled &&
-            peerforum_tp_can_track_peerforums($peerforumobject)) { // keep tracking info for users with suspended enrolments
+    if ($enrolled && ($peerforumobject)) { // keep tracking info for users with suspended enrolments
         if ($peerforumobject->trackingtype == PEERFORUM_TRACKING_OPTIONAL
                 || ((!$CFG->peerforum_allowforcedreadtracking) && $peerforumobject->trackingtype == PEERFORUM_TRACKING_FORCED)) {
             if (peerforum_tp_is_tracked($peerforumobject)) {

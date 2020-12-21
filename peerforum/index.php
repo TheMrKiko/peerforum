@@ -76,6 +76,18 @@ $stremaildigest = get_string('emaildigest');
 
 $searchform = peerforum_search_form($course);
 
+// Retrieve the list of peerforum digest options for later.
+$digestoptions = peerforum_get_user_digest_options();
+$digestoptions_selector = new single_select(new moodle_url('/mod/peerforum/maildigest.php',
+        array(
+                'backtoindex' => 1,
+        )),
+        'maildigest',
+        $digestoptions,
+        null,
+        '');
+$digestoptions_selector->method = 'post';
+
 // Start of the table for General PeerForums
 
 $generaltable = new html_table();
@@ -102,18 +114,6 @@ if ($can_subscribe) {
 
     $generaltable->head[] = $stremaildigest . ' ' . $OUTPUT->help_icon('emaildigesttype', 'mod_peerforum');
     $generaltable->align[] = 'center';
-
-    // Retrieve the list of peerforum digest options for later.
-    $digestoptions = peerforum_get_user_digest_options();
-    $digestoptions_selector = new single_select(new moodle_url('/mod/peerforum/maildigest.php',
-            array(
-                    'backtoindex' => 1,
-            )),
-            'maildigest',
-            $digestoptions,
-            null,
-            '');
-    $digestoptions_selector->method = 'post';
 }
 
 if ($show_rss = (($can_subscribe || $course->id == SITEID) &&
@@ -229,15 +229,15 @@ if ($generalpeerforums) {
                 } else if ($unread = peerforum_tp_count_peerforum_unread_posts($cm, $course)) {
                     $unreadlink = '<span class="unread"><a href="view.php?f=' . $peerforum->id . '">' . $unread . '</a>';
                     $unreadlink .= '<a title="' . $strmarkallread . '" href="markposts.php?f=' .
-                            $peerforum->id . '&amp;mark=read&amp;sesskey=' . sesskey() . '"><img src="' .
-                            $OUTPUT->pix_url('t/markasread') . '" alt="' . $strmarkallread . '" class="iconsmall" /></a></span>';
+                            $peerforum->id . '&amp;mark=read"><img src="' . $OUTPUT->pix_url('t/markasread') . '" alt="' .
+                            $strmarkallread . '" class="iconsmall" /></a></span>';
                 } else {
                     $unreadlink = '<span class="read">0</span>';
                 }
 
                 if (($peerforum->trackingtype == PEERFORUM_TRACKING_FORCED) && ($CFG->peerforum_allowforcedreadtracking)) {
                     $trackedlink = $stryes;
-                } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackpeerforums == 0)) {
+                } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackforums == 0)) {
                     $trackedlink = '-';
                 } else {
                     $aurl = new moodle_url('/mod/peerforum/settracking.php', array(
@@ -366,16 +366,15 @@ if ($course->id != SITEID) {    // Only real courses have learning peerforums
                     } else if ($unread = peerforum_tp_count_peerforum_unread_posts($cm, $course)) {
                         $unreadlink = '<span class="unread"><a href="view.php?f=' . $peerforum->id . '">' . $unread . '</a>';
                         $unreadlink .= '<a title="' . $strmarkallread . '" href="markposts.php?f=' .
-                                $peerforum->id . '&amp;mark=read&sesskey=' . sesskey() . '"><img src="' .
-                                $OUTPUT->pix_url('t/markasread') . '" alt="' . $strmarkallread .
-                                '" class="iconsmall" /></a></span>';
+                                $peerforum->id . '&amp;mark=read"><img src="' . $OUTPUT->pix_url('t/markasread') . '" alt="' .
+                                $strmarkallread . '" class="iconsmall" /></a></span>';
                     } else {
                         $unreadlink = '<span class="read">0</span>';
                     }
 
                     if (($peerforum->trackingtype == PEERFORUM_TRACKING_FORCED) && ($CFG->peerforum_allowforcedreadtracking)) {
                         $trackedlink = $stryes;
-                    } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackpeerforums == 0)) {
+                    } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackforums == 0)) {
                         $trackedlink = '-';
                     } else {
                         $aurl = new moodle_url('/mod/peerforum/settracking.php', array('id' => $peerforum->id));
@@ -486,4 +485,3 @@ if ($learningpeerforums) {
 }
 
 echo $OUTPUT->footer();
-

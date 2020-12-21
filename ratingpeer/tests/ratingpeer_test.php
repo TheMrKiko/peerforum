@@ -53,7 +53,7 @@ class core_ratingpeer_testcase extends advanced_testcase {
     function test_get_ratingpeers_sql() {
         global $DB;
 
-        // We load 3 items. Each is ratepeerd twice. For simplicity itemid == user id of the item owner
+        // We load 3 items. Each is ratedpeer twice. For simplicity itemid == user id of the item owner
         $ctxid = context_system::instance()->id;
         $ratingpeers = array(
             //user 1's items. Average == 2
@@ -73,16 +73,16 @@ class core_ratingpeer_testcase extends advanced_testcase {
                         'ratingpeer' => 5, 'userid' => 2, 'timecreated' => 1, 'timemodified' => 1)
         );
         foreach ($ratingpeers as $ratingpeer) {
-            $DB->insert_record('ratingpeer', $ratingpeer);
+            $DB->insert_record('peerforum_ratingpeer', $ratingpeer);
         }
 
-        // a post (item) by user 1 (ratepeerd above by user 2 and 3 with average = 2)
+        // a post (item) by user 1 (ratedpeer above by user 2 and 3 with average = 2)
         $user1posts = array(
                 (object) array('id' => 1, 'userid' => 1, 'message' => 'hello'));
-        // a post (item) by user 2 (ratepeerd above by user 1 and 3 with average = 3)
+        // a post (item) by user 2 (ratedpeer above by user 1 and 3 with average = 3)
         $user2posts = array(
                 (object) array('id' => 2, 'userid' => 2, 'message' => 'world'));
-        // a post (item) by user 3 (ratepeerd above by user 1 and 2 with average = 4)
+        // a post (item) by user 3 (ratedpeer above by user 1 and 2 with average = 4)
         $user3posts = array(
                 (object) array('id' => 3, 'userid' => 3, 'message' => 'moodle'));
 
@@ -158,7 +158,7 @@ class core_ratingpeer_testcase extends advanced_testcase {
         // STEP 2: Retrieve ratingpeers by a specified user
         //         We still expect complete aggregations and counts
 
-        // Get results for items of user 1 ratepeerd by user 2 (avg 2, ratingpeer 1)
+        // Get results for items of user 1 ratedpeer by user 2 (avg 2, ratingpeer 1)
         $toptions = (object) array_merge($defaultoptions, array('items' => $user1posts, 'userid' => 2));
         $result = $rm->get_ratingpeers($toptions);
         $this->assertEquals(count($result), count($user1posts));
@@ -167,10 +167,10 @@ class core_ratingpeer_testcase extends advanced_testcase {
         $this->assertEquals($result[0]->message, $user1posts[0]->message);
         $this->assertEquals($result[0]->ratingpeer->count, 2);
         $this->assertEquals($result[0]->ratingpeer->aggregate, 2);
-        $this->assertEquals($result[0]->ratingpeer->ratingpeer, 1); //user 2 ratepeerd user 1 "1"
+        $this->assertEquals($result[0]->ratingpeer->ratingpeer, 1); //user 2 ratedpeer user 1 "1"
         $this->assertEquals($result[0]->ratingpeer->userid, $toptions->userid); // Must be the passed userid
 
-        // Get results for items of user 1 ratepeerd by user 3
+        // Get results for items of user 1 ratedpeer by user 3
         $toptions = (object) array_merge($defaultoptions, array('items' => $user1posts, 'userid' => 3));
         $result = $rm->get_ratingpeers($toptions);
         $this->assertEquals(count($result), count($user1posts));
@@ -179,10 +179,10 @@ class core_ratingpeer_testcase extends advanced_testcase {
         $this->assertEquals($result[0]->message, $user1posts[0]->message);
         $this->assertEquals($result[0]->ratingpeer->count, 2);
         $this->assertEquals($result[0]->ratingpeer->aggregate, 2);
-        $this->assertEquals($result[0]->ratingpeer->ratingpeer, 3); //user 3 ratepeerd user 1 "3"
+        $this->assertEquals($result[0]->ratingpeer->ratingpeer, 3); //user 3 ratedpeer user 1 "3"
         $this->assertEquals($result[0]->ratingpeer->userid, $toptions->userid); // Must be the passed userid
 
-        // Get results for items of user 1 & 2 together ratepeerd by user 3
+        // Get results for items of user 1 & 2 together ratedpeer by user 3
         $posts = array_merge($user1posts, $user2posts);
         $toptions = (object) array_merge($defaultoptions, array('items' => $posts, 'userid' => 3));
         $result = $rm->get_ratingpeers($toptions);
@@ -192,7 +192,7 @@ class core_ratingpeer_testcase extends advanced_testcase {
         $this->assertEquals($result[0]->message, $posts[0]->message);
         $this->assertEquals($result[0]->ratingpeer->count, 2);
         $this->assertEquals($result[0]->ratingpeer->aggregate, 2);
-        $this->assertEquals($result[0]->ratingpeer->ratingpeer, 3); //user 3 ratepeerd user 1 "3"
+        $this->assertEquals($result[0]->ratingpeer->ratingpeer, 3); //user 3 ratedpeer user 1 "3"
         $this->assertEquals($result[0]->ratingpeer->userid, $toptions->userid); // Must be the passed userid
 
         $this->assertEquals($result[1]->id, $posts[1]->id);
@@ -200,7 +200,7 @@ class core_ratingpeer_testcase extends advanced_testcase {
         $this->assertEquals($result[1]->message, $posts[1]->message);
         $this->assertEquals($result[1]->ratingpeer->count, 2);
         $this->assertEquals($result[1]->ratingpeer->aggregate, 3);
-        $this->assertEquals($result[0]->ratingpeer->ratingpeer, 3); //user 3 ratepeerd user 2 "5"
+        $this->assertEquals($result[0]->ratingpeer->ratingpeer, 3); //user 3 ratedpeer user 2 "5"
         $this->assertEquals($result[1]->ratingpeer->userid, $toptions->userid); // Must be the passed userid
 
         // STEP 3: Some special cases

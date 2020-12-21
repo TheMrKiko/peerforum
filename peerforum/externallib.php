@@ -39,7 +39,7 @@ class mod_peerforum_external extends external_api {
         return new external_function_parameters (
                 array(
                         'courseids' => new external_multiple_structure(new external_value(PARAM_INT, 'course ID',
-                                VALUE_REQUIRED, '', NULL_NOT_ALLOWED), 'Array of Course IDs', VALUE_DEFAULT, array()),
+                                '', VALUE_REQUIRED, '', NULL_NOT_ALLOWED), 'Array of Course IDs', VALUE_DEFAULT, array()),
                 )
         );
     }
@@ -60,8 +60,10 @@ class mod_peerforum_external extends external_api {
 
         $params = self::validate_parameters(self::get_peerforums_by_courses_parameters(), array('courseids' => $courseids));
 
+        $courses = array();
         if (empty($params['courseids'])) {
-            $params['courseids'] = array_keys(enrol_get_my_courses());
+            $courses = enrol_get_my_courses();
+            $params['courseids'] = array_keys($courses);
         }
 
         // Array to store the peerforums to return.
@@ -71,7 +73,7 @@ class mod_peerforum_external extends external_api {
         // Ensure there are courseids to loop through.
         if (!empty($params['courseids'])) {
 
-            list($courses, $warnings) = external_util::validate_courses($params['courseids']);
+            list($courses, $warnings) = external_util::validate_courses($params['courseids'], $courses);
 
             // Get the peerforums in this course. This function checks users visibility permissions.
             $peerforums = get_all_instances_in_courses("peerforum", $courses);
@@ -89,7 +91,7 @@ class mod_peerforum_external extends external_api {
                 $peerforum->name = external_format_string($peerforum->name, $context->id);
                 // Format the intro before being returning using the format setting.
                 list($peerforum->intro, $peerforum->introformat) = external_format_text($peerforum->intro, $peerforum->introformat,
-                        $context->id, 'mod_peerforum', 'intro', null);
+                        $context->id, 'mod_peerforum', 'intro', 0);
                 // Discussions count. This function does static request cache.
                 $peerforum->numdiscussions = peerforum_count_discussions($peerforum, $cm, $course);
                 $peerforum->cmid = $peerforum->coursemodule;
@@ -158,7 +160,7 @@ class mod_peerforum_external extends external_api {
         return new external_function_parameters (
                 array(
                         'peerforumids' => new external_multiple_structure(new external_value(PARAM_INT, 'peerforum ID',
-                                VALUE_REQUIRED, '', NULL_NOT_ALLOWED), 'Array of PeerForum IDs', VALUE_REQUIRED),
+                                '', VALUE_REQUIRED, '', NULL_NOT_ALLOWED), 'Array of PeerForum IDs', VALUE_REQUIRED),
                         'limitfrom' => new external_value(PARAM_INT, 'limit from', VALUE_DEFAULT, 0),
                         'limitnum' => new external_value(PARAM_INT, 'limit number', VALUE_DEFAULT, 0)
                 )
@@ -487,7 +489,6 @@ class mod_peerforum_external extends external_api {
             $userpicture->size = 1; // Size f1.
             $post->userpictureurl = $userpicture->get_url($PAGE)->out(false);
 
-            $post->subject = external_format_string($post->subject, $modcontext->id);
             // Rewrite embedded images URLs.
             list($post->message, $post->messageformat) =
                     external_format_text($post->message, $post->messageformat, $modcontext->id, 'mod_peerforum', 'post', $post->id);
@@ -539,6 +540,7 @@ class mod_peerforum_external extends external_api {
                                                 'userid' => new external_value(PARAM_INT, 'User id'),
                                                 'created' => new external_value(PARAM_INT, 'Creation time'),
                                                 'modified' => new external_value(PARAM_INT, 'Time modified'),
+                                                'page' => new external_value(PARAM_INT, 'Page'),
                                                 'mailed' => new external_value(PARAM_INT, 'Mailed?'),
                                                 'subject' => new external_value(PARAM_TEXT, 'The post subject'),
                                                 'message' => new external_value(PARAM_RAW, 'The post message'),
@@ -724,8 +726,6 @@ class mod_peerforum_external extends external_api {
                 $userpicture->size = 1; // Size f1.
                 $discussion->usermodifiedpictureurl = $userpicture->get_url($PAGE)->out(false);
 
-                $discussion->name = external_format_string($discussion->name, $modcontext->id);
-                $discussion->subject = external_format_string($discussion->subject, $modcontext->id);
                 // Rewrite embedded images URLs.
                 list($discussion->message, $discussion->messageformat) =
                         external_format_text($discussion->message, $discussion->messageformat,
@@ -788,6 +788,7 @@ class mod_peerforum_external extends external_api {
                                                 'userid' => new external_value(PARAM_INT, 'User who started the discussion id'),
                                                 'created' => new external_value(PARAM_INT, 'Creation time'),
                                                 'modified' => new external_value(PARAM_INT, 'Time modified'),
+                                                'page' => new external_value(PARAM_INT, 'Page'),
                                                 'mailed' => new external_value(PARAM_INT, 'Mailed?'),
                                                 'subject' => new external_value(PARAM_TEXT, 'The post subject'),
                                                 'message' => new external_value(PARAM_RAW, 'The post message'),
@@ -854,7 +855,7 @@ class mod_peerforum_external extends external_api {
         $warnings = array();
 
         // Request and permission validation.
-        $peerforum = $DB->get_record('peerforum', array('id' => $params['peerforumid']), '*', MUST_EXIST);
+        $peerforum = $DB->get_record('peerforum', array('id' => $params['peerforumid']), 'id', MUST_EXIST);
         list($course, $cm) = get_course_and_cm_from_instance($peerforum, 'peerforum');
 
         $context = context_module::instance($cm->id);
@@ -1268,6 +1269,72 @@ class mod_peerforum_external extends external_api {
         return new external_single_structure(
                 array(
                         'discussionid' => new external_value(PARAM_INT, 'New Discussion ID'),
+                        'warnings' => new external_warnings()
+                )
+        );
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     * @since Moodle 3.1
+     */
+    public static function can_add_discussion_parameters() {
+        return new external_function_parameters(
+                array(
+                        'peerforumid' => new external_value(PARAM_INT, 'PeerForum instance ID'),
+                        'groupid' => new external_value(PARAM_INT, 'The group to check, default to active group.
+                                                Use -1 to check if the user can post in all the groups.', VALUE_DEFAULT, null)
+                )
+        );
+    }
+
+    /**
+     * Check if the current user can add discussions in the given peerforum (and optionally for the given group).
+     *
+     * @param int $peerforumid the peerforum instance id
+     * @param int $groupid the group to check, default to active group. Use -1 to check if the user can post in all the groups.
+     * @return array of warnings and the status (true if the user can add discussions)
+     * @throws moodle_exception
+     * @since Moodle 3.1
+     */
+    public static function can_add_discussion($peerforumid, $groupid = null) {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . "/mod/peerforum/lib.php");
+
+        $params = self::validate_parameters(self::can_add_discussion_parameters(),
+                array(
+                        'peerforumid' => $peerforumid,
+                        'groupid' => $groupid,
+                ));
+        $warnings = array();
+
+        // Request and permission validation.
+        $peerforum = $DB->get_record('peerforum', array('id' => $params['peerforumid']), '*', MUST_EXIST);
+        list($course, $cm) = get_course_and_cm_from_instance($peerforum, 'peerforum');
+
+        $context = context_module::instance($cm->id);
+        self::validate_context($context);
+
+        $status = peerforum_user_can_post_discussion($peerforum, $params['groupid'], -1, $cm, $context);
+
+        $result = array();
+        $result['status'] = $status;
+        $result['warnings'] = $warnings;
+        return $result;
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_description
+     * @since Moodle 3.1
+     */
+    public static function can_add_discussion_returns() {
+        return new external_single_structure(
+                array(
+                        'status' => new external_value(PARAM_BOOL, 'True if the user can add discussions, false otherwise.'),
                         'warnings' => new external_warnings()
                 )
         );

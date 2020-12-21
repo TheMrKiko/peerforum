@@ -44,7 +44,7 @@
 <div>
     <a target="_blank" href="{{{ permalink }}}">{{{ subject }}}</a>
     {{# str }} bynameondate, peerforum, {
-        "name": {{# quote }}<a target="_blank" href="{{{ authorlink }}}">{{ authorfullname }}</a>{{/ quote }},
-        "date": {{# quote }}{{ postdate }}{{/ quote }}
+        "name": "<a target=\"_blank\" href=\"{{{ authorlink }}}\">{{ authorfullname }}</a>",
+        "date": "{{ postdate }}"
         } {{/ str }}
-</div>
+</div>';

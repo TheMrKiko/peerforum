@@ -22,8 +22,17 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+/**
+ * Version information
+ *
+ * @package    mod
+ * @subpackage peerforum
+ * @author     2016 Jessica Ribeiro <jessica.ribeiro@tecnico.ulisboa.pt>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ **/
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2015111600;       // The current module version (Date: YYYYMMDDXX)
+$plugin->version = 2016080600;       // The current module version (Date: YYYYMMDDXX)
 $plugin->requires = 2015111000;       // Requires this Moodle version
-$plugin->component = 'mod_peerforum';      // Full name of the plugin (used for diagnostics)
+$plugin->component = 'mod_peerforum';  // Full name of the plugin (used for diagnostics)

@@ -171,15 +171,15 @@ if (!$posts = peerforum_search_posts($searchterms, $course->id, $page * $perpage
 }
 
 //including this here to prevent it being included if there are no search results
-require_once($CFG->dirroot . '/rating/lib.php');
+require_once($CFG->dirroot . '/ratingpeer/lib.php');
 
-//set up the ratings information that will be the same for all posts
-$ratingoptions = new stdClass();
-$ratingoptions->component = 'mod_peerforum';
-$ratingoptions->ratingarea = 'post';
-$ratingoptions->userid = $USER->id;
-$ratingoptions->returnurl = $PAGE->url->out(false);
-$rm = new rating_manager();
+//set up the ratingpeers information that will be the same for all posts
+$ratingpeeroptions = new stdClass();
+$ratingpeeroptions->component = 'mod_peerforum';
+$ratingpeeroptions->ratingpeerarea = 'post';
+$ratingpeeroptions->userid = $USER->id;
+$ratingpeeroptions->returnurl = $PAGE->url->out(false);
+$rm = new ratingpeer_manager();
 
 $PAGE->set_title($strsearchresults);
 $PAGE->set_heading($course->fullname);
@@ -252,20 +252,20 @@ foreach ($posts as $post) {
     $post->subject = $fullsubject;
     $post->subjectnoformat = true;
 
-    //add the ratings information to the post
+    //add the ratingpeers information to the post
     //Unfortunately seem to have do this individually as posts may be from different peerforums
     if ($peerforum->assessed != RATING_AGGREGATE_NONE) {
         $modcontext = context_module::instance($cm->id);
-        $ratingoptions->context = $modcontext;
-        $ratingoptions->items = array($post);
-        $ratingoptions->aggregate = $peerforum->assessed;//the aggregation method
-        $ratingoptions->scaleid = $peerforum->scale;
-        $ratingoptions->assesstimestart = $peerforum->assesstimestart;
-        $ratingoptions->assesstimefinish = $peerforum->assesstimefinish;
-        $postswithratings = $rm->get_ratings($ratingoptions);
+        $ratingpeeroptions->context = $modcontext;
+        $ratingpeeroptions->items = array($post);
+        $ratingpeeroptions->aggregate = $peerforum->assessed;//the aggregation method
+        $ratingpeeroptions->scaleid = $peerforum->scale;
+        $ratingpeeroptions->assesstimestart = $peerforum->assesstimestart;
+        $ratingpeeroptions->assesstimefinish = $peerforum->assesstimefinish;
+        $postswithratingpeers = $rm->get_ratingpeers($ratingpeeroptions);
 
-        if ($postswithratings && count($postswithratings) == 1) {
-            $post = $postswithratings[0];
+        if ($postswithratingpeers && count($postswithratingpeers) == 1) {
+            $post = $postswithratingpeers[0];
         }
     }
 
@@ -297,11 +297,6 @@ foreach ($posts as $post) {
 
     // Prepare a link to the post in context, to be displayed after the peerforum post.
     $fulllink = "<a href=\"discuss.php?d=$post->discussion#p$post->id\">" . get_string("postincontext", "peerforum") . "</a>";
-
-    // Message is now html format.
-    if ($post->messageformat != FORMAT_HTML) {
-        $post->messageformat = FORMAT_HTML;
-    }
 
     // Now pring the post.
     peerforum_print_post($post, $discussion, $peerforum, $cm, $course, false, false, false,

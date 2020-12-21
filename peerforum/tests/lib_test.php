@@ -194,8 +194,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -270,8 +270,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -389,8 +389,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -512,8 +512,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -2024,122 +2024,103 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
     }
 
     /**
-     * Test peerforum_user_has_posted_discussion with no groups.
+     * Test peerforum_user_can_post_discussion
      */
-    public function test_peerforum_user_has_posted_discussion_no_groups() {
-        global $CFG;
+    public function test_peerforum_user_can_post_discussion() {
+        global $CFG, $DB;
 
         $this->resetAfterTest(true);
 
-        $course = self::getDataGenerator()->create_course();
-        $author = self::getDataGenerator()->create_user();
-        $other = self::getDataGenerator()->create_user();
-        $this->getDataGenerator()->enrol_user($author->id, $course->id);
-        $peerforum = self::getDataGenerator()->create_module('peerforum', (object) ['course' => $course->id]);
+        // Create course to add the module.
+        $course = self::getDataGenerator()->create_course(array('groupmode' => SEPARATEGROUPS, 'groupmodeforce' => 1));
+        $user = self::getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($user->id, $course->id);
 
-        self::setUser($author);
-
-        // Neither user has posted.
-        $this->assertFalse(peerforum_user_has_posted_discussion($peerforum->id, $author->id));
-        $this->assertFalse(peerforum_user_has_posted_discussion($peerforum->id, $other->id));
-
-        // Post in the peerforum.
+        // PeerForum forcing separate gropus.
         $record = new stdClass();
         $record->course = $course->id;
-        $record->userid = $author->id;
+        $peerforum = self::getDataGenerator()->create_module('peerforum', $record, array('groupmode' => SEPARATEGROUPS));
+        $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
+        $context = context_module::instance($cm->id);
+
+        self::setUser($user);
+
+        // The user is not enroled in any group, try to post in a peerforum with separate groups.
+        $can = peerforum_user_can_post_discussion($peerforum, null, -1, $cm, $context);
+        $this->assertFalse($can);
+
+        // Create a group.
+        $group = $this->getDataGenerator()->create_group(array('courseid' => $course->id));
+
+        // Try to post in a group the user is not enrolled.
+        $can = peerforum_user_can_post_discussion($peerforum, $group->id, -1, $cm, $context);
+        $this->assertFalse($can);
+
+        // Add the user to a group.
+        groups_add_member($group->id, $user->id);
+
+        // Try to post in a group the user is not enrolled.
+        $can = peerforum_user_can_post_discussion($peerforum, $group->id + 1, -1, $cm, $context);
+        $this->assertFalse($can);
+
+        // Now try to post in the user group. (null means it will guess the group).
+        $can = peerforum_user_can_post_discussion($peerforum, null, -1, $cm, $context);
+        $this->assertTrue($can);
+
+        $can = peerforum_user_can_post_discussion($peerforum, $group->id, -1, $cm, $context);
+        $this->assertTrue($can);
+
+        // Test all groups.
+        $can = peerforum_user_can_post_discussion($peerforum, -1, -1, $cm, $context);
+        $this->assertFalse($can);
+
+        $this->setAdminUser();
+        $can = peerforum_user_can_post_discussion($peerforum, -1, -1, $cm, $context);
+        $this->assertTrue($can);
+
+        // Change peerforum type.
+        $peerforum->type = 'news';
+        $DB->update_record('peerforum', $peerforum);
+
+        // Admin can post news.
+        $can = peerforum_user_can_post_discussion($peerforum, null, -1, $cm, $context);
+        $this->assertTrue($can);
+
+        // Normal users don't.
+        self::setUser($user);
+        $can = peerforum_user_can_post_discussion($peerforum, null, -1, $cm, $context);
+        $this->assertFalse($can);
+
+        // Change peerforum type.
+        $peerforum->type = 'eachuser';
+        $DB->update_record('peerforum', $peerforum);
+
+        // I didn't post yet, so I should be able to post.
+        $can = peerforum_user_can_post_discussion($peerforum, null, -1, $cm, $context);
+        $this->assertTrue($can);
+
+        // Post now.
+        $record = new stdClass();
+        $record->course = $course->id;
+        $record->userid = $user->id;
         $record->peerforum = $peerforum->id;
         $discussion = self::getDataGenerator()->get_plugin_generator('mod_peerforum')->create_discussion($record);
 
-        // The author has now posted, but the other user has not.
-        $this->assertTrue(peerforum_user_has_posted_discussion($peerforum->id, $author->id));
-        $this->assertFalse(peerforum_user_has_posted_discussion($peerforum->id, $other->id));
-    }
+        // I already posted, I shouldn't be able to post.
+        $can = peerforum_user_can_post_discussion($peerforum, null, -1, $cm, $context);
+        $this->assertFalse($can);
 
-    /**
-     * Test peerforum_user_has_posted_discussion with multiple peerforums
-     */
-    public function test_peerforum_user_has_posted_discussion_multiple_peerforums() {
-        global $CFG;
+        // Last check with no groups, normal peerforum and course.
+        $course->groupmode = NOGROUPS;
+        $course->groupmodeforce = 0;
+        $DB->update_record('course', $course);
 
-        $this->resetAfterTest(true);
+        $peerforum->type = 'general';
+        $peerforum->groupmode = NOGROUPS;
+        $DB->update_record('peerforum', $peerforum);
 
-        $course = self::getDataGenerator()->create_course();
-        $author = self::getDataGenerator()->create_user();
-        $this->getDataGenerator()->enrol_user($author->id, $course->id);
-        $peerforum1 = self::getDataGenerator()->create_module('peerforum', (object) ['course' => $course->id]);
-        $peerforum2 = self::getDataGenerator()->create_module('peerforum', (object) ['course' => $course->id]);
-
-        self::setUser($author);
-
-        // No post in either peerforum.
-        $this->assertFalse(peerforum_user_has_posted_discussion($peerforum1->id, $author->id));
-        $this->assertFalse(peerforum_user_has_posted_discussion($peerforum2->id, $author->id));
-
-        // Post in the peerforum.
-        $record = new stdClass();
-        $record->course = $course->id;
-        $record->userid = $author->id;
-        $record->peerforum = $peerforum1->id;
-        $discussion = self::getDataGenerator()->get_plugin_generator('mod_peerforum')->create_discussion($record);
-
-        // The author has now posted in peerforum1, but not peerforum2.
-        $this->assertTrue(peerforum_user_has_posted_discussion($peerforum1->id, $author->id));
-        $this->assertFalse(peerforum_user_has_posted_discussion($peerforum2->id, $author->id));
-    }
-
-    /**
-     * Test peerforum_user_has_posted_discussion with multiple groups.
-     */
-    public function test_peerforum_user_has_posted_discussion_multiple_groups() {
-        global $CFG;
-
-        $this->resetAfterTest(true);
-
-        $course = self::getDataGenerator()->create_course();
-        $author = self::getDataGenerator()->create_user();
-        $this->getDataGenerator()->enrol_user($author->id, $course->id);
-
-        $group1 = $this->getDataGenerator()->create_group(array('courseid' => $course->id));
-        $group2 = $this->getDataGenerator()->create_group(array('courseid' => $course->id));
-        groups_add_member($group1->id, $author->id);
-        groups_add_member($group2->id, $author->id);
-
-        $peerforum = self::getDataGenerator()->create_module('peerforum', (object) ['course' => $course->id], [
-                'groupmode' => SEPARATEGROUPS,
-        ]);
-
-        self::setUser($author);
-
-        // The user has not posted in either group.
-        $this->assertFalse(peerforum_user_has_posted_discussion($peerforum->id, $author->id));
-        $this->assertFalse(peerforum_user_has_posted_discussion($peerforum->id, $author->id, $group1->id));
-        $this->assertFalse(peerforum_user_has_posted_discussion($peerforum->id, $author->id, $group2->id));
-
-        // Post in one group.
-        $record = new stdClass();
-        $record->course = $course->id;
-        $record->userid = $author->id;
-        $record->peerforum = $peerforum->id;
-        $record->groupid = $group1->id;
-        $discussion = self::getDataGenerator()->get_plugin_generator('mod_peerforum')->create_discussion($record);
-
-        // The author has now posted in one group, but the other user has not.
-        $this->assertTrue(peerforum_user_has_posted_discussion($peerforum->id, $author->id));
-        $this->assertTrue(peerforum_user_has_posted_discussion($peerforum->id, $author->id, $group1->id));
-        $this->assertFalse(peerforum_user_has_posted_discussion($peerforum->id, $author->id, $group2->id));
-
-        // Post in the other group.
-        $record = new stdClass();
-        $record->course = $course->id;
-        $record->userid = $author->id;
-        $record->peerforum = $peerforum->id;
-        $record->groupid = $group2->id;
-        $discussion = self::getDataGenerator()->get_plugin_generator('mod_peerforum')->create_discussion($record);
-
-        // The author has now posted in one group, but the other user has not.
-        $this->assertTrue(peerforum_user_has_posted_discussion($peerforum->id, $author->id));
-        $this->assertTrue(peerforum_user_has_posted_discussion($peerforum->id, $author->id, $group1->id));
-        $this->assertTrue(peerforum_user_has_posted_discussion($peerforum->id, $author->id, $group2->id));
+        $can = peerforum_user_can_post_discussion($peerforum, null, -1, $cm, $context);
+        $this->assertTrue($can);
     }
 
     /**
@@ -2214,536 +2195,5 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
         $nodes->setAccessible(true);
         $this->assertArrayHasKey('peerforumposts', $nodes->getValue($tree));
         $this->assertArrayHasKey('peerforumdiscussions', $nodes->getValue($tree));
-    }
-
-    public function test_print_overview() {
-        $this->resetAfterTest();
-        $course1 = self::getDataGenerator()->create_course();
-        $course2 = self::getDataGenerator()->create_course();
-
-        // Create an author user.
-        $author = self::getDataGenerator()->create_user();
-        $this->getDataGenerator()->enrol_user($author->id, $course1->id);
-        $this->getDataGenerator()->enrol_user($author->id, $course2->id);
-
-        // Create a viewer user.
-        $viewer = self::getDataGenerator()->create_user((object) array('trackpeerforums' => 1));
-        $this->getDataGenerator()->enrol_user($viewer->id, $course1->id);
-        $this->getDataGenerator()->enrol_user($viewer->id, $course2->id);
-
-        // Create two peerforums - one in each course.
-        $record = new stdClass();
-        $record->course = $course1->id;
-        $peerforum1 = self::getDataGenerator()->create_module('peerforum', (object) array('course' => $course1->id));
-        $peerforum2 = self::getDataGenerator()->create_module('peerforum', (object) array('course' => $course2->id));
-
-        // A standard post in the peerforum.
-        $record = new stdClass();
-        $record->course = $course1->id;
-        $record->userid = $author->id;
-        $record->peerforum = $peerforum1->id;
-        $this->getDataGenerator()->get_plugin_generator('mod_peerforum')->create_discussion($record);
-
-        $this->setUser($viewer->id);
-        $courses = array(
-                $course1->id => clone $course1,
-                $course2->id => clone $course2,
-        );
-
-        foreach ($courses as $courseid => $course) {
-            $courses[$courseid]->lastaccess = 0;
-        }
-        $results = array();
-        peerforum_print_overview($courses, $results);
-
-        // There should be one entry for course1, and no others.
-        $this->assertCount(1, $results);
-
-        // There should be one entry for a peerforum in course1.
-        $this->assertCount(1, $results[$course1->id]);
-        $this->assertArrayHasKey('peerforum', $results[$course1->id]);
-    }
-
-    public function test_print_overview_groups() {
-        $this->resetAfterTest();
-        $course1 = self::getDataGenerator()->create_course();
-        $group1 = $this->getDataGenerator()->create_group(array('courseid' => $course1->id));
-        $group2 = $this->getDataGenerator()->create_group(array('courseid' => $course1->id));
-
-        // Create an author user.
-        $author = self::getDataGenerator()->create_user();
-        $this->getDataGenerator()->enrol_user($author->id, $course1->id);
-
-        // Create two viewer users - one in each group.
-        $viewer1 = self::getDataGenerator()->create_user((object) array('trackpeerforums' => 1));
-        $this->getDataGenerator()->enrol_user($viewer1->id, $course1->id);
-        $this->getDataGenerator()->create_group_member(array('userid' => $viewer1->id, 'groupid' => $group1->id));
-
-        $viewer2 = self::getDataGenerator()->create_user((object) array('trackpeerforums' => 1));
-        $this->getDataGenerator()->enrol_user($viewer2->id, $course1->id);
-        $this->getDataGenerator()->create_group_member(array('userid' => $viewer2->id, 'groupid' => $group2->id));
-
-        // Create a peerforum.
-        $record = new stdClass();
-        $record->course = $course1->id;
-        $peerforum1 = self::getDataGenerator()->create_module('peerforum', (object) array(
-                'course' => $course1->id,
-                'groupmode' => SEPARATEGROUPS,
-        ));
-
-        // A post in the peerforum for group1.
-        $record = new stdClass();
-        $record->course = $course1->id;
-        $record->userid = $author->id;
-        $record->peerforum = $peerforum1->id;
-        $record->groupid = $group1->id;
-        $this->getDataGenerator()->get_plugin_generator('mod_peerforum')->create_discussion($record);
-
-        $course1->lastaccess = 0;
-        $courses = array($course1->id => $course1);
-
-        // As viewer1 (same group as post).
-        $this->setUser($viewer1->id);
-        $results = array();
-        peerforum_print_overview($courses, $results);
-
-        // There should be one entry for course1.
-        $this->assertCount(1, $results);
-
-        // There should be one entry for a peerforum in course1.
-        $this->assertCount(1, $results[$course1->id]);
-        $this->assertArrayHasKey('peerforum', $results[$course1->id]);
-
-        $this->setUser($viewer2->id);
-        $results = array();
-        peerforum_print_overview($courses, $results);
-
-        // There should be one entry for course1.
-        $this->assertCount(0, $results);
-    }
-
-    /**
-     * @dataProvider print_overview_timed_provider
-     */
-    public function test_print_overview_timed($config, $hasresult) {
-        $this->resetAfterTest();
-        $course1 = self::getDataGenerator()->create_course();
-
-        // Create an author user.
-        $author = self::getDataGenerator()->create_user();
-        $this->getDataGenerator()->enrol_user($author->id, $course1->id);
-
-        // Create a viewer user.
-        $viewer = self::getDataGenerator()->create_user((object) array('trackpeerforums' => 1));
-        $this->getDataGenerator()->enrol_user($viewer->id, $course1->id);
-
-        // Create a peerforum.
-        $record = new stdClass();
-        $record->course = $course1->id;
-        $peerforum1 = self::getDataGenerator()->create_module('peerforum', (object) array('course' => $course1->id));
-
-        // A timed post with a timestart in the past (24 hours ago).
-        $record = new stdClass();
-        $record->course = $course1->id;
-        $record->userid = $author->id;
-        $record->peerforum = $peerforum1->id;
-        if (isset($config['timestartmodifier'])) {
-            $record->timestart = time() + $config['timestartmodifier'];
-        }
-        if (isset($config['timeendmodifier'])) {
-            $record->timeend = time() + $config['timeendmodifier'];
-        }
-        $this->getDataGenerator()->get_plugin_generator('mod_peerforum')->create_discussion($record);
-
-        $course1->lastaccess = 0;
-        $courses = array($course1->id => $course1);
-
-        // As viewer, check the peerforum_print_overview result.
-        $this->setUser($viewer->id);
-        $results = array();
-        peerforum_print_overview($courses, $results);
-
-        if ($hasresult) {
-            // There should be one entry for course1.
-            $this->assertCount(1, $results);
-
-            // There should be one entry for a peerforum in course1.
-            $this->assertCount(1, $results[$course1->id]);
-            $this->assertArrayHasKey('peerforum', $results[$course1->id]);
-        } else {
-            // There should be no entries for any course.
-            $this->assertCount(0, $results);
-        }
-    }
-
-    /**
-     * @dataProvider print_overview_timed_provider
-     */
-    public function test_print_overview_timed_groups($config, $hasresult) {
-        $this->resetAfterTest();
-        $course1 = self::getDataGenerator()->create_course();
-        $group1 = $this->getDataGenerator()->create_group(array('courseid' => $course1->id));
-        $group2 = $this->getDataGenerator()->create_group(array('courseid' => $course1->id));
-
-        // Create an author user.
-        $author = self::getDataGenerator()->create_user();
-        $this->getDataGenerator()->enrol_user($author->id, $course1->id);
-
-        // Create two viewer users - one in each group.
-        $viewer1 = self::getDataGenerator()->create_user((object) array('trackpeerforums' => 1));
-        $this->getDataGenerator()->enrol_user($viewer1->id, $course1->id);
-        $this->getDataGenerator()->create_group_member(array('userid' => $viewer1->id, 'groupid' => $group1->id));
-
-        $viewer2 = self::getDataGenerator()->create_user((object) array('trackpeerforums' => 1));
-        $this->getDataGenerator()->enrol_user($viewer2->id, $course1->id);
-        $this->getDataGenerator()->create_group_member(array('userid' => $viewer2->id, 'groupid' => $group2->id));
-
-        // Create a peerforum.
-        $record = new stdClass();
-        $record->course = $course1->id;
-        $peerforum1 = self::getDataGenerator()->create_module('peerforum', (object) array(
-                'course' => $course1->id,
-                'groupmode' => SEPARATEGROUPS,
-        ));
-
-        // A post in the peerforum for group1.
-        $record = new stdClass();
-        $record->course = $course1->id;
-        $record->userid = $author->id;
-        $record->peerforum = $peerforum1->id;
-        $record->groupid = $group1->id;
-        if (isset($config['timestartmodifier'])) {
-            $record->timestart = time() + $config['timestartmodifier'];
-        }
-        if (isset($config['timeendmodifier'])) {
-            $record->timeend = time() + $config['timeendmodifier'];
-        }
-        $this->getDataGenerator()->get_plugin_generator('mod_peerforum')->create_discussion($record);
-
-        $course1->lastaccess = 0;
-        $courses = array($course1->id => $course1);
-
-        // As viewer1 (same group as post).
-        $this->setUser($viewer1->id);
-        $results = array();
-        peerforum_print_overview($courses, $results);
-
-        if ($hasresult) {
-            // There should be one entry for course1.
-            $this->assertCount(1, $results);
-
-            // There should be one entry for a peerforum in course1.
-            $this->assertCount(1, $results[$course1->id]);
-            $this->assertArrayHasKey('peerforum', $results[$course1->id]);
-        } else {
-            // There should be no entries for any course.
-            $this->assertCount(0, $results);
-        }
-
-        $this->setUser($viewer2->id);
-        $results = array();
-        peerforum_print_overview($courses, $results);
-
-        // There should be one entry for course1.
-        $this->assertCount(0, $results);
-    }
-
-    public function print_overview_timed_provider() {
-        return array(
-                'timestart_past' => array(
-                        'discussionconfig' => array(
-                                'timestartmodifier' => -86000,
-                        ),
-                        'hasresult' => true,
-                ),
-                'timestart_future' => array(
-                        'discussionconfig' => array(
-                                'timestartmodifier' => 86000,
-                        ),
-                        'hasresult' => false,
-                ),
-                'timeend_past' => array(
-                        'discussionconfig' => array(
-                                'timeendmodifier' => -86000,
-                        ),
-                        'hasresult' => false,
-                ),
-                'timeend_future' => array(
-                        'discussionconfig' => array(
-                                'timeendmodifier' => 86000,
-                        ),
-                        'hasresult' => true,
-                ),
-        );
-    }
-
-    /**
-     * @dataProvider peerforum_get_unmailed_posts_provider
-     */
-    public function test_peerforum_get_unmailed_posts($discussiondata, $enabletimedposts, $expectedcount, $expectedreplycount) {
-        global $CFG, $DB;
-
-        $this->resetAfterTest();
-
-        // Configure timed posts.
-        $CFG->peerforum_enabletimedposts = $enabletimedposts;
-
-        $course = $this->getDataGenerator()->create_course();
-        $peerforum = $this->getDataGenerator()->create_module('peerforum', ['course' => $course->id]);
-        $user = $this->getDataGenerator()->create_user();
-        $peerforumgen = $this->getDataGenerator()->get_plugin_generator('mod_peerforum');
-
-        // Keep track of the start time of the test. Do not use time() after this point to prevent random failures.
-        $time = time();
-
-        $record = new stdClass();
-        $record->course = $course->id;
-        $record->userid = $user->id;
-        $record->peerforum = $peerforum->id;
-        if (isset($discussiondata['timecreated'])) {
-            $record->timemodified = $time + $discussiondata['timecreated'];
-        }
-        if (isset($discussiondata['timestart'])) {
-            $record->timestart = $time + $discussiondata['timestart'];
-        }
-        if (isset($discussiondata['timeend'])) {
-            $record->timeend = $time + $discussiondata['timeend'];
-        }
-        if (isset($discussiondata['mailed'])) {
-            $record->mailed = $discussiondata['mailed'];
-        }
-
-        $discussion = $peerforumgen->create_discussion($record);
-
-        // Fetch the unmailed posts.
-        $timenow = $time;
-        $endtime = $timenow - $CFG->maxeditingtime;
-        $starttime = $endtime - 2 * DAYSECS;
-
-        $unmailed = peerforum_get_unmailed_posts($starttime, $endtime, $timenow);
-        $this->assertCount($expectedcount, $unmailed);
-
-        // Add a reply just outside the maxeditingtime.
-        $replyto = $DB->get_record('peerforum_posts', array('discussion' => $discussion->id));
-        $reply = new stdClass();
-        $reply->userid = $user->id;
-        $reply->discussion = $discussion->id;
-        $reply->parent = $replyto->id;
-        $reply->created = max($replyto->created, $endtime - 1);
-        $peerforumgen->create_post($reply);
-
-        $unmailed = peerforum_get_unmailed_posts($starttime, $endtime, $timenow);
-        $this->assertCount($expectedreplycount, $unmailed);
-    }
-
-    public function peerforum_get_unmailed_posts_provider() {
-        return [
-                'Untimed discussion; Single post; maxeditingtime not expired' => [
-                        'discussion' => [
-                        ],
-                        'timedposts' => false,
-                        'postcount' => 0,
-                        'replycount' => 0,
-                ],
-                'Untimed discussion; Single post; maxeditingtime expired' => [
-                        'discussion' => [
-                                'timecreated' => -DAYSECS,
-                        ],
-                        'timedposts' => false,
-                        'postcount' => 1,
-                        'replycount' => 2,
-                ],
-                'Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime not expired' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timestart' => 0,
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 0,
-                        'replycount' => 0,
-                ],
-                'Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timestart' => -DAYSECS,
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 1,
-                        'replycount' => 2,
-                ],
-                'Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired; timeend not reached' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timestart' => -DAYSECS,
-                                'timeend' => +DAYSECS
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 1,
-                        'replycount' => 2,
-                ],
-                'Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired; timeend passed' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timestart' => -DAYSECS,
-                                'timeend' => -HOURSECS,
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 0,
-                        'replycount' => 0,
-                ],
-                'Timed discussion; Single post; Posted 1 week ago; timeend not reached' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timeend' => +DAYSECS
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 0,
-                        'replycount' => 1,
-                ],
-                'Timed discussion; Single post; Posted 1 week ago; timeend passed' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timeend' => -DAYSECS,
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 0,
-                        'replycount' => 0,
-                ],
-
-                'Previously mailed; Untimed discussion; Single post; maxeditingtime not expired' => [
-                        'discussion' => [
-                                'mailed' => 1,
-                        ],
-                        'timedposts' => false,
-                        'postcount' => 0,
-                        'replycount' => 0,
-                ],
-
-                'Previously mailed; Untimed discussion; Single post; maxeditingtime expired' => [
-                        'discussion' => [
-                                'timecreated' => -DAYSECS,
-                                'mailed' => 1,
-                        ],
-                        'timedposts' => false,
-                        'postcount' => 0,
-                        'replycount' => 1,
-                ],
-                'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime not expired' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timestart' => 0,
-                                'mailed' => 1,
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 0,
-                        'replycount' => 0,
-                ],
-                'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timestart' => -DAYSECS,
-                                'mailed' => 1,
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 0,
-                        'replycount' => 1,
-                ],
-                'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired; timeend not reached' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timestart' => -DAYSECS,
-                                'timeend' => +DAYSECS,
-                                'mailed' => 1,
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 0,
-                        'replycount' => 1,
-                ],
-                'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired; timeend passed' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timestart' => -DAYSECS,
-                                'timeend' => -HOURSECS,
-                                'mailed' => 1,
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 0,
-                        'replycount' => 0,
-                ],
-                'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timeend not reached' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timeend' => +DAYSECS,
-                                'mailed' => 1,
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 0,
-                        'replycount' => 1,
-                ],
-                'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timeend passed' => [
-                        'discussion' => [
-                                'timecreated' => -WEEKSECS,
-                                'timeend' => -DAYSECS,
-                                'mailed' => 1,
-                        ],
-                        'timedposts' => true,
-                        'postcount' => 0,
-                        'replycount' => 0,
-                ],
-        ];
-    }
-
-    /**
-     * Test that {@link peerforum_update_post()} keeps correct peerforum_discussions usermodified.
-     */
-    public function test_peerforum_update_post_keeps_discussions_usermodified() {
-        global $DB;
-
-        $this->resetAfterTest();
-
-        // Let there be light.
-        $teacher = self::getDataGenerator()->create_user();
-        $student = self::getDataGenerator()->create_user();
-        $course = self::getDataGenerator()->create_course();
-
-        $peerforum = self::getDataGenerator()->create_module('peerforum', (object) [
-                'course' => $course->id,
-        ]);
-
-        $generator = self::getDataGenerator()->get_plugin_generator('mod_peerforum');
-
-        // Let the teacher start a discussion.
-        $discussion = $generator->create_discussion((object) [
-                'course' => $course->id,
-                'userid' => $teacher->id,
-                'peerforum' => $peerforum->id,
-        ]);
-
-        // On this freshly created discussion, the teacher is the author of the last post.
-        $this->assertEquals($teacher->id, $DB->get_field('peerforum_discussions', 'usermodified', ['id' => $discussion->id]));
-
-        // Let the student reply to the teacher's post.
-        $reply = $generator->create_post((object) [
-                'course' => $course->id,
-                'userid' => $student->id,
-                'peerforum' => $peerforum->id,
-                'discussion' => $discussion->id,
-                'parent' => $discussion->firstpost,
-        ]);
-
-        // The student should now be the last post's author.
-        $this->assertEquals($student->id, $DB->get_field('peerforum_discussions', 'usermodified', ['id' => $discussion->id]));
-
-        // Let the teacher edit the student's reply.
-        $this->setUser($teacher->id);
-        $newpost = (object) [
-                'id' => $reply->id,
-                'itemid' => 0,
-                'subject' => 'Amended subject',
-        ];
-        peerforum_update_post($newpost, null);
-
-        // The student should be still the last post's author.
-        $this->assertEquals($student->id, $DB->get_field('peerforum_discussions', 'usermodified', ['id' => $discussion->id]));
     }
 }

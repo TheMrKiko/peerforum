@@ -99,4 +99,12 @@ $functions = array(
                 'type' => 'write',
                 'capabilities' => 'mod/peerforum:startdiscussion'
         ),
+
+        'mod_peerforum_can_add_discussion' => array(
+                'classname' => 'mod_peerforum_external',
+                'methodname' => 'can_add_discussion',
+                'classpath' => 'mod/peerforum/externallib.php',
+                'description' => 'Check if the current user can add discussions in the given peerforum (and optionally for the given group).',
+                'type' => 'read'
+        ),
 );

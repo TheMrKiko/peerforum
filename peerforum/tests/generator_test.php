@@ -76,9 +76,8 @@ class mod_peerforum_generator_testcase extends advanced_testcase {
 
         // test gradebook integration using low level DB access - DO NOT USE IN PLUGIN CODE!
         $peerforum = $generator->create_instance(array('course' => $course->id, 'assessed' => 1, 'scale' => 100));
-        $gitem = $DB->get_record('grade_items',
-                array('courseid' => $course->id, 'itemtype' => 'mod', 'itemmodule' => 'peerforum',
-                        'iteminstance' => $peerforum->id));
+        $gitem = $DB->get_record('grade_items', array('courseid' => $course->id, 'itemtype' => 'mod', 'itemmodule' => 'peerforum',
+                'iteminstance' => $peerforum->id));
         $this->assertNotEmpty($gitem);
         $this->assertEquals(100, $gitem->grademax);
         $this->assertEquals(0, $gitem->grademin);

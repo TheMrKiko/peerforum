@@ -26,8 +26,6 @@ namespace mod_peerforum\output\email;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once(__DIR__ . '/../../../renderer.php');
-
 /**
  * PeerForum post renderable.
  *
@@ -55,12 +53,9 @@ class renderer extends \mod_peerforum_renderer {
      * @return string
      */
     public function format_message_text($cm, $post) {
-        $message = file_rewrite_pluginfile_urls($post->message, 'pluginfile.php',
-                \context_module::instance($cm->id)->id,
-                'mod_peerforum', 'post', $post->id);
         $options = new \stdClass();
         $options->para = true;
-        return format_text($message, $post->messageformat, $options);
+        return format_text($post->message, $post->messageformat, $options);
     }
 
     /**

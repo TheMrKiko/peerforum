@@ -185,7 +185,7 @@ class mod_peerforum_external_testcase extends externallib_advanced_testcase {
 
         // Create a user who can track peerforums.
         $record = new stdClass();
-        $record->trackpeerforums = true;
+        $record->trackforums = true;
         $user1 = self::getDataGenerator()->create_user($record);
         // Create a bunch of other users to post.
         $user2 = self::getDataGenerator()->create_user();
@@ -394,7 +394,7 @@ class mod_peerforum_external_testcase extends externallib_advanced_testcase {
 
         // Create a user who can track peerforums.
         $record = new stdClass();
-        $record->trackpeerforums = true;
+        $record->trackforums = true;
         $user1 = self::getDataGenerator()->create_user($record);
         // Create a bunch of other users to post.
         $user2 = self::getDataGenerator()->create_user();
@@ -604,7 +604,7 @@ class mod_peerforum_external_testcase extends externallib_advanced_testcase {
 
         // Create a user who can track peerforums.
         $record = new stdClass();
-        $record->trackpeerforums = true;
+        $record->trackforums = true;
         $user1 = self::getDataGenerator()->create_user($record);
         // Create a bunch of other users to post.
         $user2 = self::getDataGenerator()->create_user();
@@ -1016,6 +1016,39 @@ class mod_peerforum_external_testcase extends externallib_advanced_testcase {
         $this->assertEquals($group->id, $discussions['discussions'][0]['groupid']);
         $this->assertEquals($group->id, $discussions['discussions'][1]['groupid']);
         $this->assertEquals($group->id, $discussions['discussions'][2]['groupid']);
+
+    }
+
+    /*
+     * Test can_add_discussion. A basic test since all the API functions are already covered by unit tests.
+     */
+    public function test_can_add_discussion() {
+
+        $this->resetAfterTest(true);
+
+        // Create courses to add the modules.
+        $course = self::getDataGenerator()->create_course();
+
+        $user = self::getDataGenerator()->create_user();
+
+        // First peerforum with tracking off.
+        $record = new stdClass();
+        $record->course = $course->id;
+        $record->type = 'news';
+        $peerforum = self::getDataGenerator()->create_module('peerforum', $record);
+
+        // User with no permissions to add in a news peerforum.
+        self::setUser($user);
+        $this->getDataGenerator()->enrol_user($user->id, $course->id);
+
+        $result = mod_peerforum_external::can_add_discussion($peerforum->id);
+        $result = external_api::clean_returnvalue(mod_peerforum_external::can_add_discussion_returns(), $result);
+        $this->assertFalse($result['status']);
+
+        self::setAdminUser();
+        $result = mod_peerforum_external::can_add_discussion($peerforum->id);
+        $result = external_api::clean_returnvalue(mod_peerforum_external::can_add_discussion_returns(), $result);
+        $this->assertTrue($result['status']);
 
     }
 

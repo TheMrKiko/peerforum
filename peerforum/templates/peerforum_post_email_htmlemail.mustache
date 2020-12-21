@@ -102,10 +102,7 @@
                 {{{ subject }}}
             </div>
             <div class="author">
-                {{# str }} bynameondate, peerforum, {
-                    "name": {{# quote }}<a target='_blank' href='{{{ authorlink }}}'>{{ authorfullname }}</a>{{/ quote }},
-                    "date": {{# quote }}{{ postdate }}{{/ quote }}
-                    } {{/ str }}
+                {{# str }} bynameondate, peerforum, { "name": "<a target='_blank' href='{{{ authorlink }}}'>{{ authorfullname }}</a>", "date": "{{ postdate }}" } {{/ str }}
             </div>
         </td>
     </tr>

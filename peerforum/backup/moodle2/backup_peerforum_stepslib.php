@@ -47,49 +47,75 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
                 'completionposts', 'displaywordcount'));
 
         $discussions = new backup_nested_element('discussions');
-
         $discussion = new backup_nested_element('discussion', array('id'), array(
                 'name', 'firstpost', 'userid', 'groupid',
                 'assessed', 'timemodified', 'usermodified', 'timestart',
                 'timeend'));
 
         $posts = new backup_nested_element('posts');
-
         $post = new backup_nested_element('post', array('id'), array(
-                'parent', 'userid', 'created', 'modified',
+                'parent', 'userid', 'created', 'modified', 'page',
                 'mailed', 'subject', 'message', 'messageformat',
                 'messagetrust', 'attachment', 'totalscore', 'mailnow'));
 
-        $ratings = new backup_nested_element('ratings');
+        $blockedgrades = new backup_nested_element('blockedgrades');
+        $blockedgrade = new backup_nested_element('blockedgrade', array('id'), array(
+                'component', 'peergradearea', 'itemid', 'scaleid', 'peergrade',
+                'userid', 'timecreated', 'timemodified', 'peergradescaleid',
+                'peergraderid', 'feedback', 'isoutlier'));
 
-        $rating = new backup_nested_element('rating', array('id'), array(
-                'component', 'ratingarea', 'scaleid', 'value', 'userid', 'timecreated', 'timemodified'));
+        $groups = new backup_nested_element('groups');
+        $group = new backup_nested_element('group', array('id'), array(
+                'courseid', 'groupid', 'studentsid', 'studentsname'));
+
+        $peergradecriterias = new backup_nested_element('peergradecriterias');
+        $peergradecriteria = new backup_nested_element('peergradecriteria', array('id'), array(
+                'component', 'peergradearea', 'itemid', 'criteria', 'grade',
+                'userid', 'timecreated', 'timemodified', 'peergradescaleid',
+                'feedback'));
+
+        $peergradeconflits = new backup_nested_element('peergradeconflits');
+        $peergradeconflit = new backup_nested_element('peergradeconflit', array('id'), array(
+                'courseid', 'conflictgroup', 'idstudents', 'namestudents'));
+
+        $peergradeusers = new backup_nested_element('peergradeusers');
+        $peergradeuser = new backup_nested_element('peergradeuser', array('id'), array(
+                'courseid', 'iduser', 'userblocked', 'poststopeergrade', 'numpostsassigned',
+                'postspeergradedone', 'postsblocked', 'postsexpired'));
+
+        $timeassigneds = new backup_nested_element('timeassigneds');
+        $timeassigned = new backup_nested_element('timeassigned', array('id'), array(
+                'courseid', 'postid', 'userid', 'timeassigned', 'timemodified'));
+
+        $ratingpeers = new backup_nested_element('ratingpeers');
+        $ratingpeer = new backup_nested_element('ratingpeer', array('id'), array(
+                'component', 'ratingpeerarea', 'scaleid', 'value', 'userid', 'timecreated', 'timemodified'));
+
+        $peergrades = new backup_nested_element('peergrades');
+        $peergrade = new backup_nested_element('peergrade', array('id'), array(
+                'component', 'peergradearea', 'scaleid', 'value', 'userid', 'timecreated', 'timemodified', 'peergradescaleid',
+                'peergraderid', 'feedback'));
 
         $discussionsubs = new backup_nested_element('discussion_subs');
-
         $discussionsub = new backup_nested_element('discussion_sub', array('id'), array(
                 'userid',
                 'preference',
         ));
 
         $subscriptions = new backup_nested_element('subscriptions');
-
         $subscription = new backup_nested_element('subscription', array('id'), array(
                 'userid'));
 
         $digests = new backup_nested_element('digests');
-
         $digest = new backup_nested_element('digest', array('id'), array(
                 'userid', 'maildigest'));
 
         $readposts = new backup_nested_element('readposts');
-
         $read = new backup_nested_element('read', array('id'), array(
                 'userid', 'discussionid', 'postid', 'firstread',
                 'lastread'));
 
         $trackedprefs = new backup_nested_element('trackedprefs');
-
         $track = new backup_nested_element('track', array('id'), array(
                 'userid'));
 
@@ -110,11 +136,32 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $peerforum->add_child($trackedprefs);
         $trackedprefs->add_child($track);
 
+        $peerforum->add_child($blockedgrades);
+        $blockedgrades->add_child($blockedgrade);
+
+        $peerforum->add_child($groups);
+        $groups->add_child($group);
+
+        $peerforum->add_child($peergradecriterias);
+        $peergradecriterias->add_child($peergradecriteria);
+
+        $peerforum->add_child($peergradeconflits);
+        $peergradeconflits->add_child($peergradeconflit);
+
+        $peerforum->add_child($peergradeusers);
+        $peergradeusers->add_child($peergradeuser);
+
+        $peerforum->add_child($timeassigneds);
+        $timeassigneds->add_child($timeassigned);
+
         $discussion->add_child($posts);
         $posts->add_child($post);
 
-        $post->add_child($ratings);
-        $ratings->add_child($rating);
+        $post->add_child($ratingpeers);
+        $ratingpeers->add_child($ratingpeer);
+
+        $post->add_child($peergrades);
+        $peergrades->add_child($peergrade);
 
         $discussion->add_child($discussionsubs);
         $discussionsubs->add_child($discussionsub);
@@ -142,11 +189,27 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
 
             $track->set_source_table('peerforum_track_prefs', array('peerforumid' => backup::VAR_PARENTID));
 
-            $rating->set_source_table('rating', array('contextid' => backup::VAR_CONTEXTID,
+            $ratingpeer->set_source_table('ratingpeer', array('contextid' => backup::VAR_CONTEXTID,
                     'component' => backup_helper::is_sqlparam('mod_peerforum'),
-                    'ratingarea' => backup_helper::is_sqlparam('post'),
+                    'ratingpeerarea' => backup_helper::is_sqlparam('post'),
                     'itemid' => backup::VAR_PARENTID));
-            $rating->set_source_alias('rating', 'value');
+            $ratingpeer->set_source_alias('ratingpeer', 'value');
+
+            $peergrade->set_source_table('peergrade', array('contextid' => backup::VAR_CONTEXTID,
+                    'component' => backup_helper::is_sqlparam('mod_peerforum'),
+                    'peergradepeerarea' => backup_helper::is_sqlparam('post'),
+                    'itemid' => backup::VAR_PARENTID));
+            $peergrade->set_source_alias('peergrade', 'value');
+
+            $blockedgrade->set_source_table('blockedgrades', array('contextid' => backup::VAR_CONTEXTID,
+                    'component' => backup_helper::is_sqlparam('mod_peerforum'),
+                    'peergradepeerarea' => backup_helper::is_sqlparam('post'),
+                    'itemid' => backup::VAR_PARENTID));
+
+            $peergradecriteria->set_source_table('peergradecriteria', array('contextid' => backup::VAR_CONTEXTID,
+                    'component' => backup_helper::is_sqlparam('mod_peerforum'),
+                    'peergradepeerarea' => backup_helper::is_sqlparam('post'),
+                    'itemid' => backup::VAR_PARENTID));
         }
 
         // Define id annotations
@@ -159,9 +222,13 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
 
         $discussionsub->annotate_ids('user', 'userid');
 
-        $rating->annotate_ids('scale', 'scaleid');
+        $ratingpeer->annotate_ids('scale', 'scaleid');
 
-        $rating->annotate_ids('user', 'userid');
+        $ratingpeer->annotate_ids('user', 'userid');
+
+        $peergrade->annotate_ids('scale', 'scaleid');
+
+        $peergrade->annotate_ids('user', 'userid');
 
         $subscription->annotate_ids('user', 'userid');
 

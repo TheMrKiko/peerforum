@@ -260,6 +260,9 @@ class mod_peerforum_post_form extends moodleform {
         $mform->addElement('hidden', 'parent');
         $mform->setType('parent', PARAM_INT);
 
+        $mform->addElement('hidden', 'userid');
+        $mform->setType('userid', PARAM_INT);
+
         $mform->addElement('hidden', 'groupid');
         $mform->setType('groupid', PARAM_INT);
 

@@ -410,7 +410,7 @@ class subscriptions {
                       u.timezone,
                       u.theme,
                       u.lang,
-                      u.trackpeerforums,
+                      u.trackforums,
                       u.mnethostid";
         }
 

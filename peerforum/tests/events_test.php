@@ -2755,7 +2755,7 @@ class mod_peerforum_events_testcase extends advanced_testcase {
         // them just in case there are APIs changes in future.
         $user = $this->getDataGenerator()->create_user(array(
                 'maildigest' => 1,
-                'trackpeerforums' => 1
+                'trackforums' => 1
         ));
 
         $manplugin = enrol_get_plugin('manual');

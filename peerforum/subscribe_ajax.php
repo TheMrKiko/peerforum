@@ -32,7 +32,7 @@ $includetext = optional_param('includetext', false, PARAM_BOOL);
 
 $peerforum = $DB->get_record('peerforum', array('id' => $peerforumid), '*', MUST_EXIST);
 $course = $DB->get_record('course', array('id' => $peerforum->course), '*', MUST_EXIST);
-$discussion = $DB->get_record('peerforum_discussions', array('id' => $discussionid, 'peerforum' => $peerforumid), '*', MUST_EXIST);
+$discussion = $DB->get_record('peerforum_discussions', array('id' => $discussionid), '*', MUST_EXIST);
 $cm = get_coursemodule_from_instance('peerforum', $peerforum->id, $course->id, false, MUST_EXIST);
 $context = context_module::instance($cm->id);
 

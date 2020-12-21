@@ -43,6 +43,13 @@ define('RATINGPEER_DEFAULT_SCALE', 5);
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @since     Moodle 2.0
  */
+
+if (is_file($CFG->dirroot . '/mod/peerforum/lib.php')) {
+    require_once($CFG->dirroot . '/mod/peerforum/lib.php');
+} else {
+    return;
+}
+
 class ratingpeer implements renderable {
 
     /**
@@ -62,7 +69,7 @@ class ratingpeer implements renderable {
     public $ratingpeerarea = null;
 
     /**
-     * @var int The id of the item (forum post, glossary item etc) being ratepeerd
+     * @var int The id of the item (forum post, glossary item etc) being ratedpeer
      */
     public $itemid;
 
@@ -195,11 +202,11 @@ class ratingpeer implements renderable {
             $data->itemid = $this->itemid;
             $data->timecreated = $time;
             $data->timemodified = $time;
-            $DB->insert_record('ratingpeer', $data);
+            $DB->insert_record('peerforum_ratingpeer', $data);
         } else {
             // Update the ratingpeer
             $data->id = $firstitem->id;
-            $DB->update_record('ratingpeer', $data);
+            $DB->update_record('peerforum_ratingpeer', $data);
         }
     }
 
@@ -342,7 +349,7 @@ class ratingpeer implements renderable {
                 'itemid' => $this->itemid,
                 'scaleid' => $this->settings->scale->id,
                 'returnurl' => $returnurl,
-                'ratepeerduserid' => $this->itemuserid,
+                'ratedpeeruserid' => $this->itemuserid,
                 'aggregation' => $this->settings->aggregationmethod,
                 'sesskey' => sesskey()
         );
@@ -412,7 +419,7 @@ class ratingpeer_manager {
                 $conditions[$field] = $options->{$option};
             }
         }
-        $DB->delete_records('ratingpeer', $conditions);
+        $DB->delete_records('peerforum_ratingpeer', $conditions);
     }
 
     /**
@@ -457,7 +464,7 @@ class ratingpeer_manager {
         );
         $userfields = user_picture::fields('u', null, 'userid');
         $sql = "SELECT r.id, r.ratingpeer, r.itemid, r.userid, r.timemodified, r.component, r.ratingpeerarea, $userfields
-                  FROM {ratingpeer} r
+                  FROM {peerforum_ratingpeer} r
              LEFT JOIN {user} u ON r.userid = u.id
                  WHERE r.contextid = :contextid AND
                        r.itemid  = :itemid AND
@@ -469,7 +476,7 @@ class ratingpeer_manager {
     }
 
     /**
-     * Adds ratingpeer objects to an array of items (forum posts, glossary entries etc). RatingPeer objects are available at
+     * Adds ratingpeer objects to an array of items (forum posts, glossary entries etc). Rating objects are available at
      * $item->ratingpeer
      *
      * @param stdClass $options {
@@ -480,10 +487,9 @@ class ratingpeer_manager {
      *         ie $items[0]->id[required] aggregate        => int what aggregation method should be applied.
      *         RATINGPEER_AGGREGATE_AVERAGE, RATINGPEER_AGGREGATE_MAXIMUM etc [required] scaleid          => int the scale from
      *         which the user can select a ratingpeer [required] userid           => int the id of the current user [optional]
-     *         returnurl
-     *         => string the url to return the user to after submitting a ratingpeer. Can be left null for ajax requests [optional]
-     *         assesstimestart  => int only allow ratingpeer of items created after this timestamp [optional] assesstimefinish =>
-     *         int only allow ratingpeer of items created before this timestamp [optional]
+     *         returnurl        => string the url to return the user to after submitting a ratingpeer. Can be left null for ajax
+     *         requests [optional] assesstimestart  => int only allow ratingpeer of items created after this timestamp [optional]
+     *         assesstimefinish => int only allow ratingpeer of items created before this timestamp [optional]
      * @return array the array of items with their ratingpeers attached at $items[0]->ratingpeer
      */
     public function get_ratingpeers($options) {
@@ -514,7 +520,7 @@ class ratingpeer_manager {
         if (!isset($options->aggregate)) {
             throw new coding_exception('The aggregate option is a required option when getting ratingpeers.');
         } else if ($options->aggregate == RATINGPEER_AGGREGATE_NONE) {
-            // RatingPeers arn't enabled.
+            // Ratings arn't enabled.
             return $options->items;
         }
         $aggregatestr = $this->get_aggregation_method($options->aggregate);
@@ -547,7 +553,7 @@ class ratingpeer_manager {
         $params['ratingpeerarea'] = $options->ratingpeerarea;
 
         $sql = "SELECT r.id, r.itemid, r.userid, r.scaleid, r.ratingpeer AS usersratingpeer
-                  FROM {ratingpeer} r
+                  FROM {peerforum_ratingpeer} r
                  WHERE r.userid = :userid AND
                        r.contextid = :contextid AND
                        r.itemid {$itemidtest} AND
@@ -557,7 +563,7 @@ class ratingpeer_manager {
         $userratingpeers = $DB->get_records_sql($sql, $params);
 
         $sql = "SELECT r.itemid, $aggregatestr(r.ratingpeer) AS aggrratingpeer, COUNT(r.ratingpeer) AS numratingpeers
-                  FROM {ratingpeer} r
+                  FROM {peerforum_ratingpeer} r
                  WHERE r.contextid = :contextid AND
                        r.itemid {$itemidtest} AND
                        r.component = :component AND
@@ -626,12 +632,11 @@ class ratingpeer_manager {
      *      ratingpeerarea        => string The ratingpeerarea the items belong to [required]
      *      aggregate         => int what aggregation method should be applied. RATINGPEER_AGGREGATE_AVERAGE,
      *         RATINGPEER_AGGREGATE_MAXIMUM etc [required] scaleid           => int the scale from which the user can select a
-     *         ratingpeer [required] returnurl
-     *           => string the url to return the user to after submitting a ratingpeer. Can be left null for ajax requests
-     *         [optional] assesstimestart   => int only allow ratingpeer of items created after this timestamp [optional]
-     *         assesstimefinish  => int only allow ratingpeer of items created before this timestamp [optional] plugintype
-     *         => string plugin type ie 'mod' Used to find the permissions callback [optional] pluginname        => string plugin
-     *         name ie 'forum' Used to find the permissions callback [optional]
+     *         ratingpeer [required] returnurl         => string the url to return the user to after submitting a ratingpeer. Can
+     *         be left null for ajax requests [optional] assesstimestart   => int only allow ratingpeer of items created after this
+     *         timestamp [optional] assesstimefinish  => int only allow ratingpeer of items created before this timestamp
+     *         [optional] plugintype        => string plugin type ie 'mod' Used to find the permissions callback [optional]
+     *         pluginname        => string plugin name ie 'forum' Used to find the permissions callback [optional]
      * }
      * @return stdClass ratingpeer settings object
      */
@@ -673,15 +678,14 @@ class ratingpeer_manager {
 
         // check site capabilities
         $settings->permissions = new stdClass;
-        $settings->permissions->view =
-                has_capability('moodle/ratingpeer:view',
-                        $options->context); // can view the aggregate of ratingpeers of their own items
-        $settings->permissions->viewany = has_capability('moodle/ratingpeer:viewany',
+        $settings->permissions->view = has_capability('mod/peerforum:viewratingpeer',
+                $options->context); // can view the aggregate of ratingpeers of their own items
+        $settings->permissions->viewany = has_capability('mod/peerforum:viewanyratingpeer',
                 $options->context); // can view the aggregate of ratingpeers of other people's items
         $settings->permissions->viewall =
-                has_capability('moodle/ratingpeer:viewall', $options->context); // can view individual ratingpeers
+                has_capability('mod/peerforum:viewallratingpeer', $options->context); // can view individual ratingpeers
         $settings->permissions->ratepeer =
-                has_capability('moodle/ratingpeer:ratepeer', $options->context); // can submit ratingpeers
+                has_capability('mod/peerforum:rateratingpeer', $options->context); // can submit ratingpeers
 
         // check module capabilities (mostly for backwards compatability with old modules that previously implemented their own ratingpeers)
         $pluginpermissionsarray =
@@ -765,15 +769,14 @@ class ratingpeer_manager {
      * Returns an array of grades calculated by aggregating item ratingpeers.
      *
      * @param stdClass $options {
-     *            userid => int the id of the user whose items have been ratepeerd. NOT the user who submitted the ratingpeers. 0
+     *            userid => int the id of the user whose items have been ratedpeer. NOT the user who submitted the ratingpeers. 0
      *         to update all. [required] aggregationmethod => int the aggregation method to apply when calculating grades ie
      *         RATINGPEER_AGGREGATE_AVERAGE [required] scaleid => int the scale from which the user can select a ratingpeer. Used
      *         for bounds checking. [required] itemtable => int the table containing the items [required] itemtableusercolum => int
      *         the column of the user table containing the item owner's user id [required] component => The component for the
-     *         ratingpeers
-     *         [required] ratingpeerarea => The ratingpeerarea for the ratingpeers [required] contextid => int the context in which
-     *         the ratepeerd items exist [optional] modulename => string the name of the module [optional] moduleid => int the id
-     *         of the module instance [optional]
+     *         ratingpeers [required] ratingpeerarea => The ratingpeerarea for the ratingpeers [required] contextid => int the
+     *         context in which the ratedpeer items exist [optional] modulename => string the name of the module [optional]
+     *         moduleid => int the id of the module instance [optional]
      * }
      * @return array the array of the user's grades
      */
@@ -831,12 +834,12 @@ class ratingpeer_manager {
         }
 
         //MDL-24648 The where line used to be "WHERE (r.contextid is null or r.contextid=:contextid)"
-        //r.contextid will be null for users who haven't been ratepeerd yet
-        //no longer including users who haven't been ratepeerd to reduce memory requirements
+        //r.contextid will be null for users who haven't been ratedpeer yet
+        //no longer including users who haven't been ratedpeer to reduce memory requirements
         $sql = "SELECT u.id as id, u.id AS userid, $aggregationstring(r.ratingpeer) AS rawgrade
                   FROM {user} u
              LEFT JOIN {{$itemtable}} i ON u.id=i.{$itemtableusercolumn}
-             LEFT JOIN {ratingpeer} r ON r.itemid=i.id
+             LEFT JOIN {peerforum_ratingpeer} r ON r.itemid=i.id
                  WHERE r.contextid = :contextid AND
                        r.component = :component AND
                        r.ratingpeerarea = :ratingpeerarea
@@ -888,12 +891,12 @@ class ratingpeer_manager {
      * @return array aggregate types
      */
     public function get_aggregate_types() {
-        return array(RATINGPEER_AGGREGATE_NONE => get_string('aggregatenone', 'ratingpeer'),
-                RATINGPEER_AGGREGATE_AVERAGE => get_string('aggregateavg', 'ratingpeer'),
-                RATINGPEER_AGGREGATE_COUNT => get_string('aggregatecount', 'ratingpeer'),
-                RATINGPEER_AGGREGATE_MAXIMUM => get_string('aggregatemax', 'ratingpeer'),
-                RATINGPEER_AGGREGATE_MINIMUM => get_string('aggregatemin', 'ratingpeer'),
-                RATINGPEER_AGGREGATE_SUM => get_string('aggregatesum', 'ratingpeer'));
+        return array(RATINGPEER_AGGREGATE_NONE => get_string('aggregatenonerate', 'peerforum'),
+                RATINGPEER_AGGREGATE_AVERAGE => get_string('aggregateavgrate', 'peerforum'),
+                RATINGPEER_AGGREGATE_COUNT => get_string('aggregatecountrate', 'peerforum'),
+                RATINGPEER_AGGREGATE_MAXIMUM => get_string('aggregatemaxrate', 'peerforum'),
+                RATINGPEER_AGGREGATE_MINIMUM => get_string('aggregateminrate', 'peerforum'),
+                RATINGPEER_AGGREGATE_SUM => get_string('aggregatesumrate', 'peerforum'));
     }
 
     /**
@@ -930,7 +933,7 @@ class ratingpeer_manager {
 
     /**
      * Looks for a callback like forum_ratingpeer_permissions() to retrieve permissions from the plugin whose items are being
-     * ratepeerd
+     * ratedpeer
      *
      * @param int $contextid The current context id
      * @param string $component the name of the component that is using ratingpeers ie 'mod_forum'
@@ -956,13 +959,13 @@ class ratingpeer_manager {
      * Validates a submitted ratingpeer
      *
      * @param array $params submitted data
-     *            context => object the context in which the ratepeerd items exists [required]
+     *            context => object the context in which the ratedpeer items exists [required]
      *            component => The component the ratingpeer belongs to [required]
      *            ratingpeerarea => The ratingpeerarea the ratingpeer is associated with [required]
-     *            itemid => int the ID of the object being ratepeerd [required]
+     *            itemid => int the ID of the object being ratedpeer [required]
      *            scaleid => int the scale from which the user can select a ratingpeer. Used for bounds checking. [required]
      *            ratingpeer => int the submitted ratingpeer
-     *            ratepeerduserid => int the id of the user whose items have been ratepeerd. NOT the user who submitted the
+     *            ratedpeeruserid => int the id of the user whose items have been ratedpeer. NOT the user who submitted the
      *         ratingpeers. 0 to update all. [required] aggregation => int the aggregation method to apply when calculating grades
      *         ie RATINGPEER_AGGREGATE_AVERAGE [optional]
      * @return boolean true if the ratingpeer is valid. False if callback wasnt found and will throw ratingpeer_exception if
@@ -985,8 +988,8 @@ class ratingpeer_manager {
         if (!isset($params['scaleid'])) {
             throw new coding_exception('The scaleid option is now a required option when checking ratingpeer validity');
         }
-        if (!isset($params['ratepeerduserid'])) {
-            throw new coding_exception('The ratepeerduserid option is now a required option when checking ratingpeer validity');
+        if (!isset($params['ratedpeeruserid'])) {
+            throw new coding_exception('The ratedpeeruserid option is now a required option when checking ratingpeer validity');
         }
 
         list($plugintype, $pluginname) = core_component::normalize_component($params['component']);
@@ -1009,18 +1012,21 @@ class ratingpeer_manager {
      * @param moodle_page $page
      * @return true always returns true
      */
+
     public function initialise_ratingpeer_javascript(moodle_page $page) {
         global $CFG;
 
-        //only needs to be initialized once
+        // Only needs to be initialized once.
         static $done = false;
         if ($done) {
             return true;
         }
 
-        if (!empty($CFG->enableajax)) {
-            $page->requires->js_init_call('M.core_ratingpeer.init');
-        }
+        $module = array('name' => 'core_ratingpeer',
+                'fullpath' => '/ratingpeer/module.js',
+                'requires' => array('node', 'event', 'overlay', 'io-base', 'json'));
+
+        $page->requires->js_init_call('M.core_ratingpeer.init', null, false, $module);
         $done = true;
 
         return true;
@@ -1036,19 +1042,19 @@ class ratingpeer_manager {
         $aggregatelabel = '';
         switch ($aggregationmethod) {
             case RATINGPEER_AGGREGATE_AVERAGE :
-                $aggregatelabel .= get_string("aggregateavg", "ratingpeer");
+                $aggregatelabel .= get_string("aggregateavgrate", "peerforum");
                 break;
             case RATINGPEER_AGGREGATE_COUNT :
-                $aggregatelabel .= get_string("aggregatecount", "ratingpeer");
+                $aggregatelabel .= get_string("aggregatecountrate", "peerforum");
                 break;
             case RATINGPEER_AGGREGATE_MAXIMUM :
-                $aggregatelabel .= get_string("aggregatemax", "ratingpeer");
+                $aggregatelabel .= get_string("aggregatemaxrate", "peerforum");
                 break;
             case RATINGPEER_AGGREGATE_MINIMUM :
-                $aggregatelabel .= get_string("aggregatemin", "ratingpeer");
+                $aggregatelabel .= get_string("aggregateminrate", "peerforum");
                 break;
             case RATINGPEER_AGGREGATE_SUM :
-                $aggregatelabel .= get_string("aggregatesum", "ratingpeer");
+                $aggregatelabel .= get_string("aggregatesumrate", "peerforum");
                 break;
         }
         $aggregatelabel .= get_string('labelsep', 'langconfig');
