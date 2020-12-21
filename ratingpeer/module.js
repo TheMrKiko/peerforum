@@ -1,10 +1,10 @@
 M.core_ratingpeer = {
-
     Y: null,
     api: M.cfg.wwwroot + '/ratingpeer/ratepeer_ajax.php',
 
     init: function (Y) {
         this.Y = Y;
+
         Y.all('select.postratingpeermenu').each(this.attach_ratingpeer_events, this);
 
         //hide the submit buttons
@@ -38,11 +38,11 @@ M.core_ratingpeer = {
                         }
 
                         var data = scope.Y.JSON.parse(outcome.responseText);
+
                         if (data.success) {
                             //if the user has access to the aggregate then update it
                             if (data.itemid) { //do not test data.aggregate or data.count otherwise it doesn't refresh value=0 or no value
                                 var itemid = data.itemid;
-
                                 var node = scope.Y.one('#ratingpeeraggregate' + itemid);
                                 node.set('innerHTML', data.aggregate);
 

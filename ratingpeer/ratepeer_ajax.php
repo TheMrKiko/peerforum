@@ -40,7 +40,6 @@ $userratingpeer = required_param('ratingpeer', PARAM_INT);
 $ratedpeeruserid = required_param('ratedpeeruserid', PARAM_INT);//which user is being ratedpeer. Required to update their grade
 $aggregationmethod = optional_param('aggregation', RATINGPEER_AGGREGATE_NONE,
         PARAM_INT);//we're going to calculate the aggregate and return it to the client
-
 $result = new stdClass;
 
 //if session has expired and its an ajax request so we cant do a page redirect
@@ -86,6 +85,7 @@ if (!$pluginpermissionsarray['ratepeer']) {
             'aggregation' => $aggregationmethod
     );
     if (!$rm->check_ratingpeer_is_valid($params)) {
+
         $result->error = get_string('ratingpeerinvalid', 'ratingpeer');
         echo json_encode($result);
         die();
@@ -168,6 +168,7 @@ if ($firstratingpeer->user_can_view_aggregate()) {
     $result->aggregate = $aggregatetoreturn;
     $result->count = $firstratingpeer->count;
     $result->itemid = $itemid;
+
 }
 
 echo json_encode($result);

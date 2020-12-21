@@ -105,6 +105,7 @@ function update_graders($array_peergraders, $postid, $courseid) {
             $data->postsexpired = null;
 
             $data->numpostsassigned = 1;
+            $data->numpoststopeergrade = 1;
 
             $DB->insert_record('peerforum_peergrade_users', $data);
         } else {
@@ -124,6 +125,7 @@ function update_graders($array_peergraders, $postid, $courseid) {
             $posts = implode(';', $array_posts);
 
             $data->poststopeergrade = $posts;
+            $data->numpoststopeergrade = count($array_posts);
             $data->id = $existing_info->id;
 
             $DB->update_record('peerforum_peergrade_users', $data);
@@ -226,6 +228,22 @@ function assign_one_peergrader($postid, $courseid, $peerid) {
 
     $count_peers = count($array_users);
     assign_random($courseid, $array_users, $postauthor, $postid, $peerid);
+}
+
+function get_discussions_name($course) {
+    global $DB;
+
+    $sql = "SELECT p.name
+          FROM {peerforum_discussions} p
+          WHERE p.course = $course";
+
+    $data = $DB->get_records_sql($sql);
+    $topics = array();
+
+    foreach ($data as $key => $value) {
+        array_push($topics, $key);
+    }
+    return $topics;
 }
 
 class peergrade implements renderable {
@@ -637,7 +655,7 @@ class peergrade implements renderable {
 
             $num_ends_peergrade = $peerforum->minpeergraders;
 
-            if ($num_peergrades == $num_ends_peergrade) {
+            if ($num_peergrades >= $num_ends_peergrade) {
                 //peergrade ends to this post
                 return 1;
             } else {
@@ -1115,7 +1133,7 @@ class peergrade_manager {
     public function delete_post_peergrade($postid, $courseid) {
         global $DB;
 
-        $sql = "SELECT p.iduser, p.id, p.postspeergradedone, p.poststopeergrade, p.postsblocked, p.numpostsassigned
+        $sql = "SELECT p.iduser, p.id, p.postspeergradedone, p.poststopeergrade, p.postsblocked, p.numpostsassigned, p.numpoststopeergrade
                   FROM {peerforum_peergrade_users} p
                   WHERE p.courseid = $courseid";
 
@@ -1136,6 +1154,7 @@ class peergrade_manager {
             $posts_blocked = array_filter($posts_blocked);
 
             $numpostsassigned = $posts[$user]->numpostsassigned;
+            $numpoststopeergrade = $posts[$user]->numpoststopeergrade;
 
             $data = new stdClass();
             $data->id = $posts[$user]->id;
@@ -1147,10 +1166,12 @@ class peergrade_manager {
                     $posts_to_grade = array_filter($posts_to_grade);
 
                     $numposts = $numpostsassigned - 1;
+                    $numtograde = $numpoststopeergrade - 1;
 
                     $posts_to_grade_updated = implode(';', $posts_to_grade);
                     $data->poststopeergrade = $posts_to_grade_updated;
                     $data->numpostsassigned = $numposts;
+                    $data->numpoststopeergrade = $numtograde;
                     $DB->update_record("peerforum_peergrade_users", $data);
 
                 }
@@ -1163,10 +1184,12 @@ class peergrade_manager {
                     $posts_done_grade = array_filter($posts_done_grade);
 
                     $numposts = $numpostsassigned - 1;
+                    $numtograde = $numpoststopeergrade - 1;
 
                     $posts_done_grade_updated = implode(';', $posts_done_grade);
                     $data->postspeergradedone = $posts_done_grade_updated;
                     $data->numpostsassigned = $numposts;
+                    $data->numpoststopeergrade = $numtograde;
 
                     $DB->update_record("peerforum_peergrade_users", $data);
                 }
@@ -1190,11 +1213,12 @@ class peergrade_manager {
     public function delete_peergrade_done($postid, $userid, $courseid) {
         global $DB;
 
-        $sql = "SELECT p.iduser, p.id, p.postspeergradedone, p.poststopeergrade
+        $sql = "SELECT p.iduser, p.id, p.postspeergradedone, p.poststopeergrade, p.numpoststopeergrade
                   FROM {peerforum_peergrade_users} p
                  WHERE p.iduser = $userid AND p.courseid = $courseid";
 
         $posts = $DB->get_records_sql($sql);
+        $numpoststopeergrade = $posts[$user]->numpoststopeergrade;
 
         //remove from postspeergradedone
         $donepeergrade = explode(';', $posts[$userid]->postspeergradedone);
@@ -1212,6 +1236,8 @@ class peergrade_manager {
         $topeergrade = explode(';', $posts[$userid]->poststopeergrade);
         $topeergrade = array_filter($topeergrade);
 
+        $numtograde = $numpoststopeergrade + 1;
+
         if (!in_array($postid, $topeergrade)) {
             array_push($topeergrade, $postid);
         }
@@ -1222,6 +1248,7 @@ class peergrade_manager {
         $data->id = $posts[$userid]->id;
         $data->postspeergradedone = $donepeergrade_updated;
         $data->poststopeergrade = $topeergrade_updated;
+        $data->numpoststopeergrade = $numtograde;
 
         $DB->update_record("peerforum_peergrade_users", $data);
 
@@ -1305,6 +1332,7 @@ class peergrade_manager {
             $data_prof->postsblocked = null;
             $data_prof->postsexpired = null;
             $data_prof->numpostsassigned = 0;
+            $data_prof->numpoststopeergrade = 0;
 
             $DB->insert_record('peerforum_peergrade_users', $data_prof);
 
@@ -1337,7 +1365,7 @@ class peergrade_manager {
         $DB->update_record("peerforum_peergrade_users", $data);
 
         //remove from posts to peergrade
-        $sql2 = "SELECT p.iduser, p.poststopeergrade, p.id
+        $sql2 = "SELECT p.iduser, p.poststopeergrade, p.id, p.numpoststopeergrade
                       FROM {peerforum_peergrade_users} p
                      WHERE p.iduser = $userid AND p.courseid = $courseid";
         $posts2 = $DB->get_records_sql($sql2);
@@ -1346,6 +1374,7 @@ class peergrade_manager {
             $all_posts2 = array();
             $all_posts2 = explode(';', $posts2[$userid]->poststopeergrade);
             $all_posts2 = array_filter($all_posts2);
+            $numpoststopeergrade = $posts2[$userid]->numpoststopeergrade;
 
             if (in_array($postid, $all_posts2)) {
                 $key = array_search($postid, $all_posts2);
@@ -1353,10 +1382,12 @@ class peergrade_manager {
                 $all_posts2 = array_filter($all_posts2);
 
                 $posts_updated2 = implode(';', $all_posts2);
+                $numtograde = $numpoststopeergrade - 1;
 
                 $data2 = new stdClass();
                 $data2->id = $posts2[$userid]->id;
                 $data2->poststopeergrade = $posts_updated2;
+                $data2->numpoststopeergrade = $numtograde;
 
                 $DB->update_record("peerforum_peergrade_users", $data2);
             }
@@ -1406,7 +1437,7 @@ class peergrade_manager {
                 'peergradearea' => $options->peergradearea,
         );
         $userfields = user_picture::fields('u', null, 'userid');
-        $sql = "SELECT p.id, p.peergrade, p.itemid, p.userid, p.timemodified, p.component, p.peergradearea, $userfields
+        $sql = "SELECT p.id, p.peergrade, p.feedback, p.itemid, p.userid, p.timemodified, p.component, p.peergradearea, $userfields
                   FROM {peerforum_peergrade} p
              LEFT JOIN {user} u ON p.userid = u.id
                  WHERE p.contextid = :contextid AND

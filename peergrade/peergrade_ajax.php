@@ -41,6 +41,7 @@ $aggregationmethod =
         optional_param('aggregation', PEERGRADE_AGGREGATE_NONE, PARAM_INT); // Used to calculate the aggregate to return.
 $feedback = required_param('feedback', PARAM_TEXT);
 $peerforumid = required_param('peerforumid', PARAM_INT);
+$canshow = optional_param('canshow', 1, PARAM_INT); //TODO: change to zero by default?
 
 $result = new stdClass;
 
@@ -85,7 +86,8 @@ if (!$pluginpermissionsarray['peergrade']) {
             'peergrade' => $userpeergrade,
             'peergradeduserid' => $peergradeduserid,
             'feedback' => $feedback,
-            'aggregation' => $aggregationmethod
+            'aggregation' => $aggregationmethod,
+            'canshow' => $canshow
     );
     if (!$pm->check_peergrade_is_valid($params)) {
         $result->error = get_string('peergradeinvalid', 'peerforum');
@@ -169,10 +171,16 @@ if ($firstpeergrade->user_can_view_aggregate()) {
         }
     }
 
+    //see if can show grade
+    $peerforum = $DB->get_record('peerforum', array('id' => $peerforumid));
+    $post = $DB->get_record('peerforum_posts', array('id' => $itemid));
+    $canshow = can_see_peergrades_aggreagate($post, $peerforum);
+
     $result->aggregate = $aggregatetoreturn;
     $result->count = $firstpeergrade->count;
     $result->itemid = $itemid;
     $result->feedback = $feedback;
+    $result->canshow = $canshow;
 }
 
 echo json_encode($result);

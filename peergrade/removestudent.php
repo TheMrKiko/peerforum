@@ -51,6 +51,7 @@ if (isset($_POST['removepeer' . $itemid])) {
 
         //remove student from post peergraders
         if (in_array($student_id, $peers)) {
+
             $key = array_search($student_id, $peers);
             unset($peers[$key]);
             $peers = array_filter($peers);
@@ -63,10 +64,9 @@ if (isset($_POST['removepeer' . $itemid])) {
             $DB->update_record("peerforum_posts", $data);
         }
 
-        $peer_info = $DB->get_record('peerforum_peergrade_users', array('courseid' => $course->id, 'iduser' => $student_id));
+        $peer_info = $DB->get_record('peerforum_peergrade_users', array('courseid' => 2, 'iduser' => 20)); //// TODO:
 
         if (!empty($peer_info)) {
-
             $posts_blocked = $peer_info->postsblocked;
             $posts_topeergrade = $peer_info->poststopeergrade;
 
@@ -92,7 +92,6 @@ if (isset($_POST['removepeer' . $itemid])) {
                 $DB->update_record("peerforum_peergrade_users", $data2);
             }
 
-            //verify if post is assigned to peergrade
             if (in_array($itemid, $topeergrade)) {
                 $key = array_search($itemid, $topeergrade);
                 unset($topeergrade[$key]);
@@ -102,10 +101,14 @@ if (isset($_POST['removepeer' . $itemid])) {
                 $numpostsassigned = $peer_info->numpostsassigned;
                 $numposts = $numpostsassigned - 1;
 
+                $numpoststopeergrade = $peer_info->numpoststopeergrade;
+                $numtograde = $numpoststopeergrade - 1;
+
                 $data2 = new stdClass();
                 $data2->id = $peer_info->id;
                 $data2->poststopeergrade = $topeergrade_updated;
                 $data2->numpostsassigned = $numposts;
+                $data2->numpoststopeergrade = $numtograde;
 
                 $DB->update_record("peerforum_peergrade_users", $data2);
 

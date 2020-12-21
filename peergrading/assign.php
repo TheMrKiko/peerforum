@@ -85,6 +85,7 @@ if (!empty($postinfo)) {
         if (!in_array($postid, $topeergrade)) {
             array_push($topeergrade, $postid);
             $topeergrade = array_filter($topeergrade);
+
             $posts_topeergrade = implode(';', $topeergrade);
 
             $numpostsassigned = $postsuser->numpostsassigned;
@@ -123,17 +124,18 @@ if (!empty($postinfo)) {
 
                 $DB->update_record("peerforum_posts", $data_2);
             }
-
-        } else {
-            //already assigned to peergrade
-            $user_db = $DB->get_record('user', array('id' => $user));
-            $user_name = $user_db->firstname . ' ' . $user_db->lastname;
-            $erro = $OUTPUT->notification("Post id [$postid] already assigned to user $user_name to peergrade.", 'notifyproblem');
-            $returnurl = new moodle_url('/peergrading/index.php',
-                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-            redirect($returnurl, $erro, 10);
         }
+
+    } else {
+        //already assigned to peergrade
+        $user_db = $DB->get_record('user', array('id' => $user));
+        $user_name = $user_db->firstname . ' ' . $user_db->lastname;
+        $erro = $OUTPUT->notification("Post id [$postid] already assigned to user $user_name to peergrade.", 'notifyproblem');
+        $returnurl = new moodle_url('/peergrading/index.php',
+                array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
+        redirect($returnurl, $erro, 10);
     }
+}
 } else {
     //post does not exist
     $erro = $OUTPUT->notification("Post [$postid] does not exist.", 'notifyproblem');

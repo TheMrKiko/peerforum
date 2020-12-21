@@ -14,6 +14,9 @@ if (is_file($CFG->dirroot . '/mod/peerforum/lib.php')) {
 }
 
 require_once($CFG->libdir . '/tablelib.php');
+require_once($CFG->dirroot . '/peergrading/lib.php');
+require_once($CFG->dirroot . '/peergrading/peer_ranking.php');
+require_once("$CFG->libdir/formslib.php");
 
 require_once($CFG->dirroot . '/peergrade/lib.php');
 
@@ -30,6 +33,7 @@ $firstletterpost = optional_param('sifirstpost', null, PARAM_TEXT);
 $currentpage = optional_param('page', 0, PARAM_INT);
 $perpage_big = optional_param('perpage', 10, PARAM_INT);
 $perpage_small = optional_param('perpage', 5, PARAM_INT);
+$managerelationsmode = optional_param('managerelationsmode', null, PARAM_INT);
 
 $urlparams = compact('userid', 'courseid', 'display', 'peerforumid');
 foreach ($urlparams as $var => $val) {
@@ -111,20 +115,38 @@ $PAGE->navbar->add($strpeerblock);
 $PAGE->set_title(format_string($pagetitle));
 $PAGE->set_pagelayout('incourse');
 
+//Get info for configurations
+$pf = $DB->get_record("peerforum", array('course' => $courseid));
+$threading = $pf->threaded_grading;
+$nominations = $pf->peernominations;
+$rankings = $pf->peerrankings;
+$training = $pf->training;
+
+$isStudent = current(get_user_roles($contextid, $userid))->shortname == 'student' ? true : false;
+$questionnairedone = student_answered_questionnaire($userid);
+
+if ($isStudent == 1 && $nominations) {
+    if ($questionnairedone == 0) {
+        $url_select = new moodle_url('/peergrading/peer_nominations.php',
+                array('userid' => $userid, 'courseid' => $courseid, 'display' => $display, 'peerforum' => $peerforumid));
+        redirect($url_select);
+    }
+}
+
 $PAGE->set_heading($pagetitle);
 echo $OUTPUT->header();
 
-//POSTS TO PEERGRADE
 $poststopeergrade = get_string('poststopeergrade', 'block_peerblock');
 $postspeergraded = get_string('postspeergraded', 'block_peerblock');
 $postsexpired = get_string('postsexpired', 'block_peerblock');
-
 $viewpeergrades = get_string('viewpeergrades', 'block_peerblock');
 $manageposts = get_string('manageposts', 'block_peerblock');
 $manageconflicts = get_string('manageconflicts', 'block_peerblock');
-$managegraders_poststopeergrade = get_string('managegraders_poststopeergrade', 'block_peerblock');
-$managegraders_postspeergraded = get_string('managegraders_postspeergraded', 'block_peerblock');
+$threadingstats = get_string('threadingstats', 'block_peerblock');
+$peer_ranking = get_string('peer_ranking', 'block_peerblock');
+$managegraders_posts = get_string('managegraders_posts', 'block_peerblock');
 $viewgradersstats = get_string('viewgradersstats', 'block_peerblock');
+$managerelations = get_string('managerelations', 'block_peerblock');
 
 echo $OUTPUT->box_start();
 
@@ -134,6 +156,7 @@ if (empty($display)) {
     $display = '1';
 }
 
+//Teacher tabs
 if (has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
 
     if ($display == '-1' || $display == '1') {
@@ -142,7 +165,7 @@ if (has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
 
     } else if ($display == '-2' || $display == '2') {
         $display = '-2';
-        $currenttab = 'display_managegraders_poststopeergrade';
+        $currenttab = 'display_managegraders_posts';
 
     } else if ($display == '3') {
         $display = '3';
@@ -152,26 +175,26 @@ if (has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
         $display = '4';
         $currenttab = 'display_manageconflicts';
 
-    } else if ($display == '6') {
-        $display = '6';
-        $currenttab = 'display_managegraders_postspeergraded';
-
     } else if ($display == '7') {
         $display = '7';
         $currenttab = 'display_viewgradersstats';
+
+    } else if ($display == '8') {
+        $display = '8';
+        $currenttab = 'display_manage_relations';
+
+    } else if ($display == '9') {
+        $display = '9';
+        $currenttab = 'display_threadingstats';
     }
 
     $row[] = new tabobject('display_manageposts',
             new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => '-1')),
             $manageposts);
 
-    $row[] = new tabobject('display_managegraders_poststopeergrade',
+    $row[] = new tabobject('display_managegraders_posts',
             new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => '-2')),
-            $managegraders_poststopeergrade);
-
-    $row[] = new tabobject('display_managegraders_postspeergraded',
-            new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => '6')),
-            $managegraders_postspeergraded);
+            $managegraders_posts);
 
     $row[] = new tabobject('display_viewpeergrades',
             new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => '3')),
@@ -184,12 +207,25 @@ if (has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
     $row[] = new tabobject('display_manageconflicts',
             new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => '4')),
             $manageconflicts);
+    if ($nominations || $rankings) {
+        $row[] = new tabobject('display_manage_relations',
+                new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => '8')),
+                $managerelations);
+    }
+
+    if ($threading) {
+        $row[] = new tabobject('display_threadingstats',
+                new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => '9')),
+                $threadingstats);
+    }
+
 }
 
+//Student tabs
 if (!has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
 
-    if ($display == '1' || $display == '-1' || $display == '-2' || $display == '3' || $display == '4' || $display == '6' ||
-            $display == '7') {
+    if ($display == '1' || $display == '-1' || $display == '-2' || $display == '3' || $display == '4' || $display == '7' ||
+            $display == '8' || $display == '9') {
         $currenttab = 'display_to_peergrade';
     }
     if ($display == '2') {
@@ -197,6 +233,9 @@ if (!has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
     }
     if ($display == '5') {
         $currenttab = 'display_postsexpired';
+    }
+    if ($display == '10') {
+        $currenttab = 'display_peer_ranking';
     }
 
     $row[] = new tabobject('display_to_peergrade',
@@ -210,21 +249,29 @@ if (!has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
     $row[] = new tabobject('display_postsexpired',
             new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => '5')),
             $postsexpired);
+    if ($rankings) {
+        $row[] = new tabobject('display_peer_ranking',
+                new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => '10')),
+                $peer_ranking);
+    }
 }
 
 echo '<div class="groupdisplay" style="text-align:center;">';
 echo $OUTPUT->tabtree($row, $currenttab);
 echo '</div>';
 
+print_r($DB->get_record('user', array('id' => 3)));
+echo '<br> -------------- <br>';
+print_r($DB->get_record('peerforum_posts', array('id' => 106)));
+
 // Manage Posts
 if ($display == '-1') {
     if (has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
-
         $posts = get_all_posts_info($courseid);
 
         if (!empty($posts)) {
             if (empty($managepostsmode)) {
-                $managepostsmode = MANAGEPOSTS_MODE_SEEALL;
+                $managepostsmode = MANAGEPOSTS_MODE_SEENOTEXPIRED;
             }
 
             $select = new single_select(new moodle_url("/peergrading/index.php",
@@ -247,6 +294,10 @@ if ($display == '-1') {
                 $posts = get_posts_graded($posts);
             }
 
+            usort($posts, function($a, $b) {
+                return $a->postid > $b->postid;
+            });
+
             // initial letter
             $alpha = explode(',', get_string('alphabet', 'langconfig'));
             $strall = get_string('all');
@@ -257,7 +308,11 @@ if ($display == '-1') {
 
             echo '<div class="initialbar firstinitial">' . get_string('firstname') . ' of post author: ';
             if (!empty($firstletter)) {
-                echo '<a href="' . $baseurl->out() . '&amp;sifirst=">' . $strall . '</a>';
+                if (!empty($lastletter)) {
+                    echo '<a href="' . $baseurl->out() . '&amp;sifirst=">' . $strall . '&amp;silast=">' . $strall . '</a>';
+                } else {
+                    echo '<a href="' . $baseurl->out() . '&amp;sifirst=">' . $strall . '</a>';
+                }
             } else {
                 echo '<strong>' . $strall . '</strong>';
             }
@@ -271,7 +326,7 @@ if ($display == '-1') {
             }
             echo '</div>';
 
-            // last letter
+            // last name
             echo '<div class="initialbar lastinitial">' . get_string('lastname') . ' of post author: ';
             if (!empty($lastletter)) {
                 echo '<a href="' . $baseurl->out() . '&amp;silast=">' . $strall . '</a>';
@@ -335,20 +390,27 @@ if ($display == '-1') {
                 $posts = array_filter($posts, function($a) use ($firstletter) {
                     return $a->authorname[0] == $firstletter;
                 });
+                if (!empty($lastletter)) {
+                    $posts = array_filter($posts, function($a) use ($lastletter) {
+                        $surname = explode(' ', $a->authorname);
+                        $surname = $surname[1];
+                        return $surname[0] == $lastletter;
+                    });
+                }
             }
-
             //filter students by lastname
             if (!empty($lastletter)) {
                 $posts = array_filter($posts, function($a) use ($lastletter) {
-                    $surname = explode(' ', $a->authorname)[1];
+                    $surname = explode(' ', $a->authorname);
+                    $surname = $surname[1];
                     return $surname[0] == $lastletter;
                 });
             }
-
             //filter posts by firstletter
             if (!empty($firstletterpost)) {
                 $posts = array_filter($posts, function($a) use ($firstletterpost) {
-                    $subject = explode(' ', $a->subject)[1];
+                    $subject = explode(' ', $a->subject);
+                    $subject = $subject[1];
                     return $subject[0] == $firstletterpost;
                 });
             }
@@ -400,6 +462,7 @@ if ($display == '-1') {
                 foreach ($posts[$i]->peergraders as $key => $value) {
 
                     $peergraderid = $posts[$i]->peergraders[$key]->id;
+
                     $status = get_post_status($postid, $peergraderid, $courseid);
 
                     $time_expire = get_time_expire($postid, $peergraderid);
@@ -556,7 +619,8 @@ if ($display == '-1') {
         echo '</br>';
         $pageurl = new moodle_url('/peergrading/index.php',
                 array('userid' => $userid, 'courseid' => $courseid, 'display' => $display, 'sifirst' => $firstletter,
-                        'silast' => $lastletter, 'sifirstpost' => $firstletterpost));
+                        'silast' => $lastletter, 'sifirstpost' => $firstletterpost, 'managepostsmode' => $managepostsmode));
+
         echo $OUTPUT->paging_bar($total_posts, $currentpage, $perpage_small, $pageurl);
 
     } else {
@@ -564,552 +628,39 @@ if ($display == '-1') {
     }
 }
 
-// Manage Graders with posts not peergraded
+// Manage Graders
 if ($display == '-2') {
     if (has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
 
-        $infograder = get_all_peergrades($courseid);
+        $options = peerforum_get_graders_posts_filters();
+        $select = new single_select(new moodle_url("/peergrading/index.php",
+                array('courseid' => $courseid, 'userid' => $userid, 'display' => $display, 'peerforum' => $peerforumid)),
+                'managegradersmode', $options, $managegradersmode, null, "managegradersmode");
+        $select->set_label(get_string('displaymanagerelationsmode', 'peerforum'), array('class' => 'accesshide'));
+        $select->class = "managerelationsmode";
 
-        if (!empty($infograder)) {
-            if (empty($managegradersmode)) {
-                $managegradersmode = MANAGEGRADERS_MODE_SEENOTGRADED;
-            }
+        echo $OUTPUT->render($select);
 
-            $select = new single_select(new moodle_url("/peergrading/index.php",
-                    array('courseid' => $courseid, 'userid' => $userid, 'display' => $display, 'peerforum' => $peerforumid)),
-                    'managegradersmode', peerforum_get_manage_graders_filters(), $managegradersmode, null, "managegradersmode");
-            $select->set_label(get_string('displaymanagegradersmode', 'peerforum'), array('class' => 'accesshide'));
-            $select->class = "managegradersmode";
+        if (empty($managegradersmode)) {
+            $managegradersmode = MANAGEGRADERS_MODE_SEEALL;
+        }
 
-            echo $OUTPUT->render($select);
-
-            if ($managegradersmode == MANAGEGRADERS_MODE_SEEEXPIRED) {
-                $infograder = get_posts_expired_infograder($infograder, $courseid);
-            } else if ($managegradersmode == MANAGEGRADERS_MODE_SEENOTGRADED) {
-                $infograder = get_all_peergrades($courseid);
-            }
-
-            // initial letter
-            $alpha = explode(',', get_string('alphabet', 'langconfig'));
-            $strall = get_string('all');
-
-            $baseurl = new moodle_url('/peergrading/index.php',
-                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display,
-                            'managegradersmode' => $managegradersmode));
-
-            echo '<div class="initialbar firstinitial">' . get_string('firstname') . ' : ';
-            if (!empty($firstletter)) {
-                echo '<a href="' . $baseurl->out() . '&amp;sifirst=">' . $strall . '</a>';
-            } else {
-                echo '<strong>' . $strall . '</strong>';
-            }
-
-            foreach ($alpha as $letter) {
-                if ($letter == $firstletter) {
-                    echo ' <strong>' . $letter . '</strong>';
-                } else {
-                    echo ' <a href="' . $baseurl->out() . '&amp;sifirst=' . $letter . '">' . $letter . '</a>';
-                }
-            }
-            echo '</div>';
-
-            // last letter
-            echo '<div class="initialbar lastinitial">' . get_string('lastname') . ' : ';
-            if (!empty($lastletter)) {
-                echo '<a href="' . $baseurl->out() . '&amp;silast=">' . $strall . '</a>';
-            } else {
-                echo '<strong>' . $strall . '</strong>';
-            }
-            foreach ($alpha as $letter) {
-                if ($letter == $lastletter) {
-                    echo ' <strong>' . $letter . '</strong>';
-                } else {
-                    echo ' <a href="' . $baseurl->out() . '&amp;silast=' . $letter . '">' . $letter . '</a>';
-                }
-            }
-            echo '</div>';
-            echo '</br>';
+        if ($managegradersmode == MANAGEGRADERS_MODE_SEEALL) {
+            $infograder = get_all_assigned_posts($courseid);
+        } else if ($managegradersmode == MANAGEGRADERS_MODE_SEEGRADED) {
+            $infograder = get_all_posts_graded($courseid);
+        } else if ($managegradersmode == MANAGEGRADERS_MODE_SEEEXPIRED) {
+            $infograder = get_all_posts_expired($courseid);
+        } else if ($managegradersmode == MANAGEGRADERS_MODE_SEENOTGRADED) {
+            $infograder = get_all_posts_not_graded($courseid);
+        } else if ($managegradersmode == MANAGEGRADERS_MODE_SEENOTEXPIRED) {
+            $infograder = get_all_posts_not_expired($courseid);
         }
 
         if (empty($infograder)) {
             echo 'No peer graders to display.';
             $total_infograders = 0;
         }
-
-        if (!empty($infograder)) {
-
-            echo '<table class="managepeers">' .
-                    '<tr>' .
-                    '<td bgcolor=#cccccc><b> Student </b></td>' .
-                    '<td bgcolor=#cccccc><b> Block/Unblock student </b></td>' .
-                    '<td bgcolor=#cccccc><b> Student group </b></td>' .
-                    '<td bgcolor=#cccccc><b> Posts to grade </b></td>' .
-                    '<td bgcolor=#cccccc><b> Post author </b></td>' .
-                    '<td bgcolor=#cccccc><b> Author group </b></td>' .
-                    '<td bgcolor=#cccccc><b> Remove assigned post </b></td>' .
-                    '</tr>';
-
-            $even = true;
-            $subeven = true;
-
-            //order students by name
-            uasort($infograder, function($a, $b) {
-                return strcmp($a[0]->authorname, $b[0]->authorname);
-            });
-
-            //filter students by firstname
-            if (!empty($firstletter)) {
-                $infograder = array_filter($infograder, function($a) use ($firstletter) {
-                    return $a[0]->authorname[0] == $firstletter;
-                });
-            }
-
-            //filter students by lastname
-            if (!empty($lastletter)) {
-                $infograder = array_filter($infograder, function($a) use ($lastletter) {
-                    $surname = explode(' ', $a[0]->authorname)[1];
-                    return $surname[0] == $lastletter;
-                });
-            }
-
-            //pagination
-            $total_infograders = count($infograder);
-            $start = $currentpage * $perpage_small;
-
-            if ($start > $total_infograders) {
-                $currentpage = 0;
-                $start = 0;
-            }
-
-            $infograder = array_slice($infograder, $start, $perpage_small, true);
-
-            foreach ($infograder as $i => $value) {
-
-                if ($even) {
-                    $color = '#f2f2f2'; //grey
-                } else {
-                    $color = '#ffffff'; //white
-                }
-                $even = !$even;
-
-                $grader = $infograder[$i][0]->authorid;
-
-                if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context, $grader, false)) {
-
-                    $grader_db = $DB->get_record('user', array('id' => $grader));
-                    $grader_group = $DB->get_records('peerforum_groups', array('courseid' => $courseid));
-
-                    if (!empty($grader_group) && !empty($grader_db)) {
-                        foreach ($grader_group as $id => $value) {
-                            $students = explode(';', $grader_group[$id]->studentsid);
-                            $students = array_filter($students);
-
-                            if (!empty($students)) {
-                                if (in_array($grader_db->id, $students)) {
-                                    $group_user = $grader_group[$id]->groupid;
-                                }
-                            }
-                        }
-                    }
-
-                    if (empty($grader_group)) {
-                        $grader_group = $DB->get_record('groups_members', array('userid' => $grader_db->id));
-
-                        if (!empty($grader_group)) {
-                            $group_user = $grader_group->groupid;
-                        }
-                    }
-
-                    if (empty($group_user)) {
-                        $group_user = '-';
-                    }
-
-                    if (!empty($grader_db)) {
-                        $grader_link = html_writer::link(new moodle_url('/user/view.php', array('id' => $grader_db->id)),
-                                $grader_db->firstname . ' ' . $grader_db->lastname);
-                    }
-
-                    if ($managegradersmode == MANAGEGRADERS_MODE_SEENOTGRADED) {
-                        if (!empty($infograder[$i][0]->poststopeergrade)) {
-
-                            $count_topeergrade = count($infograder[$i][0]->poststopeergrade);
-                            $count = $count_topeergrade + 2;
-                            $status_student = get_student_status($infograder[$i][0]->authorid, $courseid);
-
-                            $url = new moodle_url('/peergrading/block_student.php',
-                                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-                            $baseurl = $url . '&' . 'user=' . $infograder[$i][0]->authorid . '&status=' . $status_student;
-
-                            if ($status_student == 1) {
-                                $button_block = '<form action="' . $baseurl . '" method="post">' .
-                                        '<div class="buttons"><input style="margin-left:3px;margin-top:1px; margin-bottom:1px;font-size:13px;" type="submit" id="block" name="block" value="' .
-                                        get_string('unblock', 'block_peerblock') . '"/>' .
-                                        '</div></form>';
-
-                            } else {
-                                $button_block = '<form action="' . $baseurl . '" method="post">' .
-                                        '<div class="buttons"><input style="margin-left:3px;margin-top:1px; margin-bottom:1px; font-size:13px;" type="submit" id="block" name="block" value="' .
-                                        get_string('block', 'block_peerblock') . '"/>' .
-                                        '</div></form>';
-                            }
-
-                            if ($subeven) {
-                                $color = '#f2f2f2';
-                            } else {
-                                $color = '#ffffff';
-                            }
-                            $subeven = !$subeven;
-
-                            if ($status_student == 1) {
-                                $color = '#ffb3b3';
-
-                                $source = new moodle_url('/peergrading/pix/blocked.png');
-                                echo '<tr>' . '<td height="1" width="150" bgcolor=' . "$color" . ' rowspan=' . $count . '>' .
-                                        $grader_link . '</td>' . '<td height="1" width="40" bgcolor=' . "$color" . ' rowspan=' .
-                                        $count . '>' . $button_block . '</td>' . '<td bgcolor=' . "$color" . ' rowspan=' . $count .
-                                        '>' . $group_user . '</td>';
-                            } else {
-                                echo '<tr>' . '<td height="1" width="150" bgcolor=' . "$color" . ' rowspan=' . $count . '>' .
-                                        $grader_link . '</td>' . '<td height="1" width="50" bgcolor=' . "$color" . ' rowspan=' .
-                                        $count . '>' . $button_block . '</td>' . '<td width="40" bgcolor=' . "$color" .
-                                        ' rowspan=' . $count . '>' . $group_user . '</td>';
-
-                            }
-
-                            for ($k = 0; $k < $count_topeergrade; $k++) {
-
-                                $postid = $infograder[$i][0]->poststopeergrade[$k];
-
-                                if (!empty($postid)) {
-                                    $postinfo = $DB->get_record('peerforum_posts', array('id' => $postid));
-
-                                    $postlink = html_writer::link(new moodle_url('/mod/peerforum/discuss.php?d=' .
-                                            $postinfo->discussion . '#p' . $postid,
-                                            array('userid' => $userid, 'courseid' => $courseid)), $postinfo->subject);
-
-                                    $post_author = $DB->get_record('peerforum_posts', array('id' => $postid))->userid;
-
-                                    $author_db = $DB->get_record('user', array('id' => $post_author));
-
-                                    $author_link =
-                                            html_writer::link(new moodle_url('/user/view.php', array('id' => $author_db->id)),
-                                                    $author_db->firstname . ' ' . $author_db->lastname);
-
-                                    $groups = $DB->get_records('peerforum_groups', array('courseid' => $courseid));
-
-                                    $author_group = '-';
-
-                                    if (!empty($groups)) {
-                                        foreach ($groups as $id => $value) {
-                                            $students = explode(';', $groups[$id]->studentsid);
-                                            $students = array_filter($students);
-
-                                            if (in_array($post_author, $students)) {
-                                                $author_group = $groups[$id]->groupid;
-                                                break;
-                                            }
-                                        }
-                                    } else {
-                                        $author_group = $DB->get_record('groups_members', array('userid' => $author_db->id));
-                                        if (empty($author_group)) {
-                                            $author_group = '-';
-                                        }
-                                    }
-
-                                } else {
-                                    $author_group = '-';
-                                }
-
-                                $remove_url = new moodle_url('/peergrading/remove.php',
-                                        array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-                                $remove_baseurl =
-                                        $remove_url . '&user=' . $grader . '&course=' . $courseid . '&removepost=' . $postid;
-
-                                $source = new moodle_url('/peergrading/pix/blocked.png');
-
-                                $remove_button = '<form action="' . $remove_baseurl . '" method="post">' .
-                                        '<div class="buttons"><input type="image" src="' . $source .
-                                        '" alt="Submit" id="remove" name="remove" style="height:15px; width:15px" onClick="javascript:return confirm(\'Are you sure you want to remove the assigned post [' .
-                                        $postid . '] from [' . $author_db->firstname . ' ' . $author_db->lastname .
-                                        '] ?\');" value="' . get_string('remove', 'block_peerblock') . '"/>' .
-                                        '</div></form>';
-
-                                if (is_object($author_group)) {
-                                    $author_group = $author_group->groupid;
-                                }
-
-                                echo '<tr>' . '<td width="250" bgcolor=' . "$color" . '>' . '(id:' . $postid . ')' . '  ' .
-                                        $postlink . '</td>' . '<td width="150" bgcolor=' . "$color" . '>' . $author_link . '</td>' .
-                                        '<td width="50" bgcolor=' . "$color" . '>' . $author_group . '</td>' .
-                                        '<td width="50" bgcolor=' . "$color" . '>' . $remove_button . '</td>' . '</tr>';
-                            }
-
-                            $assign_url = new moodle_url('/peergrading/assign.php',
-                                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-
-                            $assign_baseurl = $assign_url . '&' . 'user=' . $grader . '&courseid=' . $courseid;
-
-                            $assign_button = '<form action="' . $assign_baseurl . '" method="post">' .
-                                    '<div class="buttons"><input type="text" style="width: 30px; margin-top:1px; margin-bottom:1px;" name="assignpost" value=""><input style="margin-left:3px;margin-top:10px;font-size: 13px;" type="submit" id="assign" name="assign" value="' .
-                                    get_string('assign', 'block_peerblock') . '"/>' .
-                                    '</div></form>';
-
-                            echo '<tr>' . '<td bgcolor=' . "$color" . '>' . $assign_button . '</td>' . '</tr>';
-                        } else {
-
-                            $count = 0;
-
-                            $assign_url = new moodle_url('/peergrading/assign.php',
-                                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-
-                            $assign_baseurl = $assign_url . '&' . 'user=' . $grader . '&courseid=' . $courseid;
-
-                            $assign_button = '<form action="' . $assign_baseurl . '" method="post">' .
-                                    '<div class="buttons"><input type="text" style="width:30px; margin-top:1px; margin-bottom:1px;" name="assignpost" value=""><input style="margin-left:3px;margin-top:10px;font-size: 13px;" type="submit" id="assign" name="assign" value="' .
-                                    get_string('assign', 'block_peerblock') . '"/>' .
-                                    '</div></form>';
-
-                            $status_student = get_student_status($infograder[$i][0]->authorid, $courseid);
-
-                            $url = new moodle_url('/peergrading/block_student.php',
-                                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-                            $baseurl = $url . '&' . 'user=' . $infograder[$i][0]->authorid . '&status=' . $status_student;
-
-                            if ($status_student == 1) {
-                                $button_block = '<form action="' . $baseurl . '" method="post">' .
-                                        '<div class="buttons"><input style="margin-left:3px;margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="block" name="block" value="' .
-                                        get_string('unblock', 'block_peerblock') . '"/>' .
-                                        '</div></form>';
-                            } else {
-                                $button_block = '<form action="' . $baseurl . '" method="post">' .
-                                        '<div class="buttons"><input style="margin-left:3px;margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="block" name="block" value="' .
-                                        get_string('block', 'block_peerblock') . '"/>' .
-                                        '</div></form>';
-                            }
-
-                            $source = new moodle_url('/peergrading/pix/blocked.png');
-
-                            if ($status_student == 1) {
-                                $color = '#ffb3b3';
-
-                                echo '<tr>' . '<td bgcolor=' . "$color" . '>' . $grader_link . '</td>' . '<td bgcolor=' . "$color" .
-                                        ' rowspan=' . $count . '>' . $button_block . '</td>' . '<td bgcolor=' . "$color" . ' >' .
-                                        $group_user . '<td bgcolor=' . "$color" . '>' . $assign_button . '</td>' . '</td>';
-                            } else {
-                                if ($subeven) {
-                                    $color = '#f2f2f2';
-                                } else {
-                                    $color = '#ffffff';
-                                }
-                                $subeven = !$subeven;
-                                echo '<tr>' . '<td bgcolor=' . "$color" . '>' . $grader_link . '</td>' . '<td bgcolor=' . "$color" .
-                                        ' rowspan=' . $count . '>' . $button_block . '</td>' . '<td bgcolor=' . "$color" . ' >' .
-                                        $group_user . '<td bgcolor=' . "$color" . '>' . $assign_button . '</td>' . '</td>';
-                            }
-
-                        }
-                    } else if ($managegradersmode == MANAGEGRADERS_MODE_SEEEXPIRED) {
-                        if (!empty($infograder[$i][0]->postsexpired)) {
-
-                            $count_topeergrade = count($infograder[$i][0]->postsexpired);
-                            $count = $count_topeergrade + 2;
-                            $status_student = get_student_status($infograder[$i][0]->authorid, $courseid);
-
-                            $url = new moodle_url('/peergrading/block_student.php',
-                                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-                            $baseurl = $url . '&' . 'user=' . $infograder[$i][0]->authorid . '&status=' . $status_student;
-
-                            if ($status_student == 1) {
-                                $button_block = '<form action="' . $baseurl . '" method="post">' .
-                                        '<div class="buttons"><input style="margin-left:3px;margin-top:1px; margin-bottom:1px;font-size:13px;" type="submit" id="block" name="block" value="' .
-                                        get_string('unblock', 'block_peerblock') . '"/>' .
-                                        '</div></form>';
-
-                            } else {
-                                $button_block = '<form action="' . $baseurl . '" method="post">' .
-                                        '<div class="buttons"><input style="margin-left:3px;margin-top:1px; margin-bottom:1px; font-size:13px;" type="submit" id="block" name="block" value="' .
-                                        get_string('block', 'block_peerblock') . '"/>' .
-                                        '</div></form>';
-                            }
-
-                            if ($subeven) {
-                                $color = '#f2f2f2';
-                            } else {
-                                $color = '#ffffff';
-                            }
-                            $subeven = !$subeven;
-
-                            if ($status_student == 1) {
-                                $color = '#ffb3b3';
-
-                                $source = new moodle_url('/peergrading/pix/blocked.png');
-                                echo '<tr>' . '<td height="1" width="150" bgcolor=' . "$color" . ' rowspan=' . $count . '>' .
-                                        $grader_link . '</td>' . '<td height="1" width="40" bgcolor=' . "$color" . ' rowspan=' .
-                                        $count . '>' . $button_block . '</td>' . '<td bgcolor=' . "$color" . ' rowspan=' . $count .
-                                        '>' . $group_user . '</td>';
-                            } else {
-                                echo '<tr>' . '<td height="1" width="150" bgcolor=' . "$color" . ' rowspan=' . $count . '>' .
-                                        $grader_link . '</td>' . '<td height="1" width="50" bgcolor=' . "$color" . ' rowspan=' .
-                                        $count . '>' . $button_block . '</td>' . '<td width="40" bgcolor=' . "$color" .
-                                        ' rowspan=' . $count . '>' . $group_user . '</td>';
-
-                            }
-
-                            for ($k = 0; $k < $count_topeergrade; $k++) {
-
-                                $postid = $infograder[$i][0]->postsexpired[$k];
-
-                                if (!empty($postid)) {
-                                    $postinfo = $DB->get_record('peerforum_posts', array('id' => $postid));
-
-                                    $postlink = html_writer::link(new moodle_url('/mod/peerforum/discuss.php?d=' .
-                                            $postinfo->discussion . '#p' . $postid,
-                                            array('userid' => $userid, 'courseid' => $courseid)), $postinfo->subject);
-
-                                    $post_author = $DB->get_record('peerforum_posts', array('id' => $postid))->userid;
-
-                                    $author_db = $DB->get_record('user', array('id' => $post_author));
-
-                                    $author_link =
-                                            html_writer::link(new moodle_url('/user/view.php', array('id' => $author_db->id)),
-                                                    $author_db->firstname . ' ' . $author_db->lastname);
-
-                                    $groups = $DB->get_records('peerforum_groups', array('courseid' => $courseid));
-
-                                    $author_group = '-';
-
-                                    if (!empty($groups)) {
-                                        foreach ($groups as $id => $value) {
-                                            $students = explode(';', $groups[$id]->studentsid);
-                                            $students = array_filter($students);
-
-                                            if (in_array($post_author, $students)) {
-                                                $author_group = $groups[$id]->groupid;
-                                                break;
-                                            }
-                                        }
-                                    } else {
-                                        $author_group = $DB->get_record('groups_members', array('userid' => $author_db->id));
-                                        if (empty($author_group)) {
-                                            $author_group = '-';
-                                        }
-                                    }
-
-                                } else {
-                                    $author_group = '-';
-                                }
-
-                                $remove_url = new moodle_url('/peergrading/remove.php',
-                                        array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-                                $remove_baseurl =
-                                        $remove_url . '&user=' . $grader . '&course=' . $courseid . '&removepost=' . $postid;
-
-                                $source = new moodle_url('/peergrading/pix/blocked.png');
-
-                                $remove_button = '<form action="' . $remove_baseurl . '" method="post">' .
-                                        '<div class="buttons"><input type="image" src="' . $source .
-                                        '" alt="Submit" id="remove" name="remove" style="height:15px; width:15px" onClick="javascript:return confirm(\'Are you sure you want to remove the assigned post [' .
-                                        $postid . '] from [' . $author_db->firstname . ' ' . $author_db->lastname .
-                                        '] ?\');" value="' . get_string('remove', 'block_peerblock') . '"/>' .
-                                        '</div></form>';
-
-                                if (is_object($author_group)) {
-                                    $author_group = $author_group->groupid;
-                                }
-
-                                echo '<tr>' . '<td width="250" bgcolor=' . "$color" . '>' . '(id:' . $postid . ')' . '  ' .
-                                        $postlink . '</td>' . '<td width="150" bgcolor=' . "$color" . '>' . $author_link . '</td>' .
-                                        '<td width="50" bgcolor=' . "$color" . '>' . $author_group . '</td>' .
-                                        '<td width="50" bgcolor=' . "$color" . '>' . $remove_button . '</td>' . '</tr>';
-                            }
-
-                            $assign_url = new moodle_url('/peergrading/assign.php',
-                                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-
-                            $assign_baseurl = $assign_url . '&' . 'user=' . $grader . '&courseid=' . $courseid;
-
-                            $assign_button = '<form action="' . $assign_baseurl . '" method="post">' .
-                                    '<div class="buttons"><input type="text" style="width: 30px; margin-top:1px; margin-bottom:1px;" name="assignpost" value=""><input style="margin-left:3px;margin-top:10px;font-size: 13px;" type="submit" id="assign" name="assign" value="' .
-                                    get_string('assign', 'block_peerblock') . '"/>' .
-                                    '</div></form>';
-
-                            echo '<tr>' . '<td bgcolor=' . "$color" . '>' . $assign_button . '</td>' . '</tr>';
-                        } else {
-
-                            $count = 0;
-
-                            $assign_url = new moodle_url('/peergrading/assign.php',
-                                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-
-                            $assign_baseurl = $assign_url . '&' . 'user=' . $grader . '&courseid=' . $courseid;
-
-                            $assign_button = '<form action="' . $assign_baseurl . '" method="post">' .
-                                    '<div class="buttons"><input type="text" style="width:30px; margin-top:1px; margin-bottom:1px;" name="assignpost" value=""><input style="margin-left:3px;margin-top:10px;font-size: 13px;" type="submit" id="assign" name="assign" value="' .
-                                    get_string('assign', 'block_peerblock') . '"/>' .
-                                    '</div></form>';
-
-                            $status_student = get_student_status($infograder[$i][0]->authorid, $courseid);
-
-                            $url = new moodle_url('/peergrading/block_student.php',
-                                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-                            $baseurl = $url . '&' . 'user=' . $infograder[$i][0]->authorid . '&status=' . $status_student;
-
-                            if ($status_student == 1) {
-                                $button_block = '<form action="' . $baseurl . '" method="post">' .
-                                        '<div class="buttons"><input style="margin-left:3px;margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="block" name="block" value="' .
-                                        get_string('unblock', 'block_peerblock') . '"/>' .
-                                        '</div></form>';
-                            } else {
-                                $button_block = '<form action="' . $baseurl . '" method="post">' .
-                                        '<div class="buttons"><input style="margin-left:3px;margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="block" name="block" value="' .
-                                        get_string('block', 'block_peerblock') . '"/>' .
-                                        '</div></form>';
-                            }
-
-                            $source = new moodle_url('/peergrading/pix/blocked.png');
-
-                            if ($status_student == 1) {
-                                $color = '#ffb3b3';
-
-                                echo '<tr>' . '<td bgcolor=' . "$color" . '>' . $grader_link . '</td>' . '<td bgcolor=' . "$color" .
-                                        ' rowspan=' . $count . '>' . $button_block . '</td>' . '<td bgcolor=' . "$color" . ' >' .
-                                        $group_user . '<td bgcolor=' . "$color" . '>' . $assign_button . '</td>' . '</td>';
-                            } else {
-                                if ($subeven) {
-                                    $color = '#f2f2f2';
-                                } else {
-                                    $color = '#ffffff';
-                                }
-                                $subeven = !$subeven;
-                                echo '<tr>' . '<td bgcolor=' . "$color" . '>' . $grader_link . '</td>' . '<td bgcolor=' . "$color" .
-                                        ' rowspan=' . $count . '>' . $button_block . '</td>' . '<td bgcolor=' . "$color" . ' >' .
-                                        $group_user . '<td bgcolor=' . "$color" . '>' . $assign_button . '</td>' . '</td>';
-                            }
-
-                        }
-                    }
-                    echo '</tr>';
-                }
-
-            }
-            echo '</table>';
-        }
-        //pagination
-        echo '</br>';
-        $pageurl = new moodle_url('/peergrading/index.php',
-                array('userid' => $userid, 'courseid' => $courseid, 'display' => $display, 'sifirst' => $firstletter,
-                        'silast' => $lastletter, 'managegradersmode' => $managegradersmode));
-        echo $OUTPUT->paging_bar($total_infograders, $currentpage, $perpage_small, $pageurl);
-    } else {
-        print_error('sectionpermissiondenied', 'peergrade');
-    }
-}
-
-// Manage Graders with posts peergraded
-if ($display == '6') {
-    if (has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
-
-        $infograder = get_all_peergrades_done($courseid);
 
         if (!empty($infograder)) {
 
@@ -1152,19 +703,13 @@ if ($display == '6') {
             }
             echo '</div>';
             echo '</br>';
-        }
 
-        if (empty($infograder)) {
-            echo 'No peer graders to display.';
-            $total_infograders = 0;
-        }
-
-        if (!empty($infograder)) {
-
-            echo '<table class="managepeers">' .
+            echo '<table class="managepeers" style="border-collapse: collapse; border: 1px solid black;width: 100%;  table-layout: auto;">' .
                     '<tr>' .
                     '<td bgcolor=#cccccc><b> Student </b></td>' .
-                    '<td bgcolor=#cccccc><b> Posts graded </b></td>' .
+                    '<td bgcolor=#cccccc><b> Group </b></td>' .
+                    '<td bgcolor=#cccccc><b> Block Student </b></td>' .
+                    '<td bgcolor=#cccccc><b> Posts</b></td>' .
                     '<td bgcolor=#cccccc><b> Post author </b></td>' .
                     '<td bgcolor=#cccccc><b> Grade </b></td>' .
                     '<td bgcolor=#cccccc><b> Feedback </b></td>' .
@@ -1182,7 +727,6 @@ if ($display == '6') {
 
             //filter students by firstname
             if (!empty($firstletter)) {
-                // $infograder = array_filter($infograder, function($a) use ($firstletter) {return $a[0]->authorname[0] == $firstletter;});
                 $infograder = array_filter($infograder, function($a) use ($firstletter) {
                     return $a->authorname[0] == $firstletter;
                 });
@@ -1191,7 +735,8 @@ if ($display == '6') {
             //filter students by lastname
             if (!empty($lastletter)) {
                 $infograder = array_filter($infograder, function($a) use ($lastletter) {
-                    $surname = explode(' ', $a->authorname)[1];
+                    $surname = explode(' ', $a->authorname);
+                    $surname = $surname[1];
                     return $surname[0] == $lastletter;
                 });
             }
@@ -1216,26 +761,83 @@ if ($display == '6') {
                 }
                 $even = !$even;
 
-                $grader = $i;
+                $even = true;
+                $subeven = true;
 
-                if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context, $grader, false)) {
+                if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context, $i, false)) {
 
-                    $grader_db = $DB->get_record('user', array('id' => $grader));
-
+                    //Student Row
+                    $grader_db = $DB->get_record('user', array('id' => $infograder[$i]->authorid));
                     if (!empty($grader_db)) {
                         $grader_link = html_writer::link(new moodle_url('/user/view.php', array('id' => $grader_db->id)),
                                 $grader_db->firstname . ' ' . $grader_db->lastname);
                     }
 
-                    $count = count($infograder[$i]->posts) + 1;
+                    //Student Group Row
+                    $grader_group = $DB->get_records('peerforum_groups', array('courseid' => $courseid));
 
-                    echo '<tr>' . '<td width="150" bgcolor=' . "$color" . ' rowspan=' . $count . '>' . $grader_link . '</td>';
+                    if (!empty($grader_group) && !empty($grader_db)) {
+                        foreach ($grader_group as $id => $value) {
+                            $students = explode(';', $grader_group[$id]->studentsid);
+                            $students = array_filter($students);
+
+                            if (!empty($students)) {
+                                if (in_array($grader_db->id, $students)) {
+                                    $group_user = $grader_group[$id]->groupid;
+                                }
+                            }
+                        }
+                    }
+
+                    if (empty($grader_group)) {
+                        $grader_group = $DB->get_record('groups_members', array('userid' => $grader_db->id));
+
+                        if (!empty($grader_group)) {
+                            $group_user = $grader_group->groupid;
+                        }
+                    }
+
+                    if (empty($group_user)) {
+                        $group_user = '-';
+                    }
+
+                    $status_blocked = $DB->get_record('peerforum_peergrade_users', array('iduser' => $i))->userblocked;
+
+                    if (empty($status_blocked)) {
+                        $status_stud = 0; //not blocked
+                    } else {
+                        $status_stud = 1; //blocked
+                    }
+
+                    $bsurl = new moodle_url('/peergrading/block_student.php',
+                            array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
+                    $block_student = $bsurl . '&' . 'user=' . $i . '&' . 'status=' . $status_stud;
+
+                    //Block Student Row
+                    if ($status_stud == 0) {
+                        $button_block = '<form action="' . $block_student . '" method="post">' .
+                                '<div class="buttons"><input style="margin-left:3px;margin-top:1px; margin-bottom:1px;font-size:13px;" type="submit" id="block" name="block" value="' .
+                                get_string('block', 'block_peerblock') . '"/>' .
+                                '</div></form>';
+                    } else {
+                        $button_block = '<form action="' . $block_student . '" method="post">' .
+                                '<div class="buttons"><input style="margin-left:3px;margin-top:1px; margin-bottom:1px;font-size:13px;" type="submit" id="block" name="block" value="' .
+                                get_string('unblock', 'block_peerblock') . '"/>' .
+                                '</div></form>';
+                    }
+                    $count = count($infograder[$i]->posts) + 2;
+
+                    echo '<tr>' . '<td width="170" bgcolor=' . "$color" . ' rowspan=' . $count . '>' . $grader_link . '</td>' .
+                            '<td width="70" bgcolor=' . "$color" . ' rowspan=' . $count . '>' . $group_user . '</td>' .
+                            '<td width="70" bgcolor=' . "$color" . ' rowspan=' . $count . '>' . $button_block . '</td>';
 
                     foreach ($infograder[$i]->posts as $key => $value) {
-                        $postid = $key;
-                        $grade = $infograder[$i]->posts[$key]->grade;
-                        $feedback = $infograder[$i]->posts[$key]->feedback;
-                        $time = userdate($infograder[$i]->posts[$key]->time, '%e/%m/%y');
+
+                        $postid = $value;
+
+                        $grade = $infograder[$i]->postsgrade[$key];
+                        $feedback = $infograder[$i]->postsfeedback[$key];
+                        $time = userdate($infograder[$i]->posts[$key], '%e/%m/%y');
 
                         $post_author = $DB->get_record('peerforum_posts', array('id' => $postid))->userid;
                         $author_db = $DB->get_record('user', array('id' => $post_author));
@@ -1247,28 +849,35 @@ if ($display == '6') {
                                 html_writer::link(new moodle_url('/mod/peerforum/discuss.php?d=' . $postinfo->discussion . '#p' .
                                         $postid, array('userid' => $userid, 'courseid' => $courseid)), $postinfo->subject);
 
-                        $status_blocked =
-                                $DB->get_record('peerforum_blockedgrades', array('itemid' => $postid, 'userid' => $grader));
+                        $status_blocked = $DB->get_record('peerforum_blockedgrades', array('itemid' => $postid, 'userid' => $i));
 
                         if (empty($status_blocked)) {
                             $status = 0; //not blocked
                         } else {
                             $status = 1; //blocked
                         }
+                        if ($feedback == "-") {
+                            $status = 2;
+                        }
 
                         $url = new moodle_url('/peergrading/block_grade.php',
                                 array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-                        $baseurl = $url . '&' . 'grader=' . $grader . '&' . 'postid=' . $postid . '&' . 'status=' . $status;
+                        $baseurl = $url . '&' . 'grader=' . $i . '&' . 'postid=' . $postid . '&' . 'status=' . $status;
 
-                        if ($status == 1) {
+                        if ($status == 0) {
+                            $button_block = '<form action="' . $baseurl . '" method="post">' .
+                                    '<div class="buttons"><input style="margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="block" name="block" value="' .
+                                    get_string('block', 'block_peerblock') . '"/>' .
+                                    '</div></form>';
+                        } else if ($status == 1) {
                             $button_block = '<form action="' . $baseurl . '" method="post">' .
                                     '<div class="buttons"><input style="margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="block" name="block" value="' .
                                     get_string('unblock', 'block_peerblock') . '"/>' .
                                     '</div></form>';
-                        } else {
+                        } else if ($status == 2) {
                             $button_block = '<form action="' . $baseurl . '" method="post">' .
                                     '<div class="buttons"><input style="margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="block" name="block" value="' .
-                                    get_string('block', 'block_peerblock') . '"/>' .
+                                    "Remove" . '"/>' .
                                     '</div></form>';
                         }
 
@@ -1279,20 +888,35 @@ if ($display == '6') {
                         }
                         $subeven = !$subeven;
 
-                        if ($status == 1) {
+                        if ($status == 1 || $status_stud == 1) {
                             $status_str = '<font color="red">Blocked</font>';
                             $color = '#ffb3b3';
                         } else {
                             $status_str = '<font color="green">Unblocked</font>';
                         }
 
-                        echo '<tr>' . '<td width="250" height="1" bgcolor=' . "$color" . '>' . '(id:' . $postid . ')' . '  ' .
-                                $postlink . '</td>' . '<td width="150" height="1" bgcolor=' . "$color" . '>' . $author_link .
-                                '</td>' . '<td width="50" height="1" bgcolor=' . "$color" . '>' . $grade . '</td>' .
-                                '<td width="50" height="1" bgcolor=' . "$color" . '>' . $feedback . '</td>' .
-                                '<td width="70" height="1" bgcolor=' . "$color" . '><font size="2.5">' . $time . '</font></td>' .
-                                '<td width="50" height="1" bgcolor=' . "$color" . '>' . $button_block . '</td>' . '</tr>';
+                        echo '<tr>' . '<td height="1" bgcolor=' . "$color" . '>' . '(id:' . $postid . ')' . '  ' . $postlink .
+                                '</td>' . '<td height="1" bgcolor=' . "$color" . '>' . $author_link . '</td>' .
+                                '<td height="1" bgcolor=' . "$color" . '>' . $grade . '</td>' .
+                                '<td style="width:150px; white-space: nowrap; text-overflow:ellipsis; overflow: hidden; max-width:1px;" bgcolor=' .
+                                "$color" . '>' . '<a style="color: black;" href="peergrade.php?itemid=' . $postid .
+                                '&peergraderid=' . $grader_db->id .
+                                '" onClick="My=window.open(href,\'My\',width=600,height=300); return false;">' . $feedback .
+                                '</a>' . '</td>' . '<td bgcolor=' . "$color" . '><font size="2.5">' . $time . '</font></td>' .
+                                '<td width="80" height="1" bgcolor=' . "$color" . '>' . $button_block . '</td>' . '</tr>';
                     }
+
+                    $assign_url = new moodle_url('/peergrading/assign.php',
+                            array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
+
+                    $assign_baseurl = $assign_url . '&' . 'user=' . $i . '&courseid=' . $courseid;
+
+                    $assign_button = '<form action="' . $assign_baseurl . '" method="post">' .
+                            '<div class="buttons"><input type="text" style="width:30px; margin-top:1px; margin-bottom:1px;" name="assignpost" value=""><input style="margin-left:3px;margin-top:10px;font-size: 13px;" type="submit" id="assign" name="assign" value="' .
+                            get_string('assign', 'block_peerblock') . '"/>' .
+                            '</div></form>';
+
+                    echo '<tr>' . '<td width="250" height="1" bgcolor=' . "$color" . '>' . $assign_button . '</td>' . '</tr>';
                     echo '</tr>';
                 }
             }
@@ -1302,7 +926,7 @@ if ($display == '6') {
         echo '</br>';
         $pageurl = new moodle_url('/peergrading/index.php',
                 array('userid' => $userid, 'courseid' => $courseid, 'display' => $display, 'sifirst' => $firstletter,
-                        'silast' => $lastletter));
+                        'silast' => $lastletter, 'managegradersmode' => $managegradersmode));
         echo $OUTPUT->paging_bar($total_infograders, $currentpage, $perpage_small, $pageurl);
 
     } else {
@@ -1322,6 +946,12 @@ if ($display == '3') {
         }
 
         if (!empty($info)) {
+
+            $link = new moodle_url('/peergrading/export/export_peergrades.php', array('courseid' => $courseid));
+            echo html_writer::start_tag('div', array('class' => 'mdl-right'));
+            echo '<a class="mdl-align" id="traininglink"href="' . $link .
+                    '" onclick="location.href="href";return false;">Export Peergrades</a>';
+            echo html_writer::end_tag('div', array('class' => 'mdl-right'));
 
             $peerforum_id = $DB->get_record_sql("SELECT MIN(id) as id FROM mdl_peerforum");
             $peerforum_db = $DB->get_record('peerforum', array('id' => $peerforum_id->id));
@@ -1429,6 +1059,7 @@ if ($display == '3') {
             }
 
             $info = array_slice($info, $start, $perpage_big, true);
+            $noinfo = 0;
 
             foreach ($info as $postid => $value) {
                 if ($even) {
@@ -1659,7 +1290,7 @@ if ($display == '3') {
                     }
 
                     $line = '<font color="grey">' . '-' . '</font>';
-
+                    $noinfo++;
                     echo '<tr><td style="font-weight:300; color:black" bgcolor=' . "$color" . '>' . $assessed_mode .
                             '</td><td bgcolor=' . "$color" . '> ' . $line .
                             ' </td><td style="font-weight:300; color:black" bgcolor=' . "$color" . '>' . $assessed_grade .
@@ -1667,7 +1298,7 @@ if ($display == '3') {
                 }
                 echo '</tr>';
             }
-            if ($notprint) {
+            if ($noinfo == 0) {
                 echo 'No information to display.';
             }
             echo '</table>';
@@ -1872,7 +1503,6 @@ if ($display == '4') {
 // TO PEER GRADE
 if ($display == '1') {
     echo $OUTPUT->heading(format_string($poststopeergrade), 2);
-
     //get all the posts from the database
     $userposts = array();
     $userposts = peerforum_get_user_posts_to_peergrade($USER->id, $courseid);
@@ -1887,6 +1517,10 @@ if ($display == '1') {
 
                 $post = peerforum_get_post_full($userposts[$i]);
 
+                // new addition - button to check examples on how to grade
+                $discussion = $DB->get_record("peerforum_discussions", array('id' => $post->discussion));
+                $topic_name = $discussion->name;
+
                 if (!empty($post)) {
                     $discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion));
                     $peerforum = $DB->get_record('peerforum', array('id' => $discussion->peerforum));
@@ -1896,9 +1530,19 @@ if ($display == '1') {
                     $displaymode = get_user_preferences("peerforum_displaymode", $CFG->peerforum_displaymode);
 
                     $index = true;
+                    if ($training) {
+                        $link = new moodle_url('/peergrading/training/' . $topic_name . '.html');
+                        echo '<br>';
+                        echo html_writer::start_tag('div', array('class' => 'mdl-align'));
+                        echo '<a class="mdl-align" id="traininglink" title="Check out some examples before grading" href="' .
+                                $link . '" onclick="window.open(href);return false;">Check out some examples before grading</a>';
+                        echo html_writer::end_tag('div', array('class' => 'mdl-align'));
+                        echo '<br>';
+                    }
 
                     peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $displaymode, null, true, true, true,
                             true, $PAGE->url, $index);
+
                 }
             }
         }
@@ -1916,6 +1560,7 @@ if ($display == '2') {
 
     if (!empty($userposts_graded)) {
         for ($i = 0; $i < count($userposts_graded); $i++) {
+            //$peer_ranked = 0;
             $post_graded = peerforum_get_post_full($userposts_graded[$i]);
 
             if (!empty($post_graded)) {
@@ -1930,9 +1575,14 @@ if ($display == '2') {
 
                 peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post_graded, $displaymode, null, true, true,
                         true, false, $PAGE->url, $index);
+                //--NEW-- ranking questionnaire
+                //verify if student has already ranked this peer
+                $postpeerid = $post_graded->userid;
+
             }
         }
     }
+
     if (empty($userposts_graded)) {
         echo 'No posts peergraded.';
     }
@@ -1987,28 +1637,26 @@ if ($display == '7') {
     }
 
     if (!empty($info_peers)) {
-        echo '<table class="managepeers"">' .
+
+        $link = new moodle_url('/peergrading/export/export_students.php', array('courseid' => $courseid));
+        echo html_writer::start_tag('div', array('class' => 'mdl-right'));
+        echo '<a class="mdl-align" id="traininglink" href="' . $link .
+                '" onclick="location.href="href";return false;">Export Statistics</a>';
+        echo html_writer::end_tag('div', array('class' => 'mdl-right'));
+
+        echo '<br>';
+
+        echo '<table id="statsTable" class="managepeers"">' .
                 '<tr">' .
-                '<td bgcolor=#cccccc><b> Student </b></td>' .
-                '<td bgcolor=#cccccc><b> #Posts to grade </b></td>' .
-                '<td bgcolor=#cccccc><b> #Posts graded </b></td>' .
-                '<td bgcolor=#cccccc><b> #Posts blocked </b></td>' .
-                '<td bgcolor=#cccccc><b> #Posts expired </b></td>' .
-                '<td bgcolor=#cccccc><b> User blocked </b></td>' .
+                '<th onclick="sortTable(0)" bgcolor=#cccccc><b> Student </b></th>' .
+                '<th onclick="sortTable(1)" bgcolor=#cccccc><b> #Posts to grade </b></th>' .
+                '<th onclick="sortTable(2)" bgcolor=#cccccc><b> #Posts graded </b></th>' .
+                '<th onclick="sortTable(3)" bgcolor=#cccccc><b> #Posts blocked </b></th>' .
+                '<th onclick="sortTable(4)" bgcolor=#cccccc><b> #Posts expired </b></th>' .
+                '<th onclick="sortTable(5)"bgcolor=#cccccc><b> User blocked </b></th>' .
                 '</tr>';
 
         $even = true;
-
-        //pagination
-        $total_peers = count($info_peers);
-        $start = $currentpage * $perpage_big;
-
-        if ($start > $total_peers) {
-            $currentpage = 0;
-            $start = 0;
-        }
-
-        $info_peers = array_slice($info_peers, $start, $perpage_big, true);
 
         foreach ($info_peers as $key => $value) {
             $iduser = $info_peers[$key]->iduser;
@@ -2059,11 +1707,607 @@ if ($display == '7') {
         }
 
         echo '</table>';
+        echo '<script>
+    function sortTable(n) {
+      var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+      table = document.getElementById("statsTable");
+      switching = true;
+
+      dir = "asc";
+          while (switching) {
+            switching = false;
+            rows = table.rows;
+            for (i = 1; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("TD")[n];
+                y = rows[i + 1].getElementsByTagName("TD")[n];
+                if (dir == "desc") {
+                  if (parseInt(x.innerHTML.toLowerCase(),10) > parseInt(y.innerHTML.toLowerCase(),10)) {
+                      shouldSwitch= true;
+                      break;
+                    }
+                  } else if (dir == "asc") {
+                    if (parseInt(x.innerHTML.toLowerCase(),10) < parseInt(y.innerHTML.toLowerCase(),10)) {
+                        shouldSwitch = true;
+                        break;
+                      }
+                    }
+                  }
+                  if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                      switchcount ++;
+                    } else {
+                      if (switchcount == 0 && dir == "asc") {
+                        dir = "desc";
+                        switching = true;
+                      }
+                    }
+                  }
     }
-    //pagination
+            </script>';
+
+    }
     echo '</br>';
-    $pageurl = new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
-    echo $OUTPUT->paging_bar($total_peers, $currentpage, $perpage_big, $pageurl);
+}
+
+//Manage students relationships
+if ($display == '8') {
+    if (has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
+
+        if (empty($managerelationsmode) && $nominations) {
+            $managerelationsmode = RELATIONSHIPS_MODE_NOMINATIONS;
+        } else if (!$nominations) {
+            $managerelationsmode = RELATIONSHIPS_MODE_RANKINGS;
+        }
+
+        $options = peerforum_get_manage_relations_filters($rankings, $nominations);
+
+        if (!empty($options)) {
+            $select = new single_select(new moodle_url("/peergrading/index.php",
+                    array('courseid' => $courseid, 'userid' => $userid, 'display' => $display, 'peerforum' => $peerforumid)),
+                    'managerelationsmode', $options, $managerelationsmode, null, "managerelationsmode");
+            $select->set_label(get_string('displaymanagerelationsmode', 'peerforum'), array('class' => 'accesshide'));
+            $select->class = "managerelationsmode";
+
+            echo $OUTPUT->render($select);
+        }
+
+        $info_peers = $DB->get_records('peerforum_relationships');
+        $info_peers = order_students_by_name($info_peers);
+
+        if (empty($info_peers)) {
+            echo 'No information to display.';
+            $total_peers = 0;
+        }
+
+        //initialise_removepeer_javascript($PAGE);
+        //initialise_addpeer_javascript($PAGE);
+
+        if ($managerelationsmode == RELATIONSHIPS_MODE_NOMINATIONS) {
+
+            $link = new moodle_url('/peergrading/export/export_nominations.php', array('courseid' => $courseid));
+            echo html_writer::start_tag('div', array('class' => 'mdl-right'));
+            echo '<a class="mdl-align" id="traininglink"href="' . $link .
+                    '" onclick="location.href="href";return false;">Export Favorite Students</a>';
+            echo html_writer::end_tag('div', array('class' => 'mdl-right'));
+
+            $link2 = new moodle_url('/peergrading/export/export_nominations_2.php', array('courseid' => $courseid));
+            echo html_writer::start_tag('div', array('class' => 'mdl-right'));
+            echo '<a class="mdl-align" id="traininglink" href="' . $link2 .
+                    '" onclick="location.href="href";return false;">Export Least Favorite Students</a>';
+            echo html_writer::end_tag('div', array('class' => 'mdl-right'));
+
+            echo '<br>';
+
+            if (!empty($info_peers)) {
+                echo '<table class="managepeers">' .
+                        '<tr">' .
+                        '<th bgcolor=#cccccc><b> Student </b></th>' .
+                        '<th bgcolor=#cccccc><b> Favorite Students </b></th>' .
+                        '<th bgcolor=#cccccc><b> Edit </b></th>' .
+                        '<th bgcolor=#cccccc><b> Least Favorite Students </b></th>' .
+                        '<th bgcolor=#cccccc><b> Edit </b></th>' .
+                        '</tr>';
+
+                $even = true;
+
+                $subeven = true;
+
+                //pagination
+                $total_peers = count($info_peers);
+                $start = $currentpage * $perpage_small;
+
+                if ($start > $total_peers) {
+                    $currentpage = 0;
+                    $start = 0;
+                }
+
+                $info_peers = array_slice($info_peers, $start, $perpage_small, true);
+
+                //for adding options later...
+                $students_options = '';
+                $all_students = get_students_enroled($courseid);
+                $new = array_values($all_students);
+                $students_options .= '<option value="' . UNSET_STUDENT . '.">' . format_string("Choose a student...") . '</option>';
+
+                foreach ($new as $id => $value) {
+
+                    $uid = $new[$id]->userid;
+
+                    $std_firstname = $DB->get_record('user', array('id' => $uid))->firstname;
+                    $std_lastname = $DB->get_record('user', array('id' => $uid))->lastname;
+                    $std_name = $std_firstname . ' ' . $std_lastname;
+
+                    $students_options .= '<option value="' . $id . '">' . format_string($std_name) . '</option>';
+                }
+
+                foreach ($info_peers as $i => $value) {
+
+                    if ($even) {
+                        $color = '#f2f2f2';
+                    } else {
+                        $color = '#ffffff';
+                    }
+                    $even = !$even;
+
+                    //get students' names
+                    $iduser = $info_peers[$i]->iduser;
+                    $grader_db = $DB->get_record('user', array('id' => $iduser));
+                    if (!empty($grader_db)) {
+                        $grader_link = html_writer::link(new moodle_url('/user/view.php', array('id' => $grader_db->id)),
+                                $grader_db->firstname . ' ' . $grader_db->lastname);
+                    }
+
+                    //get relationships info from every user
+                    $relations_info = $DB->get_record("peerforum_relationships", array('iduser' => $iduser));
+
+                    if (!empty($relations_info)) {
+                        //favstudents
+                        $favstudents = $relations_info->peersfav;
+                        $favstudents = explode(";", $favstudents);
+                        $numentries = count($favstudents) + 1;
+                        //leastfavstudents
+                        $leastfavstudents = $relations_info->peersunfav;
+                        $leastfavstudents = explode(";", $leastfavstudents);
+                        //students ranked
+                        $studentsranked = $relations_info->studentsranked;
+                        $studentsranked = explode(";", $studentsranked);
+                        $count2 = count($studentsranked) + 1;
+                        //students ranked rankings
+                        $rankings = $relations_info->rankings;
+                        $rankings_array = explode(";", $rankings);
+                    }
+
+                    echo '<tr>' . '<td width="150" bgcolor=' . "$color" . ' rowspan=' . ($numentries + 1) . '>' . $grader_link .
+                            '</td>';
+
+                    for ($a = 0; $a < $numentries; $a++) {
+
+                        if ($subeven) {
+                            $color = '#f2f2f2';
+                        } else {
+                            $color = '#ffffff';
+                        }
+                        $subeven = !$subeven;
+
+                        $student_db = null;
+                        $student_db2 = null;
+
+                        if (!empty($new[$favstudents[$a]])) {
+                            $favid = $new[$favstudents[$a]]->userid;
+                            $student_db = $DB->get_record('user', array('id' => $favid));
+                        }
+
+                        if (!empty($new[$leastfavstudents[$a]])) {
+                            $leastfavid = $new[$leastfavstudents[$a]]->userid;
+                            $student_db2 = $DB->get_record('user', array('id' => $leastfavid));
+                        }
+
+                        if (!empty($student_db)) {
+                            $student_name = $student_db->firstname . ' ' . $student_db->lastname;
+                            $student_name2 = $student_db2->firstname . ' ' . $student_db2->lastname;
+
+                            $url = new moodle_url('/peergrading/removepeer_ajax.php',
+                                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
+
+                            $baseurl = $url . '&' . 'peerid=' . $favstudents[$a] . '&' . 'user=' . $iduser . '&' . 'status=0';
+                            $baseurl2 = $url . '&' . 'peerid=' . $leastfavstudents[$a] . '&' . 'user=' . $iduser . '&' . 'status=1';
+
+                            $button_fav = '<form action="' . $baseurl . '" method="post">' .
+                                    '<div class="buttons"><input style="margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="remove" name="block" value="' .
+                                    get_string('remove', 'block_peerblock') . '"/>' .
+                                    '</div></form>';
+                            $button_unfav = '<form action="' . $baseurl2 . '" method="post">' .
+                                    '<div class="buttons"><input style="margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="remove" name="block" value="' .
+                                    get_string('remove', 'block_peerblock') . '"/>' .
+                                    '</div></form>';
+
+                        } else {
+
+                            $student_name = "-";
+                            $student_name2 = "-";
+
+                            $url = new moodle_url('/peergrading/addpeer.php',
+                                    array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
+
+                            $baseurl = $url . '&' . 'peerid=' . $favstudents[$a] . '&' . 'user=' . $iduser . '&' . 'status=0';
+                            $baseurl2 = $url . '&' . 'peerid=' . $leastfavstudents[$a] . '&' . 'user=' . $iduser . '&' . 'status=1';
+
+                            $button_fav = '<form action="' . $baseurl . '" method="post">' .
+                                    '<select style="margin-top:1px; margin-bottom:1px; font-size: 13px;" class="poststudentmenu studentinput" name="menunoms" id="menustds">' .
+                                    $students_options . '</select>' .
+                                    '<input style="margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="add" name="assignnoms" value="' .
+                                    get_string('add', 'block_peerblock') . '"/>' .
+                                    '</form>';
+
+                            $button_unfav = '<form action="' . $baseurl2 . '" method="post">' .
+                                    '<select style="margin-top:1px; margin-bottom:1px; font-size: 13px;" class="poststudentmenu studentinput" name="menunoms" id="menunoms">' .
+                                    $students_options . '</select>' .
+                                    '<input style="margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="add" name="assignnoms" value="' .
+                                    get_string('add', 'block_peerblock') . '"/>' .
+                                    '</form>';
+                        }
+
+                        echo '<tr>' . '<td width="250" height="1" bgcolor=' . "$color" . '>' . $student_name . '</td>' .
+                                '<td width="150" height="1" bgcolor=' . "$color" . '>' . $button_fav . '</td>' .
+                                '<td width="150" height="1" bgcolor=' . "$color" . '>' . $student_name2 . '</td>' .
+                                '<td width="150" height="1" bgcolor=' . "$color" . '>' . $button_unfav . '</td>' . '</tr>';
+                    }
+
+                    echo '</tr>' . '<td height=5px"></td>';
+
+                }
+                echo '</table>';
+            }
+        } else if ($managerelationsmode == RELATIONSHIPS_MODE_RANKINGS) {
+
+            $link = new moodle_url('/peergrading/export/export_rankings.php', array('courseid' => $courseid));
+            echo html_writer::start_tag('div', array('class' => 'mdl-right'));
+            echo '<a class="mdl-align" id="traininglink"href="' . $link .
+                    '" onclick="location.href="href";return false;">Export Rankings</a>';
+            echo html_writer::end_tag('div', array('class' => 'mdl-right'));
+
+            echo '<br>';
+
+            if (!empty($info_peers)) {
+                echo '<table class="managepeers">' .
+                        '<tr">' .
+                        '<td bgcolor=#cccccc><b> Student </b></td>' .
+                        '<td bgcolor=#cccccc><b> #Students Not Ranked </b></td>' .
+                        '<td bgcolor=#cccccc><b> Students Ranked </b></td>' .
+                        '<td bgcolor=#cccccc><b> Rankings </b></td>' .
+                        '<td bgcolor=#cccccc><b> Edit </b></td>' .
+                        '</tr>';
+
+                $even = true;
+
+                $subeven = true;
+
+                //pagination
+                $total_peers = count($info_peers);
+                $start = $currentpage * $perpage_small;
+
+                if ($start > $total_peers) {
+                    $currentpage = 0;
+                    $start = 0;
+                }
+
+                $info_peers = array_slice($info_peers, $start, $perpage_small, true);
+
+                foreach ($info_peers as $i => $value) {
+
+                    if ($even) {
+                        $color = '#f2f2f2';
+                    } else {
+                        $color = '#ffffff';
+                    }
+                    $even = !$even;
+
+                    //for adding options later...
+                    $all_students = get_students_enroled($courseid);
+
+                    //get students' names
+                    $iduser = $info_peers[$i]->iduser;
+                    $grader_db = $DB->get_record('user', array('id' => $iduser));
+                    if (!empty($grader_db)) {
+                        $grader_link = html_writer::link(new moodle_url('/user/view.php', array('id' => $grader_db->id)),
+                                $grader_db->firstname . ' ' . $grader_db->lastname);
+                    }
+
+                    //get relationships info from every user
+                    $relations_info = $DB->get_record("peerforum_relationships", array('iduser' => $iduser));
+
+                    if (!empty($relations_info)) {
+                        //students ranked
+                        $studentsranked = explode(";", $relations_info->studentsranked);
+                        $numranked = count($studentsranked);
+                        //students ranked rankings
+                        $rankings = explode(";", $relations_info->rankings);
+                    }
+
+                    $to_rank = get_peers_unranked($iduser, $courseid);
+
+                    echo '<tr>' . '<td width="150" bgcolor=' . "$color" . ' rowspan=' . ($numranked + 1) . '>' . $grader_link .
+                            '</td>' . '<td width="250" height="1" bgcolor=' . "$color" . ' rowspan=' . ($numranked + 1) . '>' .
+                            $to_rank . '</td>';
+
+                    for ($a = 0; $a < $numranked; $a++) {
+
+                        if ($subeven) {
+                            $color = '#f2f2f2';
+                        } else {
+                            $color = '#ffffff';
+                        }
+                        $subeven = !$subeven;
+
+                        $studentranked = $studentsranked[$a];
+                        $ranking = $rankings[$a];
+
+                        $student_db = $DB->get_record('user', array('id' => $studentranked));
+
+                        if (!empty($student_db)) {
+                            $student_name = $student_db->firstname . ' ' . $student_db->lastname . ' (id:' . $studentranked . ')';
+                            $url = new moodle_url('/peergrading/removepeer.php',
+                                    array('userid' => $iduser, 'courseid' => $courseid, 'display' => $display));
+                            $baseurl = $url . '&' . 'peerid=' . $studentranked;
+                            $button_fav = '<form action="' . $baseurl . '" method="post">' .
+                                    '<div class="buttons"><input style="margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="remove" name="block" value="' .
+                                    get_string('remove', 'block_peerblock') . '"/>' .
+                                    '</div></form>';
+
+                        } else {
+                            $student_name = " - ";
+                            $ranking = " - ";
+                            $url = new moodle_url('/peergrading/addpeer.php',
+                                    array('userid' => $iduser, 'courseid' => $courseid, 'display' => $display, 'peerfav' => 1,
+                                            'peerid' => $studentranked));
+                            $baseurl = $url . '&' . 'peerid=' . $studentranked;
+
+                            $button_fav = '<form action="' . $baseurl . '" method="post">' . '<select name=' . $all_students . '>' .
+                                    '<input style="margin-top:1px;margin-bottom:1px;font-size: 13px;" type="submit" id="add" name="block" value="' .
+                                    get_string('add', 'block_peerblock') . '"/>' .
+                                    '</form>';
+                        }
+
+                        echo '<tr>' . '<td width="250" height="1" bgcolor=' . "$color" . '>' . $student_name . '</td>' .
+                                '<td width="150" height="1" bgcolor=' . "$color" . '>' . $ranking . '</td>' .
+                                '<td width="150" height="1" bgcolor=' . "$color" . '>' . $button_fav . '</td>' . '</tr>';
+                    }
+
+                    echo '</tr>' . '<td height=5px"></td>';
+                }
+
+                echo '</table>';
+            }
+        }
+
+        //pagination
+        echo '</br>';
+        $pageurl = new moodle_url('/peergrading/index.php',
+                array('userid' => $userid, 'courseid' => $courseid, 'display' => $display,
+                        'managerelationsmode' => $managerelationsmode));
+        echo $OUTPUT->paging_bar($total_peers, $currentpage, $perpage_small, $pageurl);
+
+    } else {
+        print_error('sectionpermissiondenied', 'peergrade');
+    }
+}
+
+//Manage Threading
+if ($display == '9') {
+    if (has_capability('mod/peerforum:viewpanelpeergrades', $context)) {
+
+        $info_discussions = $DB->get_records("peerforum_peergrade_subject", array('courseid' => $courseid));
+
+        $discussions = array();
+
+        if (empty($info_discussions)) {
+            echo 'Nothing to display.';
+        }
+
+        if (!empty($info_discussions)) {
+
+            echo '<table class="managepeers">' .
+                    '<tr>' .
+                    '<th bgcolor=#cccccc><b> Subject </th>' .
+                    '<th bgcolor=#cccccc><b> Type </th>' .
+                    '<th bgcolor=#cccccc><b> Students assigned </th>' .
+                    '</tr>';
+
+            $even = true;
+
+            $students_eligible = $DB->get_records('peerforum_peergrade_users', array('peergradetype' => 1));
+
+            foreach ($info_discussions as $key => $value) {
+
+                if ($even) {
+                    $color = '#f2f2f2';
+                    $even = !$even;
+                } else {
+                    $color = '#ffffff';
+                    $even = !$even;
+                }
+
+                $discussion_name = $info_discussions[$key]->name;
+                $discussion_type = $info_discussions[$key]->type;
+
+                if ($discussion_type == 1) {
+                    $type = "Allocated Students";
+                } else {
+                    $type = "Random Students";
+                }
+
+                //for pagination Later
+                array_push($discussions, $discussion_name);
+
+                if ($pf->random_distribution) {
+                    $count = (count($students_eligible)) / (count($info_discussions)) + 2;
+                } else if ($discussion_type == 2) {
+                    $count = 2;
+                } else {
+                    $students = $DB->get_records("peerforum_peergrade_users", array('peergradetype' => 1));
+                    $count = 1;
+                    foreach ($students as $a => $value) {
+                        $tp = explode(";", $students[$a]->topicsassigned);
+                        foreach ($tp as $w => $value) {
+                            if ($tp[$w] == $discussion_name) {
+                                $count++;
+                            }
+                        }
+                    }
+                }
+
+                //lines for the respective colunms
+                echo '<tr>' . '<td rowspan =' . "$count" . 'bgcolor=' . "$color" . '>' . $discussion_name . '</td>' .
+                        '<td rowspan=' . "$count" . 'bgcolor=' . "$color" . '>' . $type . '</td>';
+
+                if ($discussion_type == 1) {
+                    foreach ($students_eligible as $i => $value) {
+                        $topics = explode(";", $students_eligible[$i]->topicsassigned);
+
+                        if (in_array($info_discussions[$key]->name, $topics)) {
+                            //print student
+                            $iduser = $students_eligible[$i]->iduser;
+                            $user_name = $DB->get_record('user', array('id' => $iduser));
+                            $student_name = "$user_name->firstname $user_name->lastname";
+
+                            //complete with the students
+
+                            echo '<tr>' . '<td width="400" bgcolor=' . "$color" . '>' . $student_name . '</td>' . '</tr>';
+
+                        }
+                    }
+                } else {
+                    echo '<tr>' . '<td width="400" bgcolor=' . "$color" . '>' . "-" . '</td>' . '</tr>';
+                }
+
+            }
+
+            echo '</tr>';
+
+            //pagination
+            $total_discussions = count($discussions);
+            $start = $currentpage * $perpage_big; //?
+
+            if ($start > $total_discussions) {
+                $currentpage = 0;
+                $start = 0;
+            }
+
+            echo '</table>';
+        }
+
+        //pagination
+        echo '</br>';
+        $pageurl = new moodle_url('/peergrading/index.php',
+                array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
+        echo $OUTPUT->paging_bar($total_discussions, $currentpage, $perpage_big, $pageurl);
+    } else {
+        print_error('sectionpermissiondenied', 'peergrade');
+    }
+}
+
+//Peers to Rank
+if ($display == '10') {
+    echo $OUTPUT->heading(format_string($peer_ranking), 2);
+    echo $OUTPUT->heading(format_string(get_string('rankinghelp', 'block_peerblock')), 4);
+
+    $userposts_graded = peerforum_get_user_posts_peergraded($USER->id, $courseid);
+    $rankavailable = 0;
+    $rankable = array();
+
+    if (!empty($userposts_graded)) {
+        for ($i = 0; $i < count($userposts_graded); $i++) {
+            $post_graded = peerforum_get_post_full($userposts_graded[$i]);
+
+            if (!empty($post_graded)) {
+
+                $postpeerid = $post_graded->userid;
+
+                $this_student = $DB->get_record("peerforum_relationships", array('iduser' => $userid));
+                if (!empty($this_student)) {
+                    $peers_ranked = $this_student->studentsranked;
+                    $array_ranks = explode(";", $peers_ranked);
+                } else {
+                    $array_ranks = array();
+                }
+                if (!in_array($postpeerid, $array_ranks) && !in_array($postpeerid, $rankable)) {
+                    array_push($rankable, $postpeerid);
+                }
+            }
+        }
+        if (!empty($rankable)) {
+            $rankavailable = 1;
+        }
+    }
+
+    if ($rankavailable == 1) {
+        echo '<br><b>Peers to rank: </b>';
+        for ($i = 0; $i < count($rankable); $i++) {
+            $name = get_student_name($rankable[$i]);
+            echo $name;
+            if ($i < (count($rankable) - 1)) {
+                echo '; ';
+            }
+        }
+        echo '<br>';
+        $mform = new peer_ranking_form(null, $rankable);
+        $formdata = array('userid' => $userid, 'courseid' => $courseid, 'display' => $display, 'peeruserid' => $postpeerid);
+        $mform->set_data($formdata);
+
+        if ($fromform = $mform->get_data()) {
+            $newrank = $fromform->rankingstudents;
+            if (!empty($newrank) && !(empty($fromform->peeruserid))) {
+
+                //id for updating
+                $info = $DB->get_record("peerforum_relationships", array('iduser' => $fromform->userid));
+                $cur_peers_ranked = $info->studentsranked;
+                $cur_rankings = $info->rankings;
+
+                //add userid of new peer
+                $array_peers_ranked = explode(";", $cur_peers_ranked);
+
+                $array_peers_ranked = array_filter($array_peers_ranked);
+                foreach ($rankable as $j => $value) {
+                    array_push($array_peers_ranked, $rankable[$j]);
+                }
+                $array_peers_ranked = array_filter($array_peers_ranked);
+                $new_peers_ranked = array();
+                $new_peers_ranked = implode(";", $array_peers_ranked);
+
+                //add the given ranking
+                $array_rankings = explode(";", $cur_rankings);
+
+                $array_rankings = array_filter($array_rankings);
+                foreach ($newrank as $k => $value) {
+                    array_push($array_rankings, $newrank[$k]);
+                }
+                $new_rankings = array();
+                $new_rankings = implode(";", $array_rankings);
+
+                $data = new stdClass();
+                $data->id = $info->id;
+                $data->studentsranked = $new_peers_ranked;
+                $data->rankings = $new_rankings;
+                $DB->update_record("peerforum_relationships", $data);
+            } else {
+                print_error('invaliddata');
+            }
+
+            if (isset($fromform->submitbutton)) {
+                $returnurl = new moodle_url('/peergrading/index.php',
+                        array('userid' => $fromform->userid, 'courseid' => $fromform->courseid, 'display' => $fromform->display));
+                redirect($returnurl);
+            }
+            exit;
+        } else {
+            $PAGE->set_cacheable(false);
+            $mform->display();
+        }
+    } else {
+        echo 'No peers to rank.';
+    }
 }
 
 echo $OUTPUT->box_end();

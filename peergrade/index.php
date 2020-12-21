@@ -82,6 +82,7 @@ $peergradescalemenu = make_grades_menu($peergradescaleid);
 $strpeergrade = get_string('peergrade', 'peerforum');
 $strname = get_string('name');
 $strtime = get_string('time');
+$strfeedback = get_string('feedback');
 
 $PAGE->set_title(get_string('allpeergradesforitem', 'peerforum'));
 echo $OUTPUT->header();
@@ -111,6 +112,7 @@ if (!$peergrades) {
             '',
             html_writer::link(new moodle_url($sorturl, array('sort' => 'firstname')), $strname),
             html_writer::link(new moodle_url($sorturl, array('sort' => 'peergrade')), $strpeergrade),
+            html_writer::link(new moodle_url($sorturl, array('sort' => 'feedback')), $strfeedback),
             html_writer::link(new moodle_url($sorturl, array('sort' => 'time')), $strtime)
     );
     $table->colclasses = array('', 'firstname', 'peergrade', 'time');
@@ -137,11 +139,13 @@ if (!$peergrades) {
         } else {
             $row->cells[] = $OUTPUT->user_picture($peergrade);
         }
+
         $row->cells[] = fullname($peergrade);
         if ($peergrade->peergrade > $maxpeergrade) {
             $peergrade->peergrade = $maxpeergrade;
         }
-        $row->cells[] = $peergradescalemenu[$peergrade->peergrade];
+        $row->cells[] = $peergradescalemenu[round($peergrade->peergrade)];
+        $row->cells[] = $peergrade->feedback;
         $row->cells[] = userdate($peergrade->timemodified);
         $table->data[] = $row;
     }

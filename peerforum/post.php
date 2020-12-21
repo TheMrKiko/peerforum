@@ -431,7 +431,21 @@ if (!empty($peerforum)) {      // User is starting a new discussion in a peerfor
                     notice("Sorry, but you are not allowed to delete that discussion!",
                             peerforum_go_back_to("discuss.php?d=$post->discussion"));
                 }
+
                 peerforum_delete_discussion($discussion, false, $course, $cm, $peerforum);
+
+                //If a discussion topic is deleted...
+                $DB->delete_records("peerforum_peergrade_subject",
+                        array('name' => $post->subject, 'courseid' => $course->id, 'peerforumid' => $peerforum->id));
+
+                if ($peerforum->threaded_grading) {
+                    if ($peerforum->random_distribution) {
+                        apply_random_distribution($course->id);
+                    } else {
+                        //threaded grading (for all students with this topic + type 1>>2)
+                        update_threaded_grading($course->id);
+                    }
+                }
 
                 add_to_log($discussion->course, "peerforum", "delete discussion",
                         "view.php?id=$cm->id", "$peerforum->id", $cm->id);
@@ -886,6 +900,10 @@ if ($fromform = $mform_post->get_data()) {
             if ($peergraders) {
                 $all_peergraders = implode(';', $peergraders);
                 insert_peergraders($fromform->id, $all_peergraders, $course->id, $USER->id);
+
+                foreach ($peergraders as $key => $value) {
+                    send_peergrade_notification($peergraders[$key]);
+                }
             }
 
             redirect(peerforum_go_back_to("$discussionurl&page=$currentpage#p$fromform->id"), $message . $subscribemessage,
@@ -951,7 +969,28 @@ if ($fromform = $mform_post->get_data()) {
             if ($completion->is_enabled($cm) &&
                     ($peerforum->completiondiscussions || $peerforum->completionposts)) {
                 $completion->update_state($cm, COMPLETION_COMPLETE);
+
             }
+
+            //TODO: New additions
+
+            //Update the peergrade subjects table with this new topic
+            if ($peerforum->threaded_grading) {
+                if ($peerforum->random_distribution) {
+                    $type = 1;
+                    //Update the distribution to consider new topic
+                    apply_random_distribution($course->id);
+                } else {
+                    $type = 2;
+                }
+            }
+            $subject = new stdClass();
+            $subject->courseid = $course->id;
+            $subject->peerforumid = $peerforum->id;
+            $subject->name = $fromform->subject;
+            $subject->type = $type;
+
+            $DB->insert_record("peerforum_peergrade_subject", $subject);
 
             redirect(peerforum_go_back_to("view.php?f=$fromform->peerforum"), $message . $subscribemessage, $timemessage);
 

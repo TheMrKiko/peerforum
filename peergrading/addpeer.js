@@ -1,6 +1,6 @@
-M.core_peerforum_assignpeer = {
+M.core_peergrading_addpeer = {
     Y: null,
-    api: M.cfg.wwwroot + '/mod/peerforum/assignpeer.php',
+    api: M.cfg.wwwroot + '/peergrading/addpeer.php',
 
     init: function (Y) {
         this.Y = Y;
@@ -36,6 +36,7 @@ M.core_peerforum_assignpeer = {
                     var data = Y.JSON.parse(response.responseText);
 
                     if (data.result) {
+
                         var node = scope.Y.one('#menuassignpeer' + itemid);
                         node.set('innerHTML', data.canassign);
 

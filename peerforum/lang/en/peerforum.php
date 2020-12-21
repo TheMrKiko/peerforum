@@ -696,8 +696,6 @@ $string['error:nopeergradecriteria'] = 'Warning: You must select a grade for {$a
 $string['showpostid'] = 'Show post id';
 $string['showpostid_help'] =
         "Select 'yes' if you want the posts' id to be displayed in the Peer Forum. This can be usefull for the Peer Grade panel.";
-$string['enablepagination'] = 'Enable pagination';
-$string['enablepagination_help'] = "Select 'no' if you do not want pagination on discussions.";
 $string['postsperpage'] = '#Posts per page';
 $string['postsperpage_help'] = 'Select the number of posts you want to be shown per page on discussions.';
 $string['showdetails'] = 'Show option of remove/assign students on post';
@@ -714,3 +712,44 @@ $string['peerforum:peergradepost'] = "Peer grade post";
 $string['peerforum:viewallpeergrades'] = "View all raw peer grades given by individuals";
 $string['peerforum:viewallratingpeer'] = "View all raw ratings given by individuals";
 $string['peerforum:viewpanelpeergrades'] = "View Peer Grade panel";
+$string['attribution_advanced'] = 'Enable advanced topic attribution';
+$string['attribution_advanced_help'] = "Select 'yes' if you want peer grading to have different student attribution rules.";
+$string['topicattribution'] = "Topic attribution";
+$string['topicstoattribute'] = "Discussion topics";
+$string['typestoattribute'] = "Type of peer grading";
+$string['typestoattribute_help'] =
+        "Select 'specified topic' if you want this topic to be peer graded by a defined number of students. 'Randomized topic' will make this topic available to peer grade to any student.";
+$string['specifictopic'] = "Specified topic";
+$string['randomtopic'] = "Randomised topic";
+$string['favstudents'] = "Favorite Peers";
+$string['choosefavstudents'] = "Select one of your peers";
+$string['leastfavstudents'] = "Least Favorite Peers";
+$string['relquest'] = "Peer Relations Questionnaire";
+$string['questionnaire_instructions'] =
+        "In order to be able to peer grade your peers, you need to provide five peers which you like the most and four peers which you like the least in this course.";
+$string['topicsattrinstructions'] = "Discussion Topics: Select the topic you want to change its peergrading type.";
+$string['autoassignreplies'] = "Auto assign replies";
+$string['autoassignreplies_help'] =
+        "Select 'yes' if you want the same students to be assigned to a reply of a previous post made by the same student.";
+$string['hidereplies'] = "Hide replies to student posts";
+$string['hidereplies_help'] =
+        "Select 'yes' if you want the reply given by a teacher to be hidden from students until the peergrading activity of the parent post has not ended.";
+$string['managerealtionshipsmodenominations'] = "See Peer Nominations";
+$string['managerealtionshipsmoderankings'] = "See Peer Rankings";
+$string['displaymanagerelationsmode'] = "Display manage relationships mode";
+$string['peernominations'] = "Enable peer nominations";
+$string['peerrankings'] = "Enable peer rankings";
+$string['peerrankings_help'] = "Select 'yes' if you want students to be asked to rank peers which they have peergraded.";
+$string['peernominations_help'] =
+        "Select 'yes' if you want students to be asked to nominate their favorite and least favorite peers.";
+$string['peernominationsaddfields'] = "Allow students to give more nominations";
+$string['peernominationsfields'] = "Number of peer nominations";
+$string['training'] = "Enable peergrading training";
+$string['peernominationsaddfields_help'] = "Allows students to give more peer nominations than the mininum required.";
+$string['peernominationsfields_help'] = "Number of favorite/least favorite peers required to nominate.";
+$string['training_help'] = "Select 'yes' if you want students to have access to training pages on how to grade their assessments.";
+$string['miscellaneous'] = "Miscellaneous";
+$string['peergradeforitem'] = "Peergrade for item";
+$string['nopeergrades'] = "No peer grade.";
+$string['random_distribution'] = "Random Distribution";
+$string['random_distribution_help'] = "Select 'yes' if you want students to be divided equally throughout the existing topics.";
