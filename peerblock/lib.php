@@ -77,3 +77,96 @@ function get_time_old_post($userid, $courseid) {
         return null;
     }
 }
+
+/**
+ * Return the number of peers a student has not ranked yet
+ *
+ * @param int $userid
+ * @return int number of peers unranked.
+ * @global object
+ */
+function get_num_peers_to_rank($userid, $courseid) {
+    global $DB;
+
+    $students_to_rank = 0;
+    $student = $DB->get_record("peerforum_relationships", array('iduser' => $userid));
+
+    if (!empty($student)) {
+        $peers_ranked = $student->studentsranked;
+        $array_ranks = explode(";", $peers_ranked);
+
+        $a = $DB->get_record("peerforum_peergrade_users", array('iduser' => $userid));
+        if (!empty($a)) { //avoid notices in case of non student
+            $students_graded = $a->postspeergradedone;
+            if (!empty($students_graded)) {
+                $array_students_graded = explode(";", $students_graded);
+                $rankableid = array(); //array to avoid n posts from the same person count as n ranks
+
+                for ($i = 0; $i < count($array_students_graded); $i++) {
+                    $peerpost = $DB->get_record("peerforum_posts", array('id' => $array_students_graded[$i]));
+                    $peerid = $peerpost->userid;
+                    if (!in_array($peerid, $array_ranks) && !in_array($peerid, $rankableid)) {
+                        array_push($rankableid, $peerid);
+                        $students_to_rank++;
+                    }
+                }
+            }
+        }
+    }
+
+    return $students_to_rank;
+}
+
+/**
+ * Return the number of posts with peergrading in effect
+ *
+ * @param int $courseid
+ * @return int total number of posts to peergrade.
+ * @global object
+ */
+function get_active_peergrading_posts($courseid) {
+    global $DB;
+
+    $posts = get_all_posts_info($courseid);
+    $active_posts = get_posts_not_expired($posts);
+
+    return count($active_posts);
+}
+
+/**
+ * Return the number of posts expiring soon
+ *
+ * @param int $courseid
+ * @return int number of posts expiring.
+ * @global object
+ */
+function get_posts_about_to_expire($courseid, $peerforumid) {
+    global $DB;
+
+    $posts_expiring = 0;
+
+    $posts = get_all_posts_info($courseid);
+    $active_posts = get_posts_not_expired($posts);
+    $peerforum = $DB->get_record("peerforum", array('course' => $peerforumid));
+
+    foreach ($active_posts as $key => $value) {
+
+        $peergraders = $active_posts[$key]->peergraders;
+        $expiring_peers = 0;
+        if (!empty($peergraders)) {
+            foreach ($peergraders as $i => $value) {
+                $exp_peer = verify_post_almost_expired($active_posts[$key]->postid, $peerforum, $peergraders[$i]->id, $courseid);
+                if ($exp_peer->almost_expired) {
+                    $expiring_peers++;
+                } else { //if at least one is not having the post expiring soon, we wont count the post, no need to check other students left
+                    break;
+                }
+            }
+        }
+        if ($expiring_peers == count($peergraders)) {
+            $posts_expiring++;
+        }
+    }
+
+    return $posts_expiring;
+}

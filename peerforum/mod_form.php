@@ -67,35 +67,6 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->setDefault('type', 'general');
 
         //---------- New configuration of PeerForum ----------//
-        //Pagination on PeerForum
-        $yesno = array(0 => get_string('no'),
-                1 => get_string('yes'));
-
-        $mform->addElement('selectyesno', 'pagination', get_string('enablepagination', 'peerforum'));
-        $mform->setDefault('pagination', 1);
-        $mform->addHelpButton('pagination', 'enablepagination', 'peerforum');
-
-        //Num of posts per page
-        $num_posts = array(
-                5 => 5,
-                10 => 10,
-                15 => 15,
-                20 => 20,
-                25 => 25,
-                30 => 30,
-                40 => 40,
-                50 => 50,
-                60 => 60,
-                70 => 70,
-                80 => 80,
-                90 => 90,
-                100 => 100
-        );
-
-        $mform->addElement('select', 'postsperpage', get_string('postsperpage', 'peerforum'), $num_posts);
-        $mform->addHelpButton('postsperpage', 'postsperpage', 'peerforum');
-        $mform->setDefault('postsperpage', 5);
-        $mform->disabledIf('postsperpage', 'pagination', 'eq', 0);
 
         //-----------------------------------------------------//
 
@@ -586,9 +557,113 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->disabledIf('peergradeassesstimefinish', 'peergradetime');
         $mform->disabledIf('peergradeassesstimefinish', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
         $mform->setAdvanced('peergradeassesstimefinish');
-        //-----------------------------------------------------//
+
+        // Select if the students who peergrade a certain student post also peergrade a future reply
+        $mform->addElement('selectyesno', 'autoassignreplies', get_string('autoassignreplies', 'peerforum'));
+        $mform->setDefault('autoassignreplies', 1);
+        $mform->addHelpButton('autoassignreplies', 'autoassignreplies', 'peerforum');
+        $mform->setAdvanced('autoassignreplies');
+
+        // Select if the an unpeergraded post should not let students see the teacher reply
+        $mform->addElement('selectyesno', 'hidereplies', get_string('hidereplies', 'peerforum'));
+        $mform->setDefault('hidereplies', 1);
+        $mform->addHelpButton('hidereplies', 'hidereplies', 'peerforum');
+        $mform->setAdvanced('hidereplies');
 
         //-----------------------------------------------------//
+
+        //---------< TOPIC ATTRIBUTION local configurations >----------//
+
+        $mform->addElement('header', 'topicattribution', get_string('topicattribution', 'peerforum'));
+
+        //Enable advanced topic distribution on PeerForum
+        $mform->addElement('selectyesno', 'threaded_grading', get_string('attribution_advanced', 'peerforum'));
+        $mform->setDefault('threaded_grading', 0);
+        $mform->addHelpButton('threaded_grading', 'attribution_advanced', 'peerforum');
+
+        $yesno = array(0 => get_string('no'),
+                1 => get_string('yes'));
+
+        //Simply divide students throughout all topics
+        $mform->addElement('selectyesno', 'random_distribution', get_string('random_distribution', 'peerforum'));
+        $mform->setDefault('random_distribution', 0);
+        $mform->addHelpButton('random_distribution', 'random_distribution', 'peerforum');
+        $mform->disabledIf('random_distribution', 'threaded_grading', 'eq', 0);
+
+        //Present topics
+        $record = $DB->get_record('peerforum', array('course' => $COURSE->id));
+
+        $discussiontopics = get_discussions_name($COURSE->id, $record->id);
+        $selecttopics =
+                $mform->addElement('select', 'topicstoattribute', get_string('topicstoattribute', 'peerforum'), $discussiontopics);
+        $selecttopics->setMultiple(true);
+
+        //Choose the type of grading attribution
+        $attrtypes = array(
+                get_string('specifictopic', 'peerforum'),
+                get_string('randomtopic', 'peerforum')
+        );
+
+        $mform->addElement('select', 'typestoattribute', get_string('typestoattribute', 'peerforum'), $attrtypes);
+        $mform->disabledIf('typestoattribute', 'threaded_grading', 'eq', 0);
+        $mform->disabledIf('typestoattribute', 'random_distribution', 'eq', 1);
+        $mform->addHelpButton('typestoattribute', 'typestoattribute', 'peerforum');
+
+        $mform->disabledIf('topicstoattribute', 'threaded_grading', 'eq', 0);
+        $mform->disabledIf('topicstoattribute', 'random_distribution', 'eq', 1);
+
+        $peergraders = $record->selectpeergraders;
+
+        $optionsstudents = array(
+                1 => $peergraders + 1,
+                2 => '10',
+                3 => '15',
+                4 => '20',
+                5 => '25',
+                6 => '30',
+        );
+
+        $selecttopics = $mform->addElement('select', 'numberofstudents', get_string('studentsperpost', 'block_peerblock'),
+                $optionsstudents);
+        $mform->disabledIf('numberofstudents', 'threaded_grading', 'eq', 0);
+        $mform->disabledIf('numberofstudents', 'typestoattribute', 'eq', 1);
+        $mform->disabledIf('numberofstudents', 'random_distribution', 'eq', 1);
+
+        //---------< MISC local configurations >----------//
+
+        $mform->addElement('header', 'miscellaneous', get_string('miscellaneous', 'peerforum'));
+
+        //Enable peer nominations  on PeerForum
+        $mform->addElement('selectyesno', 'peerrankings', get_string('peerrankings', 'peerforum'));
+        $mform->setDefault('peerrankings', 1);
+        $mform->addHelpButton('peerrankings', 'peerrankings', 'peerforum');
+
+        $yesno = array(0 => get_string('no'),
+                1 => get_string('yes'));
+
+        //Enable peer rankings on PeerForum
+        $mform->addElement('selectyesno', 'peernominations', get_string('peernominations', 'peerforum'));
+        $mform->setDefault('peernominations', 1);
+        $mform->addHelpButton('peernominations', 'peernominations', 'peerforum');
+
+        //Choose choose how many peers should a student nominate
+        $mform->addElement('text', 'peernominationsfields', get_string('peernominationsfields', 'peerforum'));
+        $mform->setType('peernominationsfields', PARAM_INT);
+        $mform->setDefault('peernominationsfields', 4);
+        $mform->addRule('peernominationsfields', null, 'numeric', null, 'client');
+        $mform->addHelpButton('peernominationsfields', 'peernominationsfields', 'peerforum');
+        $mform->disabledIf('peernominationsfields', 'peernominations', 'eq', 0);
+
+        //Enable students to select more options if they want
+        $mform->addElement('selectyesno', 'peernominationsaddfields', get_string('peernominationsaddfields', 'peerforum'));
+        $mform->setDefault('peernominationsaddfields', 1);
+        $mform->addHelpButton('peernominationsaddfields', 'peernominationsaddfields', 'peerforum');
+        $mform->disabledIf('peernominationsaddfields', 'peernominations', 'eq', 0);
+
+        //Enable training pages on PeerForum
+        $mform->addElement('selectyesno', 'training', get_string('training', 'peerforum'));
+        $mform->setDefault('training', 1);
+        $mform->addHelpButton('training', 'training', 'peerforum');
 
         //-------------------------------------------------------------------------------
         $this->_features->rating = false;

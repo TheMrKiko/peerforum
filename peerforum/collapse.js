@@ -2,7 +2,6 @@ function peerforum_collapse(e, obj) {
     api: M.cfg.wwwroot + '/mod/peerforum/collapse.php',
 
         e.preventDefault();
-
     var postid = obj.postid;
 
     var ioconfig = {

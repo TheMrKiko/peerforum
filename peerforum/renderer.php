@@ -40,6 +40,8 @@
  * @author     2016 Jessica Ribeiro <jessica.ribeiro@tecnico.ulisboa.pt>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  **/
+require_once($CFG->dirroot . '/peergrading/peer_ranking.php');
+
 class mod_peerforum_renderer extends plugin_renderer_base {
 
     //----------- New renders of PeerForum --------------//
@@ -51,7 +53,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
      * @return string
      */
     public function render_ratingpeer(ratingpeer $ratingpeer) {
-        global $CFG, $USER, $PAGE, $DB;
+        global $CFG, $USER, $PAGE, $DB, $COURSE;
 
         if ($ratingpeer->settings->aggregationmethod == RATINGPEER_AGGREGATE_NONE) {
             return null;//ratingpeers are turned off
@@ -72,22 +74,13 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         // Get info from database
         $peerforum = $DB->get_record('peerforum', array('id' => $peerforum_id));
 
-        //verify if peer grade can only be shown after rating is done
-        $showafterpeergrade = $peerforum->showafterpeergrade;
-        $canshowafterpeergrade = true;
-
-        if ($showafterpeergrade) {
-            //see if rating is enabled
-            if ($peerforum->peergradeassessed != 0) {
-                //verify if post was already rated by this user
-                $already_peergraded =
-                        $DB->get_record('peerforum_peergrade', array('itemid' => $post_topeergrade, 'userid' => $user_login));
-                if (!empty($already_peergraded)) {
-                    $canshowafterpeergrade = true;
-                } else {
-                    $canshowafterpeergrade = false;
-                }
-            }
+        //Check if POST AUTHOR is student
+        $post_author = $DB->get_record('peerforum_posts', array('id' => $post_topeergrade))->userid;
+        $cContext = context_course::instance($COURSE->id);
+        //check if postAuthor is student
+        $isStudent = current(get_user_roles($cContext, $post_author))->shortname == 'student' ? true : false;
+        if ($isStudent != 1) {
+            return null;
         }
 
         $formstart = null;
@@ -153,9 +146,44 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             $isstudent = true;
         }
 
+        //Verify if peer grade can only be shown after rating is done
+        $showafterpeergrade = $peerforum->showafterpeergrade;
+
+        //If showing ratings is restricted...
+        //Case 1 - Verify if post has expired for all assigned peergraders
+        if ($showafterpeergrade) {
+
+            //Some variables
+            $posthasexpired = false;
+            $expiredposts = 0;
+
+            //Gather info
+            $post_info = $DB->get_record("peerforum_posts", array('id' => $post_topeergrade));
+            $peergraders = explode(";", $post_info->peergraders);
+            $peergrades = $DB->get_records('peerforum_peergrade', array('itemid' => $post_topeergrade));
+
+            if (!empty($peergraders)) {
+                for ($i = 0; $i < count($peergraders); $i++) {
+                    $post_time = verify_post_expired($post_topeergrade, $peerforum, $peergraders[$i], $COURSE->id);
+                    if ($post_time->post_expired) {
+                        $expiredposts++;
+                    }
+                }
+                if ($expiredposts == count($peergraders)) {
+                    $posthasexpired = true;
+                }
+            }
+        }
+
+        //Case 2 - Verify if mininum number of peergraders have already graded this post
+        if ($showafterpeergrade) {
+            $canseerating = end_peergrade_post($post_topeergrade, $peerforum);
+        } else {
+            $canseerating = true;
+        }
+
         // permissions check - can they view the aggregate?
-        //if ($ratingpeer->user_can_view_aggregate()) {
-        if ($isstudent && $peerforum->showratings && $canshowafterpeergrade || !$isstudent && $canshowafterpeergrade) {
+        if ($isstudent && $peerforum->showratings && ($canseerating || $posthasexpired) || !$isstudent) {
 
             $aggregatelabel = $ratingpeermanager->get_aggregate_label($ratingpeer->settings->aggregationmethod);
             $aggregatestr = $ratingpeer->get_aggregate_string();
@@ -186,6 +214,10 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             }
         }
         return $ratingpeerhtml;
+    }
+
+    public function render_peergradeoption() {
+
     }
 
     /**
@@ -221,6 +253,15 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
         if ($peergrade->settings->aggregationmethod == PEERGRADE_AGGREGATE_NONE) {
             return null;//peergrades are turned off
+        }
+
+        $post_author = $DB->get_record('peerforum_posts', array('id' => $post_topeergrade))->userid;
+        $cContext = context_course::instance($COURSE->id);
+
+        //check if POST AUTHOR is student
+        $isStudent = current(get_user_roles($cContext, $post_author))->shortname == 'student' ? true : false;
+        if ($isStudent != 1) {
+            return null;
         }
 
         $peergrademanager = new peergrade_manager();
@@ -273,8 +314,36 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $already_peergraded = $peergrade->post_already_peergraded($post_topeergrade, $user_login);
 
         //verify if peer grade can only be shown after rating is done
-        $showafterrating = $peerforum->showafterrating;
+        $showafterrating = 0; // WARNING: temporary fix
         $canshowafterrating = true;
+
+        //Get post peergraders
+        $post_info = $DB->get_record("peerforum_posts", array('id' => $post_topeergrade));
+        $peergraders = $post_info->peergraders;
+        $peergraders = explode(";", $peergraders);
+
+        $posthasexpired = false;
+        $canseepeergrade = false;
+        $expiredposts = 0;
+
+        // Verify if post has expired for all assigned peergraders
+        $peergrades = $DB->get_records('peerforum_peergrade', array('itemid' => $post_topeergrade));
+
+        if (!empty($peergraders)) {
+            for ($i = 0; $i < count($peergraders); $i++) {
+                $post_time = verify_post_expired($post_topeergrade, $peerforum, $peergraders[$i], $COURSE->id);
+                if ($post_time->post_expired) {
+                    $expiredposts++;
+                }
+            }
+            if ($expiredposts == count($peergraders)) {
+                $posthasexpired = true;
+            }
+        }
+
+        //Verify if mininum number of peergraders have already graded this post
+        //returns 1 if peergrade  has ended to this post
+        $canseepeergrade = end_peergrade_post($post_topeergrade, $peerforum);
 
         if ($showafterrating) {
             //see if rating is enabled
@@ -290,22 +359,52 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             }
         }
 
-        if ($isstudent && $peerforum->showpeergrades && $canshowafterrating || !$isstudent && $canshowafterrating) {
+        // TODO: Delete?
+        /*  //verify if peer grade can only be shown after rating is done
+          $showafterrating = $peerforum->showafterrating;
+          $canshowafterrating = true;
+
+          if($showafterrating){
+              //see if rating is enabled
+              if($peerforum->assessed != 0){
+                  //verify if post was already rated by this user
+                  $already_rated = $DB->get_record('peerforum_ratingpeer', array('itemid' => $post_topeergrade, 'userid' => $user_login));
+                  if(!empty($already_rated)){
+                      $canshowafterrating = true;
+                  } else {
+                      $canshowafterrating = false;
+                  }
+              }
+          }*/
+
+        //if ($isstudent && $peerforum->showpeergrades && $canshowafterrating|| !$isstudent && $canshowafterrating) {
+        if ($isstudent && $peerforum->showpeergrades || !$isstudent) {
 
             //link notas
             $aggregatelabel = $peergrademanager->get_aggregate_label($peergrade->settings->aggregationmethod);
             $aggregatestr = $peergrade->get_aggregate_string();
 
-            $aggregatehtml = html_writer::tag('span', $aggregatestr,
-                            array('id' => 'peergradeaggregate' . $post_topeergrade, 'class' => 'peergradeaggregate')) . ' ';
-            if ($peergrade->count > 0) {
-                $countstr = "({$peergrade->count})";
-            } else {
-                $countstr = '-';
-            }
+            //Condition to avoid ajax errors
+            if ($peerforum->showpeergrades && ($canseepeergrade || $posthasexpired)) {
+                $aggregatehtml = html_writer::tag('span', $aggregatestr,
+                                array('id' => 'peergradeaggregate' . $post_topeergrade, 'class' => 'peergradeaggregate')) . ' ';
+                if ($peergrade->count > 0) {
+                    $countstr = "({$peergrade->count})";
+                } else {
+                    $countstr = '-';
+                }
 
-            $aggregatehtml .= html_writer::tag('span', $countstr,
-                            array('id' => "peergradecount{$post_topeergrade}", 'class' => 'peergradecount')) . ' ';
+                $aggregatehtml .= html_writer::tag('span', $countstr,
+                                array('id' => "peergradecount{$post_topeergrade}", 'class' => 'peergradecount')) . ' ';
+
+            } else {
+                $aggregatestr = '';
+                $aggregatehtml = html_writer::tag('span', $aggregatestr,
+                                array('id' => 'peergradeaggregate' . $post_topeergrade, 'class' => 'peergradeaggregate')) . ' ';
+                $countstr = '';
+                $aggregatehtml .= html_writer::tag('span', $countstr,
+                                array('id' => "peergradecount{$post_topeergrade}", 'class' => 'peergradecount')) . ' ';
+            }
 
             $peergradehtml .= html_writer::tag('br', ''); // Should produce <br />
 
@@ -330,15 +429,15 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $criteria = $peerforum->peergradecriteria;
 
         $peergradeurl = null;
-
+        //// TODO: Uncomment later
         if ($criteria == 'numeric scale') {
             // Initialise the JavaScript so peergrades can be done by AJAX.
-            $peergrademanager->initialise_peergrade_javascript($PAGE);
+            //$peergrademanager->initialise_peergrade_javascript($PAGE);
 
             $peergradeurl = $peergrade->get_peergrade_url(null, $peergrade->returnurl, false);
 
         } else if ($criteria == 'other') {
-            $peergrademanager->initialise_peergradecriteria_javascript($PAGE);
+            //$peergrademanager->initialise_peergradecriteria_javascript($PAGE);
 
             $peergradeurl = $peergrade->get_peergrade_url(null, $peergrade->returnurl, true);
         }
@@ -367,7 +466,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             }
 
         } else {
-            $post_expired = false;
+            //$post_expired = false;
+            $post_expired = $posthasexpired;
         }
 
         $expired_post = $post_expired;
@@ -622,15 +722,16 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                                     $peergradehtml .= html_writer::tag('div', $grader, array('class' => 'author')); // Author.
                                 }
                             }
-                        }
+                        } // end  if($can_user_peergrade)
                         /*FORM - postpeergradeform]*/
                         $peergradehtml .= html_writer::end_tag('form');
                     }
                 }
             }
-        } else {
+        } // end if(!$peergrade_end || !$post_expired){
+        else { //if peergrade_end || post_expired
 
-            if ($peergrade_end) {
+            if ($peergrade_end && $isstudent) {
                 $peergradehtml .= html_writer::tag('br', ''); // Should produce <br />
                 $peergradehtml .= html_writer::tag('span', "The activity of peer grading this post has ended.",
                         array('style' => 'color: #6699ff;'));
@@ -656,43 +757,67 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                 }
             }
         }
-        $students_assigned = get_not_assigned_users($post_topeergrade);
 
-        //$students_assigned = get_students_can_be_assigned($courseid, $post_topeergrade, $peergrade->itemuserid);
+        //end if peergrade_end || post_expired
+        if (!$isstudent) {
+            if ($canseepeergrade || $posthasexpired) {
+                $peergradehtml .= html_writer::tag('br', ''); // Should produce <br />
+                $peergradehtml .= html_writer::tag('span', "The activity of peer grading this post has ended.",
+                        array('style' => 'color: #6699ff;'));
+            }
+        }
+
+        // TODO: Delete?
+        //$students_assigned = get_not_assigned_users($post_topeergrade);
+
+        $students_assigned = get_students_can_be_assigned($courseid, $post_topeergrade, $peergrade->itemuserid);
 
         /*--------------- DISPLAY PEERGRADE & FEEDBACK ------------- */
 
         //See if exists any feedback in the DB
         $all_feedback = $peergrade->exists_feedback($post_topeergrade);
 
-        if (!empty($all_feedback) && $canshowafterrating) {
+        //Post assigned to this user?
+        $peergraders = get_post_peergraders($post_topeergrade);
+
+        if ($user_login != $peergrade->itemuserid) {
+            $already_peergraded_by_user = $peergrade->post_already_peergraded_by_user($user_login, $post_topeergrade, $courseid);
+        } else {
+            $already_peergraded_by_user = 0;
+        }
+
+        $is_assigned = false;
+        if (in_array($user_login, $peergraders)) {
+            $is_assigned = true;
+        }
+
+        //if(!empty($all_feedback) && $canshowafterrating){
+        if (!empty($all_feedback) && $canshowafterrating && ($canseepeergrade || $posthasexpired || $already_peergraded_by_user)) {
             $peergradehtml .= html_writer::tag('br', ''); // Should produce <br />
 
             //button colapse/expand
             $PAGE->requires->js('/mod/peerforum/collapse.js');
             $expandstr = 'Expand all peergrades';
 
-            //post assigned to this user?
-            $peergraders = get_post_peergraders($post_topeergrade);
-
-            if ($user_login != $peergrade->itemuserid) {
-                $already_peergraded_by_user =
-                        $peergrade->post_already_peergraded_by_user($user_login, $post_topeergrade, $courseid);
-            } else {
+            // TODO: Delete?
+            /*if($user_login != $peergrade->itemuserid){
+                $already_peergraded_by_user = $peergrade->post_already_peergraded_by_user($user_login, $post_topeergrade, $courseid);
+            }
+            else {
                 $already_peergraded_by_user = 0;
             }
 
-            //post assigned to this user?
-            $peergraders = get_post_peergraders($post_topeergrade);
-
             $is_assigned = false;
-            if (in_array($user_login, $peergraders)) {
+            if(in_array($user_login, $peergraders)){
                 $is_assigned = true;
             }
 
+            if(($already_peergraded_by_user && $editpostid == -1) || ($user_login == $peergrade->itemuserid && $already_peergraded_by_user) || !$isstudent || !$is_assigned || ($is_assigned && $post_expired)){*/
+
+            //user is one that has peergraded + can(?) edit || user is the one that made the post and PG has ended/expired || is not a student || user is student but not related to the post || student had to peer grade but let it expire
             if (($already_peergraded_by_user && $editpostid == -1) ||
-                    ($user_login == $peergrade->itemuserid && $already_peergraded_by_user) || !$isstudent || !$is_assigned ||
-                    ($is_assigned && $post_expired)) {
+                    ($user_login == $peergrade->itemuserid && /*$already_peergraded_by_user &&*/ $canseepeergrade) || !$isstudent ||
+                    (!$is_assigned && ($posthasexpired || $canseepeergrade)) || ($is_assigned && $post_expired)) {
                 $peergradehtml .= $OUTPUT->action_link($CFG->dirroot . '/mod/peerforum/collapse.php', $expandstr,
                         new component_action('click', 'peerforum_collapse', array('postid' => $post_topeergrade)),
                         array('id' => 'actionlink' . $post_topeergrade));
@@ -930,7 +1055,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                         }
 
                         if (!$post_expired) {
-                            if (!$peergrade_end || $time_to_edit) {
+                            if ($time_to_edit) {
                                 if ($can_user_peergrade_opt) {
                                     if (!$user_blocked && !$is_exclusive) {
                                         if (($already_peergraded_by_user && $display == '2')) {
@@ -977,11 +1102,18 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             $peergradehtml .= html_writer::start_tag('div',
                     array('id' => 'peergradeconfig' . $post_topeergrade, 'class' => 'peergradeconfig', 'style' => 'display:none;'));
 
+            //// TODO: There may be a problem here....
             //Assign peer grader
             // Students assigned to peer grade this post
             $peers_topeergrade = get_post_peergraders($post_topeergrade);
 
-            $students = get_students_name($students_assigned);
+            $students_assign = array();
+            foreach ($students_assigned as $key => $value) {
+                $id = $students_assigned[$key]->id;
+                $students_assign[$id] = $id;
+            }
+
+            $students = get_students_name($students_assign);
 
             //Assign peer grader
             $assignpeerurl = new moodle_url('/mod/peerforum/assignpeer.php',

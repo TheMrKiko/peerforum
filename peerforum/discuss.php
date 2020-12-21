@@ -33,8 +33,6 @@ $move = optional_param('move', 0, PARAM_INT);          // If set, moves this dis
 $mark = optional_param('mark', '', PARAM_ALPHA);       // Used for tracking read posts if user initiated.
 $postid = optional_param('postid', 0, PARAM_INT);        // Used for tracking read posts if user initiated.
 
-$currentpage = optional_param('page', 0, PARAM_INT);    // Used for pagination.
-
 $url = new moodle_url('/mod/peerforum/discuss.php', array('d' => $d));
 if ($parent !== 0) {
     $url->param('parent', $parent);
@@ -358,30 +356,10 @@ if ($move == -1 and confirm_sesskey()) {
 $canratepeer = has_capability('mod/peerforum:ratepeer', $modcontext);
 $cangrade = has_capability('mod/peerforum:grade', $modcontext);
 
-// Pagination of peerforum
-$enable_pagination = $peerforum->pagination;
+$peersnotification = false;
 
-if ($enable_pagination) {
-    $total_posts = count($DB->get_records('peerforum_posts', array('discussion' => $discussion->id)));
-
-    $perpage = $peerforum->postsperpage;
-    $start = $currentpage * $perpage;
-
-    if ($start > $total_posts) {
-        $currentpage = 0;
-        $start = 0;
-    }
-    peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $displaymode, $canreply, $canratepeer, $cangrade,
-            false, true, null, null, $start, $perpage, $enable_pagination);
-
-    //pagination of peerforum
-    echo '</br>';
-    $pageurl = new moodle_url('/mod/peerforum/discuss.php', array('d' => $discussion->id, 'page' => $currentpage));
-    echo $OUTPUT->paging_bar($total_posts, $currentpage, $perpage, $pageurl);
-} else {
-    peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $displaymode, $canreply, $canratepeer, $cangrade,
-            false, true, null, null);
-}
+peerforum_print_discussion($course, $cm, $peerforum, $discussion, $post, $displaymode, $canreply, false, false, false, true, null,
+        null);
 
 echo $neighbourlinks;
 

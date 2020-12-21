@@ -78,6 +78,8 @@ class peerforum_post implements \renderable {
      */
     private $canreply = false;
 
+    private $candpeergrade = false;
+
     /**
      * Whether to override peerforum display when displaying usernames.
      *
@@ -120,7 +122,7 @@ class peerforum_post implements \renderable {
      * @param object $recipient Recipient of the email
      * @param bool $canreply True if the user can reply to the post
      */
-    public function __construct($course, $cm, $peerforum, $discussion, $post, $author, $recipient, $canreply) {
+    public function __construct($course, $cm, $peerforum, $discussion, $post, $author, $recipient, $canreply, $canpeergrade) {
         $this->course = $course;
         $this->cm = $cm;
         $this->peerforum = $peerforum;
@@ -129,6 +131,7 @@ class peerforum_post implements \renderable {
         $this->author = $author;
         $this->userto = $recipient;
         $this->canreply = $canreply;
+        $this->canpeergrade = $canpeergrade;
     }
 
     /**
@@ -154,6 +157,7 @@ class peerforum_post implements \renderable {
                 'attachments' => $renderer->format_message_attachments($this->cm, $this->post),
 
                 'canreply' => $this->canreply,
+                'canpeergrade' => $this->canpeergrade,
                 'permalink' => $this->get_permalink(),
                 'firstpost' => $this->get_is_firstpost(),
                 'replylink' => $this->get_replylink(),

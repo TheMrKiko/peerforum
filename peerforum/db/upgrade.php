@@ -266,5 +266,384 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2015111606, 'peerforum');
     }
 
+    //Create new table
+    if ($oldversion < 2019021901) {
+
+        // Define field id to be added to peerforum_peergrade_subject.
+        $table = new xmldb_table('peerforum_peergrade_subject');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019021901, 'peerforum');
+    }
+
+    if ($oldversion < 2019022300) {
+
+        // Define field type to be added to peerforum_peergrade_subject.
+        $table = new xmldb_table('peerforum_peergrade_subject');
+        $field = new xmldb_field('type', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, null, 'id');
+        $field2 = new xmldb_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'type');
+
+        // Conditionally launch add field name.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Conditionally launch add field type.
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019022300, 'peerforum');
+    }
+
+    if ($oldversion < 2019022301) {
+
+        // Define field topics to be added to peerforum_peergrade_users.
+        $table = new xmldb_table('peerforum_peergrade_users');
+        $field = new xmldb_field('topics', XMLDB_TYPE_TEXT, null, null, null, null, null, 'postsexpired');
+
+        // Conditionally launch add field topics.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field2 = new xmldb_field('peergradetype', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '2', 'topics');
+
+        // Conditionally launch add field peergradetype.
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019022301, 'peerforum');
+    }
+
+    if ($oldversion < 2019022500) {
+
+        // Define field peergradetype to be added to peerforum_peergrade_users.
+        $table = new xmldb_table('peerforum_peergrade_users');
+        $field = new xmldb_field('peergradetype', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '2', 'postsexpired');
+
+        // Conditionally launch add field peergradetype.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field2 = new xmldb_field('topicsassigned', XMLDB_TYPE_TEXT, null, null, null, null, null, 'peergradetype');
+
+        // Conditionally launch add field topicsassigned.
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019022500, 'peerforum');
+    }
+
+    //Create new table
+    if ($oldversion < 2019022802) {
+
+        // Define field id to be added to peerforum_peergrade_subject.
+        $table = new xmldb_table('peerforum_relationships');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019022802, 'peerforum');
+    }
+
+    if ($oldversion < 2019022803) {
+
+        // Define field iduser to be added to peerforum_relationships.
+        $table = new xmldb_table('peerforum_relationships');
+        $field = new xmldb_field('iduser', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'id');
+        $field2 = new xmldb_field('peersfav', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null, 'iduser');
+        $field3 = new xmldb_field('peersunfav', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null, 'peersfav');
+
+        // Conditionally launch add field iduser.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        if (!$dbman->field_exists($table, $field3)) {
+            $dbman->add_field($table, $field3);
+        }
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019022803, 'peerforum');
+    }
+
+    if ($oldversion < 2019030400) {
+
+        // Define field adv_peergrading to be added to peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('adv_peergrading', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'showdetails');
+
+        // Conditionally launch add field adv_peergrading.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019030400, 'peerforum');
+    }
+
+    if ($oldversion < 2019030700) {
+
+        // Define field threaded_grading to be added to peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('threaded_grading', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'showdetails');
+
+        // Conditionally launch add field threaded_grading.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019030700, 'peerforum');
+    }
+
+    if ($oldversion < 2019030900) {
+
+        // Define field numpoststopeergrade to be added to peerforum_peergrade_users.
+        $table = new xmldb_table('peerforum_peergrade_users');
+        $field = new xmldb_field('numpoststopeergrade', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'topicsassigned');
+
+        // Conditionally launch add field numpoststopeergrade.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019030900, 'peerforum');
+    }
+
+    if ($oldversion < 2019032200) {
+
+        // Define field numpoststopeergrade to be added to peerforum_peergrade_users.
+        $table = new xmldb_table('peerforum_relationships');
+        $field = new xmldb_field('studentsranked', XMLDB_TYPE_TEXT, null, null, null, null, null, 'peersunfav');
+        $field2 = new xmldb_field('rankings', XMLDB_TYPE_TEXT, null, null, null, null, null, 'studentsranked');
+        // Conditionally launch add field numpoststopeergrade.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Conditionally launch add field numpoststopeergrade.
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019032200, 'peerforum');
+    }
+    if ($oldversion < 2019032900) {
+
+        // Define field gradesum to be added to peerforum_peergrade_users.
+        $table = new xmldb_table('peerforum_peergrade_users');
+        $field = new xmldb_field('gradesum', XMLDB_TYPE_INTEGER, '3', null, XMLDB_NOTNULL, null, '0', 'postsexpired');
+
+        // Conditionally launch add field gradesum.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019032900, 'peerforum');
+    }
+
+    if ($oldversion < 2019040800) {
+
+        // Define field id to be added to peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('autoassignreplies', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'showdetails');
+        $field2 = new xmldb_field('hidereplies', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'autoassignreplies');
+
+        // Conditionally launch add field id.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019040800, 'peerforum');
+    }
+
+    if ($oldversion < 2019050800) {
+
+        // Define field peerrankings to be added to peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('peernominations', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'hidereplies');
+        $field2 = new xmldb_field('peerrankings', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'peernominations');
+
+        // Conditionally launch add field peernominations.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Conditionally launch add field peerrankings.
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019050800, 'peerforum');
+    }
+
+    if ($oldversion < 2019050801) {
+
+        // Define field peerrankings to be added to peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('peernominations', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'hidereplies');
+        $field2 = new xmldb_field('peerrankings', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'peernominations');
+
+        // Conditionally launch add field peernominations.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Conditionally launch add field peerrankings.
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019050801, 'peerforum');
+    }
+
+    if ($oldversion < 2019050900) {
+
+        // Define field peernominationsfields to be added to peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('peernominationsfields', XMLDB_TYPE_INTEGER, '3', null, XMLDB_NOTNULL, null, '4', 'peerrankings');
+        $field2 = new xmldb_field('peernominationsaddfields', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1',
+                'peernominationsfields');
+        $field3 = new xmldb_field('training', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'peernominationsaddfields');
+
+        // Conditionally launch add field training.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Conditionally launch add field peernominationsaddfields.
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+        // Conditionally launch add field peernominationsfields.
+        if (!$dbman->field_exists($table, $field3)) {
+            $dbman->add_field($table, $field3);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019050900, 'peerforum');
+    }
+
+    if ($oldversion < 2019052100) {
+
+        // Define field peernominationsfields to be added to peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('random_distribution', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0',
+                'peernominationsaddfields');
+
+        // Conditionally launch add field training.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019052100, 'peerforum');
+    }
+
+    if ($oldversion < 2019052900) {
+
+        // Define field courseid to be added to peerforum_peergrade_subjects.
+        $table = new xmldb_table('peerforum_peergrade_subject');
+        $field = new xmldb_field('courseid', XMLDB_TYPE_INTEGER, '3', null, XMLDB_NOTNULL, null, '0', 'name');
+        $field2 = new xmldb_field('peerforumid', XMLDB_TYPE_INTEGER, '3', null, null, null, null, 'courseid');
+
+        // Conditionally launch add field peerforumid.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Conditionally launch add field courseid.
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019052900, 'peerforum');
+    }
+
+    if ($oldversion < 2019052901) {
+
+        // Define field courseid to be added to peerforum_peergrade_subjects.
+        $table = new xmldb_table('peerforum_relationships');
+        $field = new xmldb_field('courseid', XMLDB_TYPE_INTEGER, '3', null, null, null, null, 'rankings');
+
+        // Conditionally launch add field peerforumid.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019052901, 'peerforum');
+    }
+
+    if ($oldversion < 2019061900) {
+
+        // Define field courseid to be added to peerforum_peergrade_subjects.
+        $table = new xmldb_table('peerforum_peergrade_subject');
+        $field = new xmldb_field('idlink', XMLDB_TYPE_INTEGER, '4', null, null, null, null, 'peerforumid');
+
+        // Conditionally launch add field peerforumid.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019061900, 'peerforum');
+    }
+
+    if ($oldversion < 2019090401) {
+
+        // Define field courseid to be added to peerforum_discussions.
+        $table = new xmldb_table('peerforum_discussions');
+        $field = new xmldb_field('idlink', XMLDB_TYPE_INTEGER, '4', null, null, null, null, 'timeend');
+        $field2 = new xmldb_field('type', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '2', 'idlink');
+
+        // Conditionally launch add field peerforumid.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Conditionally launch add field peerforumid.
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2019090401, 'peerforum');
+    }
+
     return true;
 }

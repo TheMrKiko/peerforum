@@ -58,7 +58,7 @@ class block_peerblock extends block_list {
 
     public function get_content() {
 
-        global $USER, $PAGE, $CFG, $COURSE;
+        global $USER, $PAGE, $CFG, $COURSE, $DB;
 
         if ($this->content !== null) {
             return $this->content;
@@ -84,8 +84,17 @@ class block_peerblock extends block_list {
             $courseid = null;
         }
 
+        $contextid = context_course::instance($COURSE->id);
+        $peerforumid = $contextid->instanceid;
+
         $num_posts = get_num_posts_to_grade($USER->id, $COURSE->id);
         $time_old_post = get_time_old_post($USER->id, $COURSE->id);
+        $peers_to_rank = get_num_peers_to_rank($USER->id, $COURSE->id);
+
+        $posts_not_expired = get_active_peergrading_posts($COURSE->id);
+        $posts_expiring = get_posts_about_to_expire($COURSE->id, $peerforumid);
+
+        $rankings = ($DB->get_record('peerforum', array('course' => $peerforumid)))->peerrankings;
 
         if (!empty($time_old_post)) {
 
@@ -109,15 +118,14 @@ class block_peerblock extends block_list {
             $time_old_post = '00h00m';
         }
 
-        $contextid = context_course::instance($COURSE->id);
-        $peerforumid = $contextid->instanceid;
-
         $this->content->items[] = html_writer::link(new moodle_url($CFG->wwwroot . '/peergrading/index.php',
                 array('courseid' => $this->page->course->id, 'userid' => $USER->id, 'display' => 1, 'peerforum' => $peerforumid)),
                 get_string('viewpanel', 'block_peerblock'), array('title' => get_string('viewpanel', 'block_peerblock')));
         $this->content->icons[] =
                 html_writer::empty_tag('img', array('src' => new moodle_url('/blocks/peerblock/pix/icon.png'), 'class' => 'icon'));
         $this->content->items[] = html_writer::empty_tag('br');
+
+        //student view
 
         if (!has_capability('mod/peerforum:viewpanelpeergrades', $PAGE->context)) {
             $this->content->items[] =
@@ -128,6 +136,24 @@ class block_peerblock extends block_list {
             $this->content->items[] =
                     html_writer::tag('span', 'Time to expire: ' . $time_old_post, array('style' => 'color:black'));
         }
+        if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context) && $rankings) {
+            $this->content->items[] = html_writer::tag('span', 'Number of peers available to rank: ' . $peers_to_rank,
+                    array('style' => 'color:black'));
+        }
+
+        //teacher view
+
+        if ($posts_not_expired > 0 && has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            $this->content->items[] =
+                    html_writer::tag('span', $posts_not_expired . ' active peergrade posts', array('style' => 'color:black'));
+            if ($posts_expiring > 0) {
+                $this->content->items[] =
+                        html_writer::tag('span', $posts_expiring . ' posts about to expire', array('style' => 'color:black'));
+            }
+        } else if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            $this->content->items[] = html_writer::tag('span', 'No posts to peergrade.', array('style' => 'color:black'));
+        }
+
         return $this->content;
     }
 

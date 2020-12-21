@@ -38,8 +38,11 @@ if (!confirm_sesskey() || !has_capability('mod/peerforum:peergrade', $context)) 
     print_error('peergradepermissiondenied', 'peergrade');
 }
 
+//TODO: course?
+$peerforum = $DB->get_record("peerforum", array('course' => $peerforumid));
+
 //Assign peer graders from parent post
-if (isset($_POST['assignpeergradersparent' . $itemid])) {
+if (isset($_POST['assignpeergradersparent' . $itemid]) && $peerforum->autoassignreplies) {
     adjust_database();
 
     $postparent = $DB->get_record('peerforum_posts', array('id' => $itemid))->parent;
@@ -72,13 +75,16 @@ if (isset($_POST['assignpeergradersparent' . $itemid])) {
             $posts_updated = implode(';', $posts);
 
             $numpostsassigned = $peers_info->numpostsassigned;
+            $numpoststopeergrade = $peers_info->numpoststopeergrade;
 
             $numposts = $numpostsassigned + 1;
+            $numtograde = $numpoststopeergrade + 1;
 
             $data2 = new stdClass();
             $data2->id = $peers_info->id;
             $data2->poststopeergrade = $posts_updated;
             $data2->numpostsassigned = $numposts;
+            $data2->numpoststopeergrade = $numtograde;
 
             $DB->update_record("peerforum_peergrade_users", $data2);
 

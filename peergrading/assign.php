@@ -21,7 +21,7 @@ $context = optional_param('context', null, PARAM_INT);
 $PAGE->set_context($context);
 
 $courseid = required_param('courseid', PARAM_INT);
-$userid = required_param('userid', PARAM_INT);
+$userid = required_parwam('userid', PARAM_INT);
 $display = required_param('display', PARAM_INT);
 
 $PAGE->set_url('/peergrading/assign.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
