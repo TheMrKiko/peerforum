@@ -33,6 +33,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2019090401;       // The current module version (Date: YYYYMMDDXX)
+$plugin->version = 2020111400;       // The current module version (Date: YYYYMMDDXX)
 $plugin->requires = 2015111000;       // Requires this Moodle version
 $plugin->component = 'mod_peerforum';  // Full name of the plugin (used for diagnostics)
