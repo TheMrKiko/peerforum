@@ -307,6 +307,7 @@ $string['more'] = 'more';
 $string['movedmarker'] = '(Moved)';
 $string['movethisdiscussionto'] = 'Move this discussion to ...';
 $string['mustprovidediscussionorpost'] = 'You must provide either a discussion id or post id to export';
+$string['myprofileotherdis'] = 'myprofileotherdis';
 $string['namenews'] = 'News peerforum';
 $string['namenews_help'] =
         'The news peerforum is a special peerforum for announcements that is automatically created when a course is created. A course can have only one news peerforum. Only teachers and administrators can post in the news peerforum. The "Latest news" block will display recent discussions from the news peerforum.';

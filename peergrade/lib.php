@@ -232,7 +232,7 @@ function assign_one_peergrader($postid, $courseid, $peerid) {
 
 function get_discussions_name($course, $peerforum) {
     global $DB;
-
+    //if peerforum
     $sql = "SELECT p.name
          FROM {peerforum_discussions} p
          WHERE p.course = $course AND p.peerforum = $peerforum";

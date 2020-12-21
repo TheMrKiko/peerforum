@@ -1,6 +1,8 @@
 This files describes API changes in /mod/peerforum/*,
 information provided here is intended especially for developers.
 
+ * For 3.6, the moodle eventslib.php file has been deleted and its functions have been moved to deprecatedlib.php.
+
 === 3.0 ===
  * External function get_peerforums_by_courses now returns and additional field "cancreatediscussions" that indicates if the user
    can create discussions in the peerforum.

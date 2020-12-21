@@ -74,7 +74,7 @@
                 <FIELD NAME="hidereplies" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="peernominations" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="peerrankings" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
-                <FIELD NAME="peernominationsfields" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="4" SEQUENCE="false"/>
+                <FIELD NAME="peernominationsfields" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="4" SEQUENCE="false"/>
                 <FIELD NAME="peernominationsaddfields" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="random_distribution" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="training" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
@@ -208,7 +208,6 @@
                 <INDEX NAME="userid-peerforumid" UNIQUE="false" FIELDS="userid, peerforumid"/>
                 <INDEX NAME="userid-discussionid" UNIQUE="false" FIELDS="userid, discussionid"/>
                 <INDEX NAME="postid-userid" UNIQUE="false" FIELDS="postid, userid"/>
-                <INDEX NAME="userid-postid" UNIQUE="false" FIELDS="userid, postid"/>
             </INDEXES>
         </TABLE>
         <TABLE NAME="peerforum_track_prefs" COMMENT="Tracks each users untracked peerforums">
@@ -397,8 +396,8 @@
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
                 <FIELD NAME="type" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="peerforumid" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="courseid" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="peerforumid" TYPE="int" LENGTH="3" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="idlink" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
@@ -409,11 +408,11 @@
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
                 <FIELD NAME="iduser" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="id of the student responding to the questionnaire"/>
-                <FIELD NAME="idpeersfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text with all the id of its favorite peers"/>
-                <FIELD NAME="idpeersunfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text w/ the id of all peers the students least likes"/>
+                <FIELD NAME="peersfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text with all the id of its favorite peers"/>
+                <FIELD NAME="peersunfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text w/ the id of all peers the students least likes"/>
                 <FIELD NAME="studentsranked" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="rankings" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="courseid" TYPE="int" LENGTH="3" NOTNULL="false" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

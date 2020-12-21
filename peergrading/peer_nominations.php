@@ -5,8 +5,6 @@ require_once($CFG->dirroot . '/peergrading/relationships_form.php');
 require_once("$CFG->libdir/formslib.php");
 
 global $PAGE, $USER;
-$title = get_string('relquest', 'peerforum');
-$PAGE->set_heading($title);
 
 $courseid = required_param('courseid', PARAM_INT);
 $userid = required_param('userid', PARAM_INT);
@@ -63,13 +61,16 @@ $contextid = context_course::instance($courseid);
 
 $courseid = (empty($courseid)) ? SITEID : $courseid;
 
+require_login($courseid);
+$PAGE->set_context($context);
+
 $usernode = $PAGE->navigation->find('user' . $userid, null);
 if ($usernode && $courseid != SITEID) {
     $url = new moodle_url($PAGE->url);
 }
 
-require_login($courseid);
-$PAGE->set_context($context);
+$title = get_string('relquest', 'peerforum');
+$PAGE->set_heading($title);
 
 //Instantiate relationships_form
 $mform = new relationships_form();

@@ -55,7 +55,7 @@ function xmldb_peerforum_upgrade($oldversion) {
     // Moodle v2.4.0 release upgrade line.
     // Put any upgrade step following this.
 
-    if ($oldversion < 2013020500) {
+    if ($oldversion < 2020111800) {
 
         // Define field displaywordcount to be added to peerforum.
         $table = new xmldb_table('peerforum');
@@ -67,23 +67,23 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2013020500, 'peerforum');
+
     }
 
     // Forcefully assign mod/peerforum:allowforcesubscribe to frontpage role, as we missed that when
     // capability was introduced.
-    if ($oldversion < 2013021200) {
+    if ($oldversion < 2020111800) {
         // If capability mod/peerforum:allowforcesubscribe is defined then set it for frontpage role.
-        if (get_capability_info('mod/peerforum:allowforcesubscribe')) {
+        if (get_capability_info('mod/peerforum:allowforcesubscribe')) {//TODO
             assign_legacy_capabilities('mod/peerforum:allowforcesubscribe', array('frontpage' => CAP_ALLOW));
         }
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2013021200, 'peerforum');
+
     }
 
     // Moodle v2.5.0 release upgrade line.
     // Put any upgrade step following this.
-    if ($oldversion < 2013071000) {
+    if ($oldversion < 2020111800) {
         // Define table peerforum_digests to be created.
         $table = new xmldb_table('peerforum_digests');
 
@@ -105,13 +105,13 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2013071000, 'peerforum');
+
     }
 
     // Moodle v2.6.0 release upgrade line.
     // Put any upgrade step following this.
 
-    if ($oldversion < 2014040400) {
+    if ($oldversion < 2020111800) {
 
         // Define index userid-postid (not unique) to be dropped form peerforum_read.
         $table = new xmldb_table('peerforum_read');
@@ -119,7 +119,7 @@ function xmldb_peerforum_upgrade($oldversion) {
 
         // Conditionally launch drop index userid-postid.
         if ($dbman->index_exists($table, $index)) {
-            $dbman->drop_index($table, $index);
+            $dbman->drop_index($table, $index);//TODO
         }
 
         // Define index postid-userid (not unique) to be added to peerforum_read.
@@ -127,35 +127,35 @@ function xmldb_peerforum_upgrade($oldversion) {
 
         // Conditionally launch add index postid-userid.
         if (!$dbman->index_exists($table, $index)) {
-            $dbman->add_index($table, $index);
+            $dbman->add_index($table, $index);//TODO
         }
 
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2014040400, 'peerforum');
+
     }
 
     // Moodle v2.7.0 release upgrade line.
     // Put any upgrade step following this.
 
-    if ($oldversion < 2014051201) {
+    if ($oldversion < 2020111800) {
 
         // Incorrect values that need to be replaced.
         $replacements = array(
                 11 => 20,
                 12 => 50,
-                13 => 100
+                13 => 100,
         );
 
         // Run the replacements.
-        foreach ($replacements as $old => $new) {
+        foreach ($replacements as $old => $new) {//TODO
             $DB->set_field('peerforum', 'maxattachments', $new, array('maxattachments' => $old));
         }
 
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2014051201, 'peerforum');
+
     }
 
-    if ($oldversion < 2014081500) {
+    if ($oldversion < 2020111800) {
 
         // Define index course (not unique) to be added to peerforum_discussions.
         $table = new xmldb_table('peerforum_discussions');
@@ -167,10 +167,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2014081500, 'peerforum');
+
     }
 
-    if ($oldversion < 2014081900) {
+    if ($oldversion < 2020111800) {
 
         // Define table peerforum_discussion_subs to be created.
         $table = new xmldb_table('peerforum_discussion_subs');
@@ -195,10 +195,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2014081900, 'peerforum');
+
     }
 
-    if ($oldversion < 2014103000) {
+    if ($oldversion < 2020111800) {
         // Find records with multiple userid/postid combinations and find the lowest ID.
         // Later we will remove all those which don't match this ID.
         $sql = "
@@ -219,10 +219,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         $duplicatedrows->close();
 
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2014103000, 'peerforum');
+
     }
 
-    if ($oldversion < 2014110300) {
+    if ($oldversion < 2020111800) {
 
         // Changing precision of field preference on table peerforum_discussion_subs to (10).
         $table = new xmldb_table('peerforum_discussion_subs');
@@ -232,7 +232,7 @@ function xmldb_peerforum_upgrade($oldversion) {
         $dbman->change_field_precision($table, $field);
 
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2014110300, 'peerforum');
+
     }
 
     // Moodle v2.8.0 release upgrade line.
@@ -240,18 +240,18 @@ function xmldb_peerforum_upgrade($oldversion) {
 
     // Moodle v2.9.0 release upgrade line.
     // Put any upgrade step following this.
-    if ($oldversion < 2015102900) {
+    if ($oldversion < 2020111800) {
         // Groupid = 0 is never valid.
         $DB->set_field('peerforum_discussions', 'groupid', -1, array('groupid' => 0));
 
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2015102900, 'peerforum');
+
     }
 
     // Moodle v3.0.0 release upgrade line.
     // Put any upgrade step following this.
 
-    if ($oldversion < 2015111606) {
+    if ($oldversion < 2020111800) {
 
         // New field on peerforum table
         $table = new xmldb_table('peerforum');
@@ -263,11 +263,11 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // PeerForum savepoint reached.
-        upgrade_mod_savepoint(true, 2015111606, 'peerforum');
+
     }
 
     //Create new table
-    if ($oldversion < 2019021901) {
+    if ($oldversion < 2020111800) {
 
         // Define field id to be added to peerforum_peergrade_subject.
         $table = new xmldb_table('peerforum_peergrade_subject');
@@ -280,10 +280,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019021901, 'peerforum');
+
     }
 
-    if ($oldversion < 2019022300) {
+    if ($oldversion < 2020111800) {
 
         // Define field type to be added to peerforum_peergrade_subject.
         $table = new xmldb_table('peerforum_peergrade_subject');
@@ -301,10 +301,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019022300, 'peerforum');
+
     }
 
-    if ($oldversion < 2019022301) {
+    if ($oldversion < 2020111800) {
 
         // Define field topics to be added to peerforum_peergrade_users.
         $table = new xmldb_table('peerforum_peergrade_users');
@@ -323,10 +323,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019022301, 'peerforum');
+
     }
 
-    if ($oldversion < 2019022500) {
+    if ($oldversion < 2020111800) {
 
         // Define field peergradetype to be added to peerforum_peergrade_users.
         $table = new xmldb_table('peerforum_peergrade_users');
@@ -345,11 +345,11 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019022500, 'peerforum');
+
     }
 
     //Create new table
-    if ($oldversion < 2019022802) {
+    if ($oldversion < 2020111800) {
 
         // Define field id to be added to peerforum_peergrade_subject.
         $table = new xmldb_table('peerforum_relationships');
@@ -362,10 +362,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019022802, 'peerforum');
+
     }
 
-    if ($oldversion < 2019022803) {
+    if ($oldversion < 2020111800) {
 
         // Define field iduser to be added to peerforum_relationships.
         $table = new xmldb_table('peerforum_relationships');
@@ -386,10 +386,10 @@ function xmldb_peerforum_upgrade($oldversion) {
             $dbman->add_field($table, $field3);
         }
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019022803, 'peerforum');
+
     }
 
-    if ($oldversion < 2019030400) {
+    if ($oldversion < 2020111800) {
 
         // Define field adv_peergrading to be added to peerforum.
         $table = new xmldb_table('peerforum');
@@ -401,10 +401,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019030400, 'peerforum');
+
     }
 
-    if ($oldversion < 2019030700) {
+    if ($oldversion < 2020111800) {
 
         // Define field threaded_grading to be added to peerforum.
         $table = new xmldb_table('peerforum');
@@ -416,10 +416,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019030700, 'peerforum');
+
     }
 
-    if ($oldversion < 2019030900) {
+    if ($oldversion < 2020111800) {
 
         // Define field numpoststopeergrade to be added to peerforum_peergrade_users.
         $table = new xmldb_table('peerforum_peergrade_users');
@@ -431,10 +431,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019030900, 'peerforum');
+
     }
 
-    if ($oldversion < 2019032200) {
+    if ($oldversion < 2020111800) {
 
         // Define field numpoststopeergrade to be added to peerforum_peergrade_users.
         $table = new xmldb_table('peerforum_relationships');
@@ -451,9 +451,9 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019032200, 'peerforum');
+
     }
-    if ($oldversion < 2019032900) {
+    if ($oldversion < 2020111800) {
 
         // Define field gradesum to be added to peerforum_peergrade_users.
         $table = new xmldb_table('peerforum_peergrade_users');
@@ -465,10 +465,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019032900, 'peerforum');
+
     }
 
-    if ($oldversion < 2019040800) {
+    if ($oldversion < 2020111800) {
 
         // Define field id to be added to peerforum.
         $table = new xmldb_table('peerforum');
@@ -485,10 +485,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019040800, 'peerforum');
+
     }
 
-    if ($oldversion < 2019050800) {
+    if ($oldversion < 2020111800) {
 
         // Define field peerrankings to be added to peerforum.
         $table = new xmldb_table('peerforum');
@@ -506,10 +506,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019050800, 'peerforum');
+
     }
 
-    if ($oldversion < 2019050801) {
+    if ($oldversion < 2020111800) {
 
         // Define field peerrankings to be added to peerforum.
         $table = new xmldb_table('peerforum');
@@ -527,10 +527,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019050801, 'peerforum');
+
     }
 
-    if ($oldversion < 2019050900) {
+    if ($oldversion < 2020111800) {
 
         // Define field peernominationsfields to be added to peerforum.
         $table = new xmldb_table('peerforum');
@@ -554,10 +554,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019050900, 'peerforum');
+
     }
 
-    if ($oldversion < 2019052100) {
+    if ($oldversion < 2020111800) {
 
         // Define field peernominationsfields to be added to peerforum.
         $table = new xmldb_table('peerforum');
@@ -570,10 +570,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019052100, 'peerforum');
+
     }
 
-    if ($oldversion < 2019052900) {
+    if ($oldversion < 2020111800) {
 
         // Define field courseid to be added to peerforum_peergrade_subjects.
         $table = new xmldb_table('peerforum_peergrade_subject');
@@ -591,10 +591,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019052900, 'peerforum');
+
     }
 
-    if ($oldversion < 2019052901) {
+    if ($oldversion < 2020111800) {
 
         // Define field courseid to be added to peerforum_peergrade_subjects.
         $table = new xmldb_table('peerforum_relationships');
@@ -606,10 +606,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019052901, 'peerforum');
+
     }
 
-    if ($oldversion < 2019061900) {
+    if ($oldversion < 2020111800) {
 
         // Define field courseid to be added to peerforum_peergrade_subjects.
         $table = new xmldb_table('peerforum_peergrade_subject');
@@ -621,10 +621,10 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019061900, 'peerforum');
+
     }
 
-    if ($oldversion < 2019090401) {
+    if ($oldversion < 2020111800) {
 
         // Define field courseid to be added to peerforum_discussions.
         $table = new xmldb_table('peerforum_discussions');
@@ -642,7 +642,7 @@ function xmldb_peerforum_upgrade($oldversion) {
         }
 
         // Peerforum savepoint reached.
-        upgrade_mod_savepoint(true, 2019090401, 'peerforum');
+        upgrade_mod_savepoint(true, 2020111800, 'peerforum');
     }
 
     return true;
