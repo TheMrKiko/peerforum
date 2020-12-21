@@ -31,11 +31,11 @@ Feature: Forums in 'No groups' mode allow posting to All participants for all us
 
   Scenario: Teacher can post
     Given I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Standard forum name"
     And I should not see "Group A"
     And I should not see "Group B"
-    When I click on "Add a new discussion topic" "button"
+    When I click on "Add a new discussion topic" "link"
     Then I should not see "Post a copy to all groups"
     And I should not see "Group" in the "form" "css_element"
     And I set the following fields to these values:
@@ -47,11 +47,11 @@ Feature: Forums in 'No groups' mode allow posting to All participants for all us
 
   Scenario: Student can post
     Given I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Standard forum name"
     And I should not see "Group A"
     And I should not see "Group B"
-    When I click on "Add a new discussion topic" "button"
+    When I click on "Add a new discussion topic" "link"
     Then I should not see "Post a copy to all groups"
     And I should not see "Group" in the "form" "css_element"
     And I set the following fields to these values:

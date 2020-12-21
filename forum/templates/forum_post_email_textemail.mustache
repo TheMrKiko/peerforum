@@ -30,7 +30,7 @@
     * forumname
     * showdiscussionname
     * discussionname
-    * discussionlink
+    * permalink
     * subject
     * authorfullname
     * postdate
@@ -41,14 +41,18 @@
     * unsubscribeforumlink
     * unsubscribediscussionlink
     * forumindexlink
+    * isprivatereply
 }}
 {{{ coursename }}} -> {{# str }} forums, forum {{/ str }} -> {{{ forumname }}}{{# showdiscussionname }} -> {{{ discussionname }}} {{/ showdiscussionname }}
-{{ discussionlink }}
+{{ permalink }}
 {{{ subject }}}
 {{# str }} bynameondate, forum, {
 "name": {{# quote }}{{{ authorfullname }}}{{/ quote }},
 "date": {{# quote}}{{ postdate }}{{/ quote }}
 } {{/ str }}
+{{# isprivatereply }}
+    {{# str }} postisprivatereply, forum {{/ str }}
+{{/ isprivatereply }}
 ---------------------------------------------------------------------
 {{{ message }}}
 

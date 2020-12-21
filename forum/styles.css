@@ -96,22 +96,6 @@
     padding: 0 .3em;
 }
 
-.dir-rtl .forumpost .row .topic,
-.dir-rtl .forumpost .row .content-mask,
-.dir-rtl .forumpost .row .options {
-    margin-right: 43px;
-    margin-left: 0;
-}
-
-.dir-rtl .forumpost .row .left {
-    float: right;
-}
-
-.dir-rtl.path-mod-forum .indent {
-    margin-right: 3%;
-    margin-left: 0;
-}
-
 .path-mod-forum .forumolddiscuss,
 #page-mod-forum-search .c0 {
     text-align: right;
@@ -130,7 +114,7 @@
 }
 
 .path-mod-forum .forumheaderlist td {
-    border-width: 1px 0px 0px 1px;
+    border-width: 1px 0 0 1px;
     border-style: solid;
 }
 
@@ -138,12 +122,12 @@
     margin: 0 .3em;
 }
 
-.path-mod-forum .forumheaderlist .picture {
-    width: 35px;
-}
-
 .path-mod-forum .forumheaderlist .discussion .starter {
     vertical-align: middle;
+}
+
+.path-mod-forum .forumheaderlist .discussion .pinned img {
+    padding: 5px;
 }
 
 .path-mod-forum .forumheaderlist .discussion .lastpost {
@@ -151,8 +135,7 @@
     text-align: right;
 }
 
-.path-mod-forum .forumheaderlist .replies,
-.path-mod-forum .forumheaderlist .discussion .author {
+.path-mod-forum .forumheaderlist .replies {
     white-space: nowrap;
 }
 
@@ -193,8 +176,12 @@
     margin: 5px;
 }
 
+#page-mod-forum-discuss .discussioncontrols .controlscontainer {
+    width: 100%;
+    float: right;
+}
+
 #page-mod-forum-discuss .discussioncontrols .discussioncontrol {
-    width: 33%;
     float: left;
 }
 
@@ -203,17 +190,11 @@
 }
 
 #page-mod-forum-discuss .discussioncontrol.displaymode {
-    text-align: center;
-}
-
-#page-mod-forum-discuss .discussioncontrol.movediscussion {
-    float: right;
-    width: auto;
-    text-align: right;
     padding-right: 10px;
 }
 
-#page-mod-forum-discuss .discussioncontrol.movediscussion .movediscussionoption {
+#page-mod-forum-discuss .discussioncontrol.movediscussion {
+    padding-right: 10px;
 }
 
 /** Styles for view.php **/
@@ -235,29 +216,24 @@
     margin: 5px 0;
 }
 
+.discussion-list .userpicture,
+.discussion-list .grouppicture {
+    height: 35px;
+    width: 35px;
+}
+
 /** Styles for search.php */
 #page-mod-forum-search .introcontent {
     padding: 15px;
     font-weight: bold;
 }
 
-#page-mod-forum-index .unread a:first-child,
-#page-mod-forum-view .unread a:first-child {
+.path-mod-forum span.unread a:first-child {
     padding-right: 10px;
 }
 
-#page-mod-forum-index .unread img,
-#page-mod-forum-view .unread img {
+.path-mod-forum span.unread img {
     margin-left: 5px;
-}
-
-#page-mod-forum-view .unread img {
-    margin-left: 5px;
-}
-
-.dir-rtl#page-mod-forum-view .unread img {
-    margin-right: 5px;
-    margin-left: 0;
 }
 
 /** Unknown Styles ??? */
@@ -267,15 +243,26 @@
 
 /* Forumpost unread
 -------------------------*/
-#page-mod-forum-view .unread,
 .forumpost.unread .row.header,
 .path-course-view .unread,
 span.unread {
-    background-color: #FFD;
+    background-color: #ffd;
 }
 
 .forumpost.unread .row.header {
-    border-bottom: 1px solid #DDD;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Forumpost hash anchor target */
+.path-mod-forum :target > .forumpost:before {
+    display: block;
+    content: '';
+    width: 4px;
+    position: absolute;
+    background: #0070a8;
+    left: -1px;
+    top: -1px;
+    bottom: -1px;
 }
 
 /* Discussion navigation */
@@ -286,24 +273,13 @@ span.unread {
 .path-mod-forum .discussion-nav ul {
     margin: 0;
     list-style: none;
+    padding-left: 0;
 }
 
-.dir-rtl.path-mod-forum .discussion-nav .next-discussion:after,
-.path-mod-forum .discussion-nav .prev-discussion:before {
-    content: ' ◄ ';
-}
-
-.dir-rtl.path-mod-forum .discussion-nav .prev-discussion:before,
-.path-mod-forum .discussion-nav .next-discussion:after {
-    content: ' ► ';
-}
-
-.dir-rtl.path-mod-forum .discussion-nav .prev-discussion,
 .path-mod-forum .discussion-nav .next-discussion {
     float: right;
 }
 
-.dir-rtl.path-mod-forum .discussion-nav .next-discussion,
 .path-mod-forum .discussion-nav .prev-discussion {
     float: left;
 }
@@ -316,26 +292,84 @@ span.unread {
     background: url([[pix:mod_forum|t/unsubscribed]]) no-repeat -9999px -9999px;
 }
 
+.path-mod-forum .discussionsubscription,
+.path-mod-forum .discussion-settings-menu,
 .path-mod-forum .discussionsubscription {
     margin-top: -10px;
     text-align: right;
     margin-bottom: 10px;
 }
 
-.path-mod-forum .discussionsubscription > a > img {
+.path-mod-forum .discussionsubscription > a > img,
+.path-mod-forum .discussionlock > a > img,
+.path-mod-forum .favourite-discussion > a > img,
+.path-mod-forum .discussion-settings-menu > a > img {
     width: 12px;
     padding: 0 4px;
-}
-
-.dir-rtl .path-mod-forum .discussionsubscription {
-    text-align: left;
 }
 
 #page-mod-forum-view img.timedpost {
     margin-right: 5px;
 }
 
-.dir-rtl#page-mod-forum-view img.timedpost {
-    margin: 3px 0 0 5px;
-    float: right;
+.path-mod-forum article .nav .nav-link:first-of-type {
+    margin-left: auto;
+}
+
+.path-mod-forum.dir-rtl article .nav .nav-link:first-of-type {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.path-mod-forum article .nav .nav-link + .nav-link {
+    border-left: 1px solid #ddd;
+}
+
+.privatereplyinfo {
+    font-size: 80%;
+}
+
+.forum-post-container:focus {
+    outline: 0;
+}
+
+/* This style is copied directly from the Bootstrap reboot file which adds button outline */
+/* stylelint-disable declaration-block-no-duplicate-properties */
+.post-actions .btn:focus {
+    outline: 1px dotted;
+    outline: 5px auto -webkit-focus-ring-color;
+}
+
+.forum-post-container:focus > .focus-target {
+    outline: 1px dotted;
+    outline: 5px auto -webkit-focus-ring-color;
+}
+
+/* stylelint-enable declaration-block-no-duplicate-properties */
+
+/* Forum grading non striked through line */
+.hr-sect {
+    display: flex;
+    flex-basis: 100%;
+    font-weight: bold;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.hr-sect::before,
+.hr-sect::after {
+    content: "";
+    flex-grow: 1;
+    background: rgba(0, 0, 0, 0.35);
+    height: 1px;
+    font-size: 0;
+    line-height: 0;
+}
+
+.hr-sect::before {
+    margin-right: 15px;
+}
+
+.hr-sect::after {
+    margin-left: 15px;
 }

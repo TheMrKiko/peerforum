@@ -1,4 +1,4 @@
-@mod @mod_forum
+@mod @mod_forum @javascript
 Feature: Students can choose from 4 discussion display options and their choice is remembered
   In order to read forum posts in a suitable view
   As a user
@@ -15,9 +15,7 @@ Feature: Students can choose from 4 discussion display options and their choice 
       | user     | course | role    |
       | student1 | C1     | student |
     And I log in as "admin"
-    And I am on site homepage
-    And I follow "Course 1"
-    And I turn editing mode on
+    And I am on "Course 1" course homepage with editing mode on
     And I add a "Forum" to section "1" and I fill the form with:
       | Forum name  | Test forum name        |
       | Description | Test forum description |
@@ -35,7 +33,7 @@ Feature: Students can choose from 4 discussion display options and their choice 
       | Message | Discussion contents 2, second message |
     And I log out
     And I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
 
   Scenario: Display replies flat, with oldest first
     Given I reply "Discussion 1" post from "Test forum name" forum with:
@@ -70,12 +68,12 @@ Feature: Students can choose from 4 discussion display options and their choice 
     And I follow "Discussion 1"
     When I select "Display replies in threaded form" from the "mode" singleselect
     Then I should see "Discussion contents 1, first message"
-    And I should see "Reply 1 to discussion 1" in the "span.forumthread" "css_element"
+    And I should see "Reply 1 to discussion 1" in the "div.forumthread" "css_element"
     And I follow "Test forum name"
     And I follow "Discussion 2"
     And the field "Display mode" matches value "Display replies in threaded form"
     And I should see "Discussion contents 2, first message"
-    And I should see "Reply 1 to discussion 2" in the "span.forumthread" "css_element"
+    And I should see "Reply 1 to discussion 2" in the "div.forumthread" "css_element"
 
   Scenario: Display replies in nested form
     Given I follow "Test forum name"
