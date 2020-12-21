@@ -19,7 +19,7 @@
  * Displays a post, and all the posts below it.
  * If no post is given, displays all posts in a discussion
  *
- * @package mod-forum
+ * @package   mod_forum
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -60,9 +60,13 @@ if (!empty($CFG->enablerssfeeds) && !empty($CFG->forum_enablerssfeeds) && $forum
     rss_add_http_header($modcontext, 'mod_forum', $forum, $rsstitle);
 }
 
-/// move discussion if requested
+// Move discussion if requested.
 if ($move > 0 and confirm_sesskey()) {
     $return = $CFG->wwwroot . '/mod/forum/discuss.php?d=' . $discussion->id;
+
+    if (!$forumto = $DB->get_record('forum', array('id' => $move))) {
+        print_error('cannotmovetonotexist', 'forum', $return);
+    }
 
     require_capability('mod/forum:movediscussions', $modcontext);
 
@@ -78,32 +82,99 @@ if ($move > 0 and confirm_sesskey()) {
         print_error('cannotmovetosingleforum', 'forum', $return);
     }
 
-    if (!$cmto = get_coursemodule_from_instance('forum', $forumto->id, $course->id)) {
+    // Get target forum cm and check it is visible to current user.
+    $modinfo = get_fast_modinfo($course);
+    $forums = $modinfo->get_instances_of('forum');
+    if (!array_key_exists($forumto->id, $forums)) {
         print_error('cannotmovetonotfound', 'forum', $return);
     }
-
-    if (!coursemodule_visible_for_user($cmto)) {
+    $cmto = $forums[$forumto->id];
+    if (!$cmto->uservisible) {
         print_error('cannotmovenotvisible', 'forum', $return);
     }
 
-    require_capability('mod/forum:startdiscussion', context_module::instance($cmto->id));
+    $destinationctx = context_module::instance($cmto->id);
+    require_capability('mod/forum:startdiscussion', $destinationctx);
 
     if (!forum_move_attachments($discussion, $forum->id, $forumto->id)) {
         echo $OUTPUT->notification("Errors occurred while moving attachment directories - check your file permissions");
     }
+    // For each subscribed user in this forum and discussion, copy over per-discussion subscriptions if required.
+    $discussiongroup = $discussion->groupid == -1 ? 0 : $discussion->groupid;
+    $potentialsubscribers = \mod_forum\subscriptions::fetch_subscribed_users(
+            $forum,
+            $discussiongroup,
+            $modcontext,
+            'u.id',
+            true
+    );
+
+    // Pre-seed the subscribed_discussion caches.
+    // Firstly for the forum being moved to.
+    \mod_forum\subscriptions::fill_subscription_cache($forumto->id);
+    // And also for the discussion being moved.
+    \mod_forum\subscriptions::fill_subscription_cache($forum->id);
+    $subscriptionchanges = array();
+    $subscriptiontime = time();
+    foreach ($potentialsubscribers as $subuser) {
+        $userid = $subuser->id;
+        $targetsubscription = \mod_forum\subscriptions::is_subscribed($userid, $forumto, null, $cmto);
+        $discussionsubscribed = \mod_forum\subscriptions::is_subscribed($userid, $forum, $discussion->id);
+        $forumsubscribed = \mod_forum\subscriptions::is_subscribed($userid, $forum);
+
+        if ($forumsubscribed && !$discussionsubscribed && $targetsubscription) {
+            // The user has opted out of this discussion and the move would cause them to receive notifications again.
+            // Ensure they are unsubscribed from the discussion still.
+            $subscriptionchanges[$userid] = \mod_forum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED;
+        } else if (!$forumsubscribed && $discussionsubscribed && !$targetsubscription) {
+            // The user has opted into this discussion and would otherwise not receive the subscription after the move.
+            // Ensure they are subscribed to the discussion still.
+            $subscriptionchanges[$userid] = $subscriptiontime;
+        }
+    }
+
     $DB->set_field('forum_discussions', 'forum', $forumto->id, array('id' => $discussion->id));
     $DB->set_field('forum_read', 'forumid', $forumto->id, array('discussionid' => $discussion->id));
-    add_to_log($course->id, 'forum', 'move discussion', "discuss.php?d=$discussion->id", $discussion->id, $cmto->id);
+
+    // Delete the existing per-discussion subscriptions and replace them with the newly calculated ones.
+    $DB->delete_records('forum_discussion_subs', array('discussion' => $discussion->id));
+    $newdiscussion = clone $discussion;
+    $newdiscussion->forum = $forumto->id;
+    foreach ($subscriptionchanges as $userid => $preference) {
+        if ($preference != \mod_forum\subscriptions::FORUM_DISCUSSION_UNSUBSCRIBED) {
+            // Users must have viewdiscussion to a discussion.
+            if (has_capability('mod/forum:viewdiscussion', $destinationctx, $userid)) {
+                \mod_forum\subscriptions::subscribe_user_to_discussion($userid, $newdiscussion, $destinationctx);
+            }
+        } else {
+            \mod_forum\subscriptions::unsubscribe_user_from_discussion($userid, $newdiscussion, $destinationctx);
+        }
+    }
+
+    $params = array(
+            'context' => $destinationctx,
+            'objectid' => $discussion->id,
+            'other' => array(
+                    'fromforumid' => $forum->id,
+                    'toforumid' => $forumto->id,
+            )
+    );
+    $event = \mod_forum\event\discussion_moved::create($params);
+    $event->add_record_snapshot('forum_discussions', $discussion);
+    $event->add_record_snapshot('forum', $forum);
+    $event->add_record_snapshot('forum', $forumto);
+    $event->trigger();
 
     // Delete the RSS files for the 2 forums to force regeneration of the feeds
     require_once($CFG->dirroot . '/mod/forum/rsslib.php');
     forum_rss_delete_file($forum);
     forum_rss_delete_file($forumto);
 
-    redirect($return . '&moved=-1&sesskey=' . sesskey());
+    redirect($return . '&move=-1&sesskey=' . sesskey());
 }
 
-add_to_log($course->id, 'forum', 'view discussion', "discuss.php?d=$discussion->id", $discussion->id, $cm->id);
+// Trigger discussion viewed event.
+forum_discussion_view($modcontext, $forum, $discussion);
 
 unset($SESSION->fromdiscussion);
 
@@ -158,8 +229,25 @@ if ($node && $post->id != $discussion->firstpost) {
 $PAGE->set_title("$course->shortname: " . format_string($discussion->name));
 $PAGE->set_heading($course->fullname);
 $PAGE->set_button($searchform);
+$renderer = $PAGE->get_renderer('mod_forum');
+
 echo $OUTPUT->header();
+
 echo $OUTPUT->heading(format_string($forum->name), 2);
+echo $OUTPUT->heading(format_string($discussion->name), 3, 'discussionname');
+
+// is_guest should be used here as this also checks whether the user is a guest in the current course.
+// Guests and visitors cannot subscribe - only enrolled users.
+if ((!is_guest($modcontext, $USER) && isloggedin()) && has_capability('mod/forum:viewdiscussion', $modcontext)) {
+    // Discussion subscription.
+    if (\mod_forum\subscriptions::is_subscribable($forum)) {
+        echo html_writer::div(
+                forum_get_discussion_subscription_icon($forum, $post->discussion, null, true),
+                'discussionsubscription'
+        );
+        echo forum_get_discussion_subscription_icon_preloaders();
+    }
+}
 
 /// Check to see if groups are being used in this forum
 /// If so, make sure the current person is allowed to see this discussion
@@ -176,6 +264,11 @@ if (!$canreply and $forum->type !== 'news') {
         $canreply = enrol_selfenrol_available($course->id);
     }
 }
+
+// Output the links to neighbour discussions.
+$neighbours = forum_get_discussion_neighbours($cm, $discussion, $forum);
+$neighbourlinks = $renderer->neighbouring_discussion_navigation($neighbours['prev'], $neighbours['next']);
+echo $neighbourlinks;
 
 /// Print the controls across the top
 echo '<div class="discussioncontrols clearfix">';
@@ -232,7 +325,7 @@ if ($forum->type != 'single'
         if (!empty($forummenu)) {
             echo '<div class="movediscussionoption">';
             $select = new url_select($forummenu, '',
-                    array('' => get_string("movethisdiscussionto", "forum")),
+                    array('/mod/forum/discuss.php?d=' . $discussion->id => get_string("movethisdiscussionto", "forum")),
                     'forummenu', get_string('move'));
             echo $OUTPUT->render($select);
             echo "</div>";
@@ -256,13 +349,15 @@ if ($forum->type == 'qanda' && !has_capability('mod/forum:viewqandawithoutpostin
 }
 
 if ($move == -1 and confirm_sesskey()) {
-    echo $OUTPUT->notification(get_string('discussionmoved', 'forum', format_string($forum->name, true)));
+    echo $OUTPUT->notification(get_string('discussionmoved', 'forum', format_string($forum->name, true)), 'notifysuccess');
 }
 
 $canrate = has_capability('mod/forum:rate', $modcontext);
 forum_print_discussion($course, $cm, $forum, $discussion, $post, $displaymode, $canreply, $canrate);
 
+echo $neighbourlinks;
+
+// Add the subscription toggle JS.
+$PAGE->requires->yui_module('moodle-mod_forum-subscriptiontoggle', 'Y.M.mod_forum.subscriptiontoggle.init');
+
 echo $OUTPUT->footer();
-
-
-

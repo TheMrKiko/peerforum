@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package mod-forum
+ * @package   mod_forum
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -50,7 +50,12 @@ $coursecontext = context_course::instance($course->id);
 
 unset($SESSION->fromdiscussion);
 
-add_to_log($course->id, 'forum', 'view forums', "index.php?id=$course->id");
+$params = array(
+        'context' => context_course::instance($course->id)
+);
+$event = \mod_forum\event\course_module_instance_list_viewed::create($params);
+$event->add_record_snapshot('course', $course);
+$event->trigger();
 
 $strforums = get_string('forums', 'forum');
 $strforum = get_string('forum', 'forum');
@@ -71,18 +76,6 @@ $stremaildigest = get_string('emaildigest');
 
 $searchform = forum_search_form($course);
 
-// Retrieve the list of forum digest options for later.
-$digestoptions = forum_get_user_digest_options();
-$digestoptions_selector = new single_select(new moodle_url('/mod/forum/maildigest.php',
-        array(
-                'backtoindex' => 1,
-        )),
-        'maildigest',
-        $digestoptions,
-        null,
-        '');
-$digestoptions_selector->method = 'post';
-
 // Start of the table for General Forums
 
 $generaltable = new html_table();
@@ -99,7 +92,8 @@ if ($usetracking = forum_tp_can_track_forums()) {
     $generaltable->align[] = 'center';
 }
 
-$subscribed_forums = forum_get_subscribed_forums($course);
+// Fill the subscription cache for this course and user combination.
+\mod_forum\subscriptions::fill_subscription_cache_for_course($course->id, $USER->id);
 
 $can_subscribe = is_enrolled($coursecontext);
 if ($can_subscribe) {
@@ -108,6 +102,18 @@ if ($can_subscribe) {
 
     $generaltable->head[] = $stremaildigest . ' ' . $OUTPUT->help_icon('emaildigesttype', 'mod_forum');
     $generaltable->align[] = 'center';
+
+    // Retrieve the list of forum digest options for later.
+    $digestoptions = forum_get_user_digest_options();
+    $digestoptions_selector = new single_select(new moodle_url('/mod/forum/maildigest.php',
+            array(
+                    'backtoindex' => 1,
+            )),
+            'maildigest',
+            $digestoptions,
+            null,
+            '');
+    $digestoptions_selector->method = 'post';
 }
 
 if ($show_rss = (($can_subscribe || $course->id == SITEID) &&
@@ -183,23 +189,22 @@ if (!is_null($subscribe)) {
                 !has_capability('mod/forum:managesubscriptions', $modcontext)) {
             $cansub = false;
         }
-        if (!forum_is_forcesubscribed($forum)) {
-            $subscribed = forum_is_subscribed($USER->id, $forum);
-            if ((has_capability('moodle/course:manageactivities', $coursecontext, $USER->id) ||
-                            $forum->forcesubscribe != FORUM_DISALLOWSUBSCRIBE) && $subscribe && !$subscribed && $cansub) {
-                forum_subscribe($USER->id, $forumid);
+        if (!\mod_forum\subscriptions::is_forcesubscribed($forum)) {
+            $subscribed = \mod_forum\subscriptions::is_subscribed($USER->id, $forum, null, $cm);
+            $canmanageactivities = has_capability('moodle/course:manageactivities', $coursecontext, $USER->id);
+            if (($canmanageactivities || \mod_forum\subscriptions::is_subscribable($forum)) && $subscribe && !$subscribed &&
+                    $cansub) {
+                \mod_forum\subscriptions::subscribe_user($USER->id, $forum, $modcontext, true);
             } else if (!$subscribe && $subscribed) {
-                forum_unsubscribe($USER->id, $forumid);
+                \mod_forum\subscriptions::unsubscribe_user($USER->id, $forum, $modcontext, true);
             }
         }
     }
-    $returnto = forum_go_back_to("index.php?id=$course->id");
+    $returnto = forum_go_back_to(new moodle_url('/mod/forum/index.php', array('id' => $course->id)));
     $shortname = format_string($course->shortname, true, array('context' => context_course::instance($course->id)));
     if ($subscribe) {
-        add_to_log($course->id, 'forum', 'subscribeall', "index.php?id=$course->id", $course->id);
         redirect($returnto, get_string('nowallsubscribed', 'forum', $shortname), 1);
     } else {
-        add_to_log($course->id, 'forum', 'unsubscribeall', "index.php?id=$course->id", $course->id);
         redirect($returnto, get_string('nowallunsubscribed', 'forum', $shortname), 1);
     }
 }
@@ -224,8 +229,8 @@ if ($generalforums) {
                 } else if ($unread = forum_tp_count_forum_unread_posts($cm, $course)) {
                     $unreadlink = '<span class="unread"><a href="view.php?f=' . $forum->id . '">' . $unread . '</a>';
                     $unreadlink .= '<a title="' . $strmarkallread . '" href="markposts.php?f=' .
-                            $forum->id . '&amp;mark=read"><img src="' . $OUTPUT->pix_url('t/markasread') . '" alt="' .
-                            $strmarkallread . '" class="iconsmall" /></a></span>';
+                            $forum->id . '&amp;mark=read&amp;sesskey=' . sesskey() . '"><img src="' .
+                            $OUTPUT->pix_url('t/markasread') . '" alt="' . $strmarkallread . '" class="iconsmall" /></a></span>';
                 } else {
                     $unreadlink = '<span class="read">0</span>';
                 }
@@ -361,8 +366,9 @@ if ($course->id != SITEID) {    // Only real courses have learning forums
                     } else if ($unread = forum_tp_count_forum_unread_posts($cm, $course)) {
                         $unreadlink = '<span class="unread"><a href="view.php?f=' . $forum->id . '">' . $unread . '</a>';
                         $unreadlink .= '<a title="' . $strmarkallread . '" href="markposts.php?f=' .
-                                $forum->id . '&amp;mark=read"><img src="' . $OUTPUT->pix_url('t/markasread') . '" alt="' .
-                                $strmarkallread . '" class="iconsmall" /></a></span>';
+                                $forum->id . '&amp;mark=read&sesskey=' . sesskey() . '"><img src="' .
+                                $OUTPUT->pix_url('t/markasread') . '" alt="' . $strmarkallread .
+                                '" class="iconsmall" /></a></span>';
                     } else {
                         $unreadlink = '<span class="read">0</span>';
                     }
@@ -413,7 +419,7 @@ if ($course->id != SITEID) {    // Only real courses have learning forums
             if ($can_subscribe) {
                 $row[] = forum_get_subscribe_link($forum, $context, array('subscribed' => $stryes,
                         'unsubscribed' => $strno, 'forcesubscribed' => $stryes,
-                        'cantsubscribe' => '-'), false, false, true, $subscribed_forums);
+                        'cantsubscribe' => '-'), false, false, true);
 
                 $digestoptions_selector->url->param('id', $forum->id);
                 if ($forum->maildigest === null) {

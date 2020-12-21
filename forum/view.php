@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package mod-forum
+ * @package   mod_forum
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -101,17 +101,11 @@ if (!empty($CFG->enablerssfeeds) && !empty($CFG->forum_enablerssfeeds) && $forum
     rss_add_http_header($context, 'mod_forum', $forum, $rsstitle);
 }
 
-// Mark viewed if required
-$completion = new completion_info($course);
-$completion->set_module_viewed($cm);
-
 /// Print header.
 
 $PAGE->set_title($forum->name);
 $PAGE->add_body_class('forumtype-' . $forum->type);
 $PAGE->set_heading($course->fullname);
-
-echo $OUTPUT->header();
 
 /// Some capability checks.
 if (empty($cm->visible) and !has_capability('moodle/course:viewhiddenactivities', $context)) {
@@ -122,6 +116,11 @@ if (!has_capability('mod/forum:viewdiscussion', $context)) {
     notice(get_string('noviewdiscussionspermission', 'forum'));
 }
 
+// Mark viewed and trigger the course_module_viewed event.
+forum_view($forum, $course, $cm, $context);
+
+echo $OUTPUT->header();
+
 echo $OUTPUT->heading(format_string($forum->name), 2);
 if (!empty($forum->intro) && $forum->type != 'single' && $forum->type != 'teacher') {
     echo $OUTPUT->box(format_module_intro('forum', $forum, $cm->id), 'generalbox', 'intro');
@@ -129,13 +128,6 @@ if (!empty($forum->intro) && $forum->type != 'single' && $forum->type != 'teache
 
 /// find out current groups mode
 groups_print_activity_menu($cm, $CFG->wwwroot . '/mod/forum/view.php?id=' . $cm->id);
-
-/// Okay, we can show the discussions. Log the forum view.
-if ($cm->id) {
-    add_to_log($course->id, "forum", "view forum", "view.php?id=$cm->id", "$forum->id", $cm->id);
-} else {
-    add_to_log($course->id, "forum", "view forum", "view.php?f=$forum->id", "$forum->id");
-}
 
 $SESSION->fromdiscussion = qualified_me();   // Return here if we post or set subscription etc
 
@@ -215,9 +207,10 @@ switch ($forum->type) {
     case 'blog':
         echo '<br />';
         if (!empty($showall)) {
-            forum_print_latest_discussions($course, $forum, 0, 'plain', '', -1, -1, -1, 0, $cm);
+            forum_print_latest_discussions($course, $forum, 0, 'plain', 'p.created DESC', -1, -1, -1, 0, $cm);
         } else {
-            forum_print_latest_discussions($course, $forum, -1, 'plain', '', -1, -1, $page, $CFG->forum_manydiscussions, $cm);
+            forum_print_latest_discussions($course, $forum, -1, 'plain', 'p.created DESC', -1, -1, $page,
+                    $CFG->forum_manydiscussions, $cm);
         }
         break;
 
@@ -232,6 +225,7 @@ switch ($forum->type) {
         break;
 }
 
+// Add the subscription toggle JS.
+$PAGE->requires->yui_module('moodle-mod_forum-subscriptiontoggle', 'Y.M.mod_forum.subscriptiontoggle.init');
+
 echo $OUTPUT->footer($course);
-
-

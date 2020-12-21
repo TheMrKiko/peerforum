@@ -50,9 +50,6 @@ class mod_forum_maildigest_testcase extends advanced_testcase {
         // Messaging is not compatible with transactions...
         $this->preventResetByRollback();
 
-        // Store the max_execution_time now - cron changes it and we must return it to it's original value at the end of a test.
-        $this->helper->max_execution_time = ini_get('max_execution_time');
-
         // Catch all messages
         $this->helper->messagesink = $this->redirectMessages();
         $this->helper->mailsink = $this->redirectEmails();
@@ -75,8 +72,10 @@ class mod_forum_maildigest_testcase extends advanced_testcase {
         // messages are sent out.
         $CFG->maxeditingtime = 1;
 
-        // Ensure that we don't prevent e-mail as this will cause unit test failures.
-        $CFG->noemailever = false;
+        // We must clear the subscription caches. This has to be done both before each test, and after in case of other
+        // tests using these functions.
+        \mod_forum\subscriptions::reset_forum_cache();
+        \mod_forum\subscriptions::reset_discussion_cache();
     }
 
     /**
@@ -88,8 +87,6 @@ class mod_forum_maildigest_testcase extends advanced_testcase {
 
         $this->helper->mailsink->clear();
         $this->helper->mailsink->close();
-
-        @set_time_limit($helper->max_execution_time);
     }
 
     /**
@@ -142,7 +139,8 @@ class mod_forum_maildigest_testcase extends advanced_testcase {
         // Fake all of the post editing times because digests aren't sent until
         // the start of an hour where the modification time on the message is before
         // the start of that hour
-        $digesttime = usergetmidnight(time(), $CFG->timezone) + ($CFG->digestmailtime * 3600) - (60 * 60);
+        $sitetimezone = core_date::get_server_timezone();
+        $digesttime = usergetmidnight(time(), $sitetimezone) + ($CFG->digestmailtime * 3600) - (60 * 60);
         $DB->set_field('forum_posts', 'modified', $digesttime, array('mailed' => 0));
         $DB->set_field('forum_posts', 'created', $digesttime, array('mailed' => 0));
     }
