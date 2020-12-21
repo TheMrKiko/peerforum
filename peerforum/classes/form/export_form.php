@@ -1,0 +1,107 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * This file contains the form definition for discussion export.
+ *
+ * @package   mod_peerforum
+ * @copyright 2019 Simey Lameze <simey@moodle.com>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+namespace mod_peerforum\form;
+
+defined('MOODLE_INTERNAL') || die('Direct access to this script is forbidden.');
+
+require_once($CFG->dirroot . '/mod/peerforum/lib.php');
+require_once($CFG->libdir . '/formslib.php');
+
+/**
+ * Export discussion form.
+ *
+ * @package   mod_peerforum
+ * @copyright 2019 Simey Lameze <simey@moodle.com>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL Juv3 or later
+ */
+class export_form extends \moodleform {
+
+    /**
+     * Define the form - called by parent constructor
+     */
+    public function definition() {
+        $mform = $this->_form;
+        $peerforum = $this->_customdata['peerforum'];
+
+        $mform->addElement('hidden', 'id');
+        $mform->setType('id', PARAM_INT);
+        $mform->setDefault('id', $peerforum->get_id());
+
+        $options = [
+                'ajax' => 'mod_peerforum/form-user-selector',
+                'multiple' => true,
+                'noselectionstring' => get_string('allusers', 'mod_peerforum'),
+                'courseid' => $peerforum->get_course_id(),
+                'valuehtmlcallback' => function($value) {
+                    global $OUTPUT;
+
+                    $allusernames = get_all_user_name_fields(true);
+                    $fields = 'id, ' . $allusernames;
+                    $user = \core_user::get_user($value, $fields);
+                    $useroptiondata = [
+                            'fullname' => fullname($user),
+                    ];
+                    return $OUTPUT->render_from_template('mod_peerforum/form-user-selector-suggestion', $useroptiondata);
+                }
+        ];
+        $mform->addElement('autocomplete', 'useridsselected', get_string('users'), [], $options);
+
+        // Get the discussions on this peerforum.
+        $vaultfactory = \mod_peerforum\local\container::get_vault_factory();
+        $discussionvault = $vaultfactory->get_discussion_vault();
+        $discussions = array_map(function($discussion) {
+            return $discussion->get_name();
+        }, $discussionvault->get_all_discussions_in_peerforum($peerforum));
+        $options = [
+                'multiple' => true,
+                'noselectionstring' => get_string('alldiscussions', 'mod_peerforum'),
+        ];
+        $mform->addElement('autocomplete', 'discussionids', get_string('discussions', 'mod_peerforum'), $discussions, $options);
+
+        // Date fields.
+        $mform->addElement('date_time_selector', 'from', get_string('postsfrom', 'mod_peerforum'),
+                ['optional' => true]);
+        $mform->addElement('date_time_selector', 'to', get_string('poststo', 'mod_peerforum'),
+                ['optional' => true]);
+
+        // Export formats.
+        $formats = \core_plugin_manager::instance()->get_plugins_of_type('dataformat');
+        $options = [];
+        foreach ($formats as $format) {
+            $options[$format->name] = $format->displayname;
+        }
+        $mform->addElement('select', 'format', 'Format', $options);
+
+        $mform->addElement('header', 'optionsheader', get_string('exportoptions', 'mod_peerforum'));
+
+        $mform->addElement('checkbox', 'striphtml', '', get_string('exportstriphtml', 'mod_peerforum'));
+        $mform->addHelpButton('striphtml', 'exportstriphtml', 'mod_peerforum');
+
+        $mform->addElement('checkbox', 'humandates', '', get_string('exporthumandates', 'mod_peerforum'));
+        $mform->addHelpButton('humandates', 'exporthumandates', 'mod_peerforum');
+
+        $this->add_action_buttons(true, get_string('export', 'mod_peerforum'));
+    }
+}

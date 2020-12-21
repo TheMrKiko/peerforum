@@ -1,0 +1,375 @@
+/**
+ * Structure of a peerforum post
+ * div.peerforumpost(.read.unread)
+ *     div.header.row
+ *         div.picture.left
+ *         div.topic(.starter)
+ *             div.subject
+ *             div.author
+ *     div.row
+ *         div.side.left
+ *         div.content-mask
+ *             div.content
+ *                 div.attachments
+ *                 div.posting(.shortenedpost|.fullpost)
+ *                     // message
+ *                 div.attachedimages
+ *                     // attachedimages
+ *     div.row
+ *         div.left
+ *         div.options
+ *             div.commands
+ *             div.post-word-count
+ *             div.peerforum-post-rating
+ *             div.link
+ *             div.footer
+ */
+
+.peerforumpost {
+    display: block;
+    position: relative;
+    margin: 0 0 1em 0;
+    padding: 0;
+    border: 1px solid #000;
+    max-width: 100%;
+}
+
+.peerforumpost .row {
+    width: 100%;
+    position: relative;
+}
+
+.peerforumpost .row .left {
+    float: left;
+    width: 43px;
+    overflow: hidden;
+}
+
+.peerforumpost .row .left .grouppictures a {
+    text-align: center;
+    display: block;
+    margin: 6px 2px 0 2px;
+}
+
+.peerforumpost .row .left .grouppicture {
+    width: 20px;
+    height: 20px;
+}
+
+.peerforumpost .row .topic,
+.peerforumpost .row .content-mask,
+.peerforumpost .row .options {
+    margin-left: 43px;
+}
+
+.peerforumpost .picture img {
+    margin: 4px;
+}
+
+.peerforumpost .options .commands,
+.peerforumpost .content .attachments,
+.peerforumpost .options .footer,
+.peerforumpost .options .link {
+    text-align: right;
+}
+
+.peerforumpost .options .peerforum-post-rating {
+    float: left;
+}
+
+.peerforumpost .content .posting {
+    overflow: auto;
+    max-width: 100%;
+}
+
+.peerforumpost .content .attachedimages img {
+    max-width: 100%;
+}
+
+.peerforumpost .post-word-count {
+    font-size: .85em;
+    font-style: italic;
+}
+
+.peerforumpost .shortenedpost .post-word-count {
+    display: inline;
+    padding: 0 .3em;
+}
+
+.path-mod-peerforum .peerforumolddiscuss,
+#page-mod-peerforum-search .c0 {
+    text-align: right;
+}
+
+.path-mod-peerforum .indent {
+    margin-left: 3%;
+}
+
+.path-mod-peerforum .peerforumheaderlist {
+    width: 100%;
+    border-width: 1px;
+    border-style: solid;
+    border-collapse: separate;
+    margin-top: 10px;
+}
+
+.path-mod-peerforum .peerforumheaderlist td {
+    border-width: 1px 0 0 1px;
+    border-style: solid;
+}
+
+.path-mod-peerforum .peerforumheaderlist th.header.replies .iconsmall {
+    margin: 0 .3em;
+}
+
+.path-mod-peerforum .peerforumheaderlist .discussion .starter {
+    vertical-align: middle;
+}
+
+.path-mod-peerforum .peerforumheaderlist .discussion .pinned img {
+    padding: 5px;
+}
+
+.path-mod-peerforum .peerforumheaderlist .discussion .lastpost {
+    white-space: nowrap;
+    text-align: right;
+}
+
+.path-mod-peerforum .peerforumheaderlist .replies {
+    white-space: nowrap;
+}
+
+.path-mod-peerforum .peerforumheaderlist thead .discussionsubscription {
+    text-align: center;
+}
+
+/** Styles for subscribers.php */
+#page-mod-peerforum-subscribers .subscriberdiv,
+#page-mod-peerforum-subscribers .subscribertable {
+    width: 100%;
+    vertical-align: top;
+}
+
+#page-mod-peerforum-subscribers .subscribertable tr td {
+    vertical-align: top;
+}
+
+#page-mod-peerforum-subscribers .subscribertable tr td.actions {
+    width: 16%;
+    padding-top: 3em;
+}
+
+#page-mod-peerforum-subscribers .subscribertable tr td.actions .actionbutton {
+    margin: 0.3em 0;
+    padding: 0.5em 0;
+    width: 100%;
+}
+
+#page-mod-peerforum-subscribers .subscribertable tr td.existing,
+#page-mod-peerforum-subscribers .subscribertable tr td.potential {
+    width: 42%;
+}
+
+/** Styles for discuss.php **/
+#page-mod-peerforum-discuss .discussioncontrols {
+    width: 100%;
+    margin: 5px;
+}
+
+#page-mod-peerforum-discuss .discussioncontrols .controlscontainer {
+    width: 100%;
+    float: right;
+}
+
+#page-mod-peerforum-discuss .discussioncontrols .discussioncontrol {
+    float: left;
+}
+
+#page-mod-peerforum-discuss .discussioncontrol.exporttoportfolio {
+    text-align: left;
+}
+
+#page-mod-peerforum-discuss .discussioncontrol.displaymode {
+    padding-right: 10px;
+}
+
+#page-mod-peerforum-discuss .discussioncontrol.movediscussion {
+    padding-right: 10px;
+}
+
+/** Styles for view.php **/
+#page-mod-peerforum-view .peerforumaddnew {
+    margin-bottom: 20px;
+}
+
+#page-mod-peerforum-view .groupmenu {
+    float: left;
+    text-align: left;
+    white-space: nowrap;
+}
+
+#page-mod-peerforum-index .subscription,
+#page-mod-peerforum-view .subscription {
+    float: right;
+    text-align: right;
+    white-space: nowrap;
+    margin: 5px 0;
+}
+
+.discussion-list .userpicture,
+.discussion-list .grouppicture {
+    height: 35px;
+    width: 35px;
+}
+
+/** Styles for search.php */
+#page-mod-peerforum-search .introcontent {
+    padding: 15px;
+    font-weight: bold;
+}
+
+.path-mod-peerforum span.unread a:first-child {
+    padding-right: 10px;
+}
+
+.path-mod-peerforum span.unread img {
+    margin-left: 5px;
+}
+
+/** Unknown Styles ??? */
+#email .unsubscribelink {
+    margin-top: 20px;
+}
+
+/* PeerForumpost unread
+-------------------------*/
+.peerforumpost.unread .row.header,
+.path-course-view .unread,
+span.unread {
+    background-color: #ffd;
+}
+
+.peerforumpost.unread .row.header {
+    border-bottom: 1px solid #ddd;
+}
+
+/* PeerForumpost hash anchor target */
+.path-mod-peerforum :target > .peerforumpost:before {
+    display: block;
+    content: '';
+    width: 4px;
+    position: absolute;
+    background: #0070a8;
+    left: -1px;
+    top: -1px;
+    bottom: -1px;
+}
+
+/* Discussion navigation */
+.path-mod-peerforum .discussion-nav {
+    margin: .5em 0;
+}
+
+.path-mod-peerforum .discussion-nav ul {
+    margin: 0;
+    list-style: none;
+    padding-left: 0;
+}
+
+.path-mod-peerforum .discussion-nav .next-discussion {
+    float: right;
+}
+
+.path-mod-peerforum .discussion-nav .prev-discussion {
+    float: left;
+}
+
+.path-mod-peerforum .preload-subscribe {
+    background: url([[pix:mod_peerforum|t/subscribed]]) no-repeat -9999px -9999px;
+}
+
+.path-mod-peerforum .preload-unsubscribe {
+    background: url([[pix:mod_peerforum|t/unsubscribed]]) no-repeat -9999px -9999px;
+}
+
+.path-mod-peerforum .discussionsubscription,
+.path-mod-peerforum .discussion-settings-menu,
+.path-mod-peerforum .discussionsubscription {
+    margin-top: -10px;
+    text-align: right;
+    margin-bottom: 10px;
+}
+
+.path-mod-peerforum .discussionsubscription > a > img,
+.path-mod-peerforum .discussionlock > a > img,
+.path-mod-peerforum .favourite-discussion > a > img,
+.path-mod-peerforum .discussion-settings-menu > a > img {
+    width: 12px;
+    padding: 0 4px;
+}
+
+#page-mod-peerforum-view img.timedpost {
+    margin-right: 5px;
+}
+
+.path-mod-peerforum article .nav .nav-link:first-of-type {
+    margin-left: auto;
+}
+
+.path-mod-peerforum.dir-rtl article .nav .nav-link:first-of-type {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.path-mod-peerforum article .nav .nav-link + .nav-link {
+    border-left: 1px solid #ddd;
+}
+
+.privatereplyinfo {
+    font-size: 80%;
+}
+
+.peerforum-post-container:focus {
+    outline: 0;
+}
+
+/* This style is copied directly from the Bootstrap reboot file which adds button outline */
+/* stylelint-disable declaration-block-no-duplicate-properties */
+.post-actions .btn:focus {
+    outline: 1px dotted;
+    outline: 5px auto -webkit-focus-ring-color;
+}
+
+.peerforum-post-container:focus > .focus-target {
+    outline: 1px dotted;
+    outline: 5px auto -webkit-focus-ring-color;
+}
+
+/* stylelint-enable declaration-block-no-duplicate-properties */
+
+/* PeerForum grading non striked through line */
+.hr-sect {
+    display: flex;
+    flex-basis: 100%;
+    font-weight: bold;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.hr-sect::before,
+.hr-sect::after {
+    content: "";
+    flex-grow: 1;
+    background: rgba(0, 0, 0, 0.35);
+    height: 1px;
+    font-size: 0;
+    line-height: 0;
+}
+
+.hr-sect::before {
+    margin-right: 15px;
+}
+
+.hr-sect::after {
+    margin-left: 15px;
+}
