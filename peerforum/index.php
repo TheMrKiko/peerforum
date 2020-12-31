@@ -65,8 +65,8 @@ $strsubscribed = get_string('subscribed', 'peerforum');
 $strunreadposts = get_string('unreadposts', 'peerforum');
 $strtracking = get_string('tracking', 'peerforum');
 $strmarkallread = get_string('markallread', 'peerforum');
-$strtrackpeerforum = get_string('trackpeerforum', 'peerforum');
-$strnotrackpeerforum = get_string('notrackpeerforum', 'peerforum');
+$strtrackforum = get_string('trackforum', 'peerforum');
+$strnotrackforum = get_string('notrackforum', 'peerforum');
 $strsubscribe = get_string('subscribe', 'peerforum');
 $strunsubscribe = get_string('unsubscribe', 'peerforum');
 $stryes = get_string('yes');
@@ -243,13 +243,16 @@ if ($generalpeerforums) {
                     $icon = $OUTPUT->pix_icon('t/markasread', $strmarkallread);
                     $unreadlink .= '<a title="' . $strmarkallread . '" href="markposts.php?f=' .
                             $peerforum->id . '&amp;mark=read&amp;sesskey=' . sesskey() . '">' . $icon . '</a></span>';
+                    // $unreadlink .= '<a title="' . $strmarkallread . '" href="markposts.php?f=' .
+                    //         $peerforum->id . '&amp;mark=read">' . $icon . '</a></span>';
                 } else {
                     $unreadlink = '<span class="read">0</span>';
                 }
 
                 if (($peerforum->trackingtype == PEERFORUM_TRACKING_FORCED) && ($CFG->peerforum_allowforcedreadtracking)) {
                     $trackedlink = $stryes;
-                } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackpeerforums == 0)) {
+                    // NOTE Peer is not to be replaced here
+                } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackforums == 0)) {
                     $trackedlink = '-';
                 } else {
                     $aurl = new moodle_url('/mod/peerforum/settracking.php', array(
@@ -257,9 +260,9 @@ if ($generalpeerforums) {
                             'sesskey' => sesskey(),
                     ));
                     if (!isset($untracked[$peerforum->id])) {
-                        $trackedlink = $OUTPUT->single_button($aurl, $stryes, 'post', array('title' => $strnotrackpeerforum));
+                        $trackedlink = $OUTPUT->single_button($aurl, $stryes, 'post', array('title' => $strnotrackforum));
                     } else {
-                        $trackedlink = $OUTPUT->single_button($aurl, $strno, 'post', array('title' => $strtrackpeerforum));
+                        $trackedlink = $OUTPUT->single_button($aurl, $strno, 'post', array('title' => $strtrackforum));
                     }
                 }
             }
@@ -372,20 +375,23 @@ if ($course->id != SITEID) {    // Only real courses have learning peerforums
                         $icon = $OUTPUT->pix_icon('t/markasread', $strmarkallread);
                         $unreadlink .= '<a title="' . $strmarkallread . '" href="markposts.php?f=' .
                                 $peerforum->id . '&amp;mark=read&sesskey=' . sesskey() . '">' . $icon . '</a></span>';
+                        // $unreadlink .= '<a title="' . $strmarkallread . '" href="markposts.php?f=' .
+                        //        $peerforum->id . '&amp;mark=read">' . $icon . '</a></span>';
                     } else {
                         $unreadlink = '<span class="read">0</span>';
                     }
 
                     if (($peerforum->trackingtype == PEERFORUM_TRACKING_FORCED) && ($CFG->peerforum_allowforcedreadtracking)) {
                         $trackedlink = $stryes;
-                    } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackpeerforums == 0)) {
+                        // NOTE Peer is not to be replaced here
+                    } else if ($peerforum->trackingtype === PEERFORUM_TRACKING_OFF || ($USER->trackforums == 0)) {
                         $trackedlink = '-';
                     } else {
                         $aurl = new moodle_url('/mod/peerforum/settracking.php', array('id' => $peerforum->id));
                         if (!isset($untracked[$peerforum->id])) {
-                            $trackedlink = $OUTPUT->single_button($aurl, $stryes, 'post', array('title' => $strnotrackpeerforum));
+                            $trackedlink = $OUTPUT->single_button($aurl, $stryes, 'post', array('title' => $strnotrackforum));
                         } else {
-                            $trackedlink = $OUTPUT->single_button($aurl, $strno, 'post', array('title' => $strtrackpeerforum));
+                            $trackedlink = $OUTPUT->single_button($aurl, $strno, 'post', array('title' => $strtrackforum));
                         }
                     }
                 }
@@ -511,6 +517,5 @@ function peerforum_index_get_peerforum_subscription_selector($peerforum) {
         // This user can subscribe to some peerforums. Add the empty fields.
         return '';
     }
-}
+};
 
-;

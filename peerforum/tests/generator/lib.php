@@ -200,30 +200,19 @@ class mod_peerforum_generator extends testing_module_generator {
             $record['timelocked'] = 0;
         }
 
-        if (isset($record['mailed'])) {
-            $mailed = $record['mailed'];
-        }
-
         $record = (object) $record;
 
         // Add the discussion.
         $record->id = peerforum_add_discussion($record, null, null, $record->userid);
 
-        $post = $DB->get_record('peerforum_posts', array('discussion' => $record->id));
 
-        if (isset($timemodified) || isset($mailed)) {
-            if (isset($mailed)) {
-                $post->mailed = $mailed;
-            }
+        if (isset($timemodified)) {
+            // Enforce the time modified.
+            $post = $DB->get_record('peerforum_posts', array('discussion' => $record->id));
+            $record->timemodified = $timemodified;
+            $post->modified = $post->created = $timemodified;
 
-            if (isset($timemodified)) {
-                // Enforce the time modified.
-                $record->timemodified = $timemodified;
-                $post->modified = $post->created = $timemodified;
-
-                $DB->update_record('peerforum_discussions', $record);
-            }
-
+            $DB->update_record('peerforum_discussions', $record);
             $DB->update_record('peerforum_posts', $post);
         }
 

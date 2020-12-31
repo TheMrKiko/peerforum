@@ -444,8 +444,8 @@ class mod_peerforum_builders_exported_posts_testcase extends advanced_testcase {
         $this->resetAfterTest();
 
         $datagenerator = $this->getDataGenerator();
-        $user1 = $datagenerator->create_user(['trackpeerforums' => 1]);
-        $user2 = $datagenerator->create_user(['trackpeerforums' => 0]);
+        $user1 = $datagenerator->create_user(['trackforums' => 1]);
+        $user2 = $datagenerator->create_user(['trackforums' => 0]);
         $course1 = $datagenerator->create_course();
         $course2 = $datagenerator->create_course();
         $peerforum1 = $datagenerator->create_module('peerforum',

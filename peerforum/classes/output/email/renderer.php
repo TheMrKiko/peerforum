@@ -69,7 +69,8 @@ class renderer extends \mod_peerforum_renderer {
         $options = new \stdClass();
         $options->para = true;
         $options->context = $context;
-        return format_text($message, $post->messageformat, $options);
+        // return format_text($message, $post->messageformat, $options); OLD
+        return format_text($post->message, $post->messageformat, $options);
     }
 
     /**

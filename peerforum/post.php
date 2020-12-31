@@ -16,6 +16,7 @@
 
 /**
  * Edit and save a new post to a discussion
+ * Custom functions to allow peergrading of PeerForum posts
  *
  * @package   mod_peerforum
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
@@ -844,7 +845,7 @@ if ($mformpost->is_cancelled()) {
         }
         $updatepost = $fromform;
         $updatepost->peerforum = $peerforum->id;
-        if (!peerforum_update_post($updatepost, $mformpost)) {
+        if (!peerforum_update_post($updatepost, $mformpost, $message)) {
             print_error("couldnotupdate", "peerforum", $errordestination);
         }
 
@@ -921,6 +922,14 @@ if ($mformpost->is_cancelled()) {
             if ($completion->is_enabled($cm) &&
                     ($peerforum->completionreplies || $peerforum->completionposts)) {
                 $completion->update_state($cm, COMPLETION_COMPLETE);
+            }
+
+            // Assign posts for user to peergrade
+            $peergraders = assign_peergraders($USER, $fromform->id, $course->id, $peerforum->id);
+
+            if ($peergraders) {
+                $all_peergraders = implode(';', $peergraders);
+                insert_peergraders($fromform->id, $all_peergraders, $course->id, $USER->id);
             }
 
             redirect(

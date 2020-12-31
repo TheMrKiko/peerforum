@@ -33,6 +33,45 @@ require_once($CFG->libdir . '/portfolio/caller.php');
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+//---------- New class of PeerForum ----------//
+
+class peerforum {
+    /**
+     * Returns an array of numeric values that can be used as maximum grades
+     *
+     * @return array Array of integers
+     */
+    public static function available_maxgrades_list() {
+        $grades = array();
+        for ($i = 100; $i >= 1; $i--) {
+            $grades[$i] = $i;
+        }
+        return $grades;
+    }
+
+    public static function available_mingraders() {
+        global $DB;
+        $graders = array();
+        $systemcontext = context_system::instance();
+
+        $peerforum = $DB->get_record('peerforum', array('id' => $systemcontext->id));
+
+        if (!empty($peerforum)) {
+            $max = $DB->get_record('peerforum', array('id' => $peerforum->id));
+            $maxgraders = $max->selectpeergraders;
+        } else {
+            $maxgraders = 1;
+        }
+        for ($i = $maxgraders; $i >= 1; $i--) {
+            $graders[$i] = $i;
+        }
+
+        return $graders;
+    }
+}
+
+//-----------------------------------------------------//
+
 class peerforum_portfolio_caller extends portfolio_module_caller_base {
 
     protected $postid;

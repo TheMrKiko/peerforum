@@ -148,7 +148,7 @@ class provider implements
         // There are several user preferences.
         $items->add_user_preference('maildigest', 'privacy:metadata:preference:maildigest');
         $items->add_user_preference('autosubscribe', 'privacy:metadata:preference:autosubscribe');
-        $items->add_user_preference('trackpeerforums', 'privacy:metadata:preference:trackpeerforums');
+        $items->add_user_preference('trackforums', 'privacy:metadata:preference:trackforums');
         $items->add_user_preference('markasreadonnotification', 'privacy:metadata:preference:markasreadonnotification');
         $items->add_user_preference('peerforum_discussionlistsortorder',
                 'privacy:metadata:preference:peerforum_discussionlistsortorder');
@@ -414,16 +414,16 @@ class provider implements
         }
         writer::export_user_preference('mod_peerforum', 'autosubscribe', $user->autosubscribe, $subscribedescription);
 
-        switch ($user->trackpeerforums) {
+        switch ($user->trackforums) {
             case 0:
-                $trackpeerforumdescription = get_string('trackpeerforumsno');
+                $trackforumdescription = get_string('trackforumsno');
                 break;
             case 1:
             default:
-                $trackpeerforumdescription = get_string('trackpeerforumsyes');
+                $trackforumdescription = get_string('trackforumsyes');
                 break;
         }
-        writer::export_user_preference('mod_peerforum', 'trackpeerforums', $user->trackpeerforums, $trackpeerforumdescription);
+        writer::export_user_preference('mod_peerforum', 'trackforums', $user->trackforums, $trackforumdescription);
 
         $markasreadonnotification = get_user_preferences('markasreadonnotification', null, $user->id);
         if (null !== $markasreadonnotification) {

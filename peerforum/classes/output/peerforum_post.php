@@ -393,9 +393,6 @@ class peerforum_post implements \renderable, \templatable {
      * @return string
      */
     public function get_unsubscribepeerforumlink() {
-        if (!\mod_peerforum\subscriptions::is_subscribable($this->peerforum)) {
-            return null;
-        }
         $link = new \moodle_url(
                 '/mod/peerforum/subscribe.php', array(
                         'id' => $this->peerforum->id,
@@ -415,7 +412,8 @@ class peerforum_post implements \renderable, \templatable {
             return null;
         }
         $link = new \moodle_url(
-                '/mod/peerforum/subscribe.php', array(
+                // '/mod/peerforum/subscribe.php', array(
+                '/mod/discussion/subscribe.php', array(
                         'id' => $this->peerforum->id,
                         'd' => $this->discussion->id,
                 )
@@ -545,14 +543,7 @@ class peerforum_post implements \renderable, \templatable {
      * @return string.
      */
     public function get_postdate() {
-        global $CFG;
-
-        $postmodified = $this->post->modified;
-        if (!empty($CFG->peerforum_enabletimedposts) && ($this->discussion->timestart > $postmodified)) {
-            $postmodified = $this->discussion->timestart;
-        }
-
-        return userdate($postmodified, "", \core_date::get_user_timezone($this->get_postto()));
+        return userdate($this->post->modified, "", \core_date::get_user_timezone($this->get_postto()));
     }
 
     /**

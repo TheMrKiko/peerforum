@@ -59,8 +59,10 @@ require_sesskey();
 
 if (null === $return) {
     $returnto = new moodle_url("/mod/peerforum/index.php", ['id' => $course->id]);
+    // $returnto = peerforum_go_back_to(new moodle_url("/mod/peerforum/index.php", ['id' => $course->id])); Jess
 } else {
     $returnto = new moodle_url($return);
+    // $returnto = peerforum_go_back_to(new moodle_url($return)); Jess
 }
 
 if (isguestuser()) {   // Guests can't change peerforum

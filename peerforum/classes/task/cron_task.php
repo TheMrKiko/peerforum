@@ -514,14 +514,11 @@ class cron_task extends \core\task\scheduled_task {
             if (empty($now)) {
                 $now = time();
             }
-            $selectsql = "AND (p.created >= :ptimestart OR d.timestart >= :pptimestart)";
-            $params['pptimestart'] = $starttime;
             $timedsql = "AND (d.timestart < :dtimestart AND (d.timeend = 0 OR d.timeend > :dtimeend))";
             $params['dtimestart'] = $now;
             $params['dtimeend'] = $now;
         } else {
             $timedsql = "";
-            $selectsql = "AND p.created >= :ptimestart";
         }
 
         return $DB->get_records_sql(
@@ -536,7 +533,7 @@ class cron_task extends \core\task\scheduled_task {
                   FROM {peerforum_posts} p
                   JOIN {peerforum_discussions} d ON d.id = p.discussion
                  WHERE p.mailed = :mailed
-                $selectsql
+                AND p.created >= :ptimestart
                    AND (p.created < :ptimeend OR p.mailnow = :mailnow)
                 $timedsql
                  ORDER BY p.modified ASC",

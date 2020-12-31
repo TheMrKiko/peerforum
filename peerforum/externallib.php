@@ -43,6 +43,7 @@ class mod_peerforum_external extends external_api {
                 array(
                         'courseids' => new external_multiple_structure(new external_value(PARAM_INT, 'course ID',
                                 VALUE_REQUIRED, '', NULL_NOT_ALLOWED), 'Array of Course IDs', VALUE_DEFAULT, array()),
+                                // '', VALUE_REQUIRED, '', NULL_NOT_ALLOWED), 'Array of Course IDs', VALUE_DEFAULT, array()), Jessica
                 )
         );
     }
@@ -96,7 +97,8 @@ class mod_peerforum_external extends external_api {
                 $options = array('noclean' => true);
                 list($peerforum->intro, $peerforum->introformat) =
                         external_format_text($peerforum->intro, $peerforum->introformat, $context->id, 'mod_peerforum', 'intro',
-                                null,
+                                0,
+                                // null OLD
                                 $options);
                 $peerforum->introfiles = external_util::get_area_files($context->id, 'mod_peerforum', 'intro', false, false);
                 // Discussions count. This function does static request cache.
@@ -430,7 +432,7 @@ class mod_peerforum_external extends external_api {
                 $post->userpictureurl = $userpicture->get_url($PAGE)->out(false);
             }
 
-            $post->subject = external_format_string($post->subject, $modcontext->id);
+            // $post->subject = external_format_string($post->subject, $modcontext->id);
             // Rewrite embedded images URLs.
             $options = array('trusted' => $post->messagetrust);
             list($post->message, $post->messageformat) =
@@ -477,6 +479,7 @@ class mod_peerforum_external extends external_api {
                                                 'userid' => new external_value(PARAM_INT, 'User id'),
                                                 'created' => new external_value(PARAM_INT, 'Creation time'),
                                                 'modified' => new external_value(PARAM_INT, 'Time modified'),
+                                                'page' => new external_value(PARAM_INT, 'Page'),
                                                 'mailed' => new external_value(PARAM_INT, 'Mailed?'),
                                                 'subject' => new external_value(PARAM_RAW, 'The post subject'),
                                                 'message' => new external_value(PARAM_RAW, 'The post message'),
@@ -650,8 +653,8 @@ class mod_peerforum_external extends external_api {
                     $discussion->numreplies = (int) $replies[$discussion->discussion]->replies;
                 }
 
-                $discussion->name = external_format_string($discussion->name, $modcontext->id);
-                $discussion->subject = external_format_string($discussion->subject, $modcontext->id);
+                // $discussion->name = external_format_string($discussion->name, $modcontext->id);
+                // $discussion->subject = external_format_string($discussion->subject, $modcontext->id);
                 // Rewrite embedded images URLs.
                 $options = array('trusted' => $discussion->messagetrust);
                 list($discussion->message, $discussion->messageformat) =
@@ -744,6 +747,7 @@ class mod_peerforum_external extends external_api {
                                                 'userid' => new external_value(PARAM_INT, 'User who started the discussion id'),
                                                 'created' => new external_value(PARAM_INT, 'Creation time'),
                                                 'modified' => new external_value(PARAM_INT, 'Time modified'),
+                                                'page' => new external_value(PARAM_INT, 'Page'),
                                                 'mailed' => new external_value(PARAM_INT, 'Mailed?'),
                                                 'subject' => new external_value(PARAM_RAW, 'The post subject'),
                                                 'message' => new external_value(PARAM_RAW, 'The post message'),
@@ -1101,7 +1105,7 @@ class mod_peerforum_external extends external_api {
         $warnings = array();
 
         // Request and permission validation.
-        $peerforum = $DB->get_record('peerforum', array('id' => $params['peerforumid']), '*', MUST_EXIST);
+        $peerforum = $DB->get_record('peerforum', array('id' => $params['peerforumid']), 'id', MUST_EXIST);
         list($course, $cm) = get_course_and_cm_from_instance($peerforum, 'peerforum');
 
         $context = context_module::instance($cm->id);
@@ -2760,7 +2764,7 @@ class mod_peerforum_external extends external_api {
 
         // Update the post.
         $fakemform = $updatepost->id;
-        if (peerforum_update_post($updatepost, $fakemform)) {
+        if (peerforum_update_post($updatepost, $fakemform, $message)) {
             $discussion = $discussiondatamapper->to_legacy_object($discussionentity);
 
             peerforum_trigger_post_updated_event($updatepost, $discussion, $modcontext, $peerforum);

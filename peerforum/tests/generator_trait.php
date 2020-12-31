@@ -117,10 +117,10 @@ trait mod_peerforum_tests_generator_trait {
         $generator = $this->getDataGenerator()->get_plugin_generator('mod_peerforum');
 
         // Add a post to the discussion.
-        $strre = get_string('re', 'peerforum');
+        $strre = get_string('re', 'peerforum'); // Jessica deleted
         $record = array_merge([
                 'course' => $peerforum->course,
-                'subject' => "{$strre} {$discussion->subject}",
+                'subject' => "{$strre} {$discussion->subject}", // Jessica deleted
                 'userid' => $author->id,
                 'peerforum' => $peerforum->id,
                 'discussion' => $discussion->id,

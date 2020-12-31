@@ -713,9 +713,9 @@ class mod_peerforum_maildigest_testcase extends advanced_testcase {
         $peerforum1 = $userhelper->peerforums->peerforum1;
         $posts = [];
 
-        // Set the tested user's default maildigest, trackpeerforums, read tracking settings.
+        // Set the tested user's default maildigest, trackforums, read tracking settings.
         $DB->set_field('user', 'maildigest', 1, ['id' => $user->id]);
-        $DB->set_field('user', 'trackpeerforums', 1, ['id' => $user->id]);
+        $DB->set_field('user', 'trackforums', 1, ['id' => $user->id]);
         set_user_preference('peerforum_markasreadonnotification', 1, $user->id);
 
         // Set the maildigest preference for peerforum1 to default.
@@ -770,9 +770,9 @@ class mod_peerforum_maildigest_testcase extends advanced_testcase {
         $peerforum1 = $userhelper->peerforums->peerforum1;
         $posts = [];
 
-        // Set the tested user's default maildigest, trackpeerforums, read tracking settings.
+        // Set the tested user's default maildigest, trackforums, read tracking settings.
         $DB->set_field('user', 'maildigest', 1, ['id' => $user->id]);
-        $DB->set_field('user', 'trackpeerforums', 1, ['id' => $user->id]);
+        $DB->set_field('user', 'trackforums', 1, ['id' => $user->id]);
         set_user_preference('peerforum_markasreadonnotification', 1, $user->id);
 
         // Set the maildigest preference for peerforum1 to default.

@@ -25,7 +25,7 @@
 
 require(__DIR__ . '/../../config.php');
 require_once($CFG->dirroot . '/mod/peerforum/lib.php');
-require_once($CFG->dirroot . '/rating/lib.php');
+require_once($CFG->dirroot . '/ratingpeer/lib.php');
 require_once($CFG->dirroot . '/user/lib.php');
 
 $courseid = optional_param('course', null, PARAM_INT); // Limit the posts to just this course

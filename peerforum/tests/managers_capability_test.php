@@ -412,7 +412,7 @@ class mod_peerforum_managers_capability_testcase extends advanced_testcase {
         $capabilitymanager = $this->managerfactory->get_capability_manager($peerforum);
         $cache = cache::make('mod_peerforum', 'peerforum_is_tracked');
 
-        $user->trackpeerforums = true;
+        $user->trackforums = true;
         $prefid = $DB->insert_record('peerforum_track_prefs', ['userid' => $user->id, 'peerforumid' => $peerforum->get_id()]);
         $this->assertFalse($capabilitymanager->can_manually_control_post_read_status($user));
         $cache->purge();

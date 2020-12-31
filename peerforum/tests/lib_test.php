@@ -195,8 +195,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -272,8 +272,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
         $this->resetAfterTest();
 
         $cache = cache::make('mod_peerforum', 'peerforum_is_tracked');
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -394,8 +394,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -517,8 +517,8 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        $useron = $this->getDataGenerator()->create_user(array('trackpeerforums' => 1));
-        $useroff = $this->getDataGenerator()->create_user(array('trackpeerforums' => 0));
+        $useron = $this->getDataGenerator()->create_user(array('trackforums' => 1));
+        $useroff = $this->getDataGenerator()->create_user(array('trackforums' => 0));
         $course = $this->getDataGenerator()->create_course();
         $options = array('course' => $course->id, 'trackingtype' => PEERFORUM_TRACKING_OFF); // Off.
         $peerforumoff = $this->getDataGenerator()->create_module('peerforum', $options);
@@ -2206,7 +2206,7 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
      * Test peerforum_user_can_post_discussion
      */
     public function test_peerforum_user_can_post_discussion() {
-        global $DB;
+        global $CFG, $DB;
 
         $this->resetAfterTest(true);
 
@@ -2283,7 +2283,7 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
         $record->course = $course->id;
         $record->userid = $user->id;
         $record->peerforum = $peerforum->id;
-        $record->groupid = $group->id;
+        $record->groupid = $group->id; // Jessica deleted
         $discussion = self::getDataGenerator()->get_plugin_generator('mod_peerforum')->create_discussion($record);
 
         // I already posted, I shouldn't be able to post.
@@ -2339,6 +2339,7 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
     /**
      * Test peerforum_user_has_posted_discussion with no groups.
+     * Jessica deleted.
      */
     public function test_peerforum_user_has_posted_discussion_no_groups() {
         global $CFG;
@@ -2371,6 +2372,7 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
     /**
      * Test peerforum_user_has_posted_discussion with multiple peerforums
+     * Jessica deleted.
      */
     public function test_peerforum_user_has_posted_discussion_multiple_peerforums() {
         global $CFG;
@@ -2403,6 +2405,7 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
     /**
      * Test peerforum_user_has_posted_discussion with multiple groups.
+     * Jessica deleted.
      */
     public function test_peerforum_user_has_posted_discussion_multiple_groups() {
         global $CFG;
@@ -2545,10 +2548,10 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
         $this->getDataGenerator()->enrol_user($author->id, $course1->id);
 
         // Create two viewer users - one in a group, one not.
-        $viewer1 = $this->getDataGenerator()->create_user((object) array('trackpeerforums' => 1));
+        $viewer1 = $this->getDataGenerator()->create_user((object) array('trackforums' => 1));
         $this->getDataGenerator()->enrol_user($viewer1->id, $course1->id);
 
-        $viewer2 = $this->getDataGenerator()->create_user((object) array('trackpeerforums' => 1));
+        $viewer2 = $this->getDataGenerator()->create_user((object) array('trackforums' => 1));
         $this->getDataGenerator()->enrol_user($viewer2->id, $course1->id);
         $this->getDataGenerator()->create_group_member(array('userid' => $viewer2->id, 'groupid' => $group1->id));
 
@@ -3008,6 +3011,7 @@ class mod_peerforum_lib_testcase extends advanced_testcase {
 
     /**
      * Test that {@link peerforum_update_post()} keeps correct peerforum_discussions usermodified.
+     * Jessica deleted
      */
     public function test_peerforum_update_post_keeps_discussions_usermodified() {
         global $DB;

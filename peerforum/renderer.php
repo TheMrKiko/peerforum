@@ -197,6 +197,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
      */
     public function render_peerforum_post_email(\mod_peerforum\output\peerforum_post_email $post) {
         $data = $post->export_for_template($this, $this->target === RENDERER_TARGET_TEXTEMAIL);
+        // $data = $post->export_for_template($this); Jessica
         return $this->render_from_template('mod_peerforum/' . $this->peerforum_post_template(), $data);
     }
 

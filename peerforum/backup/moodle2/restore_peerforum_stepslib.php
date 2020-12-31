@@ -43,13 +43,19 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
             $paths[] = new restore_path_element('peerforum_tag', '/activity/peerforum/poststags/tag');
             $paths[] = new restore_path_element('peerforum_discussion_sub',
                     '/activity/peerforum/discussions/discussion/discussion_subs/discussion_sub');
-            $paths[] = new restore_path_element('peerforum_rating',
-                    '/activity/peerforum/discussions/discussion/posts/post/ratings/rating');
+            $paths[] = new restore_path_element('peerforum_ratingpeer',
+                    '/activity/peerforum/discussions/discussion/posts/post/ratingpeers/ratingpeer');
             $paths[] = new restore_path_element('peerforum_subscription', '/activity/peerforum/subscriptions/subscription');
             $paths[] = new restore_path_element('peerforum_digest', '/activity/peerforum/digests/digest');
             $paths[] = new restore_path_element('peerforum_read', '/activity/peerforum/readposts/read');
             $paths[] = new restore_path_element('peerforum_track', '/activity/peerforum/trackedprefs/track');
-            $paths[] = new restore_path_element('peerforum_grade', '/activity/peerforum/grades/grade');
+            $paths[] = new restore_path_element('peerforum_peergrade', '/activity/peerforum/discussions/discussion/posts/post/peergrades/peergrade');
+            $paths[] = new restore_path_element('peerforum_blockedgrades', '/activity/peerforum/blockedgrades/blockedgrades');
+            $paths[] = new restore_path_element('peerforum_groups', '/activity/peerforum/groups/groups');
+            $paths[] = new restore_path_element('peerforum_peergradecriteria', '/activity/peergradecriteria/peergradecriteria');
+            $paths[] = new restore_path_element('peerforum_peergrade_conflict', '/activity/peergrade_conflict/peergrade_conflict');
+            $paths[] = new restore_path_element('peerforum_peergrade_users', '/activity/peergrade_users/peergrade_users');
+            $paths[] = new restore_path_element('peerforum_time_assigned', '/activity/time_assigned/time_assigned');
         }
 
         // Return the paths wrapped into standard activity structure
@@ -146,29 +152,79 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
         core_tag_tag::add_item_tag('mod_peerforum', 'peerforum_posts', $itemid, $context, $tag);
     }
 
-    protected function process_peerforum_rating($data) {
+    protected function process_peerforum_ratingpeer($data) {
         global $DB;
 
         $data = (object) $data;
 
-        // Cannot use ratings API, cause, it's missing the ability to specify times (modified/created)
+        // Cannot use ratingpeers API, cause, it's missing the ability to specify times (modified/created)
         $data->contextid = $this->task->get_contextid();
         $data->itemid = $this->get_new_parentid('peerforum_post');
         if ($data->scaleid < 0) { // scale found, get mapping
             $data->scaleid = -($this->get_mappingid('scale', abs($data->scaleid)));
         }
-        $data->rating = $data->value;
+        $data->ratingpeer = $data->value;
         $data->userid = $this->get_mappingid('user', $data->userid);
 
-        // We need to check that component and ratingarea are both set here.
+        // We need to check that component and ratingpeerarea are both set here.
         if (empty($data->component)) {
             $data->component = 'mod_peerforum';
         }
-        if (empty($data->ratingarea)) {
-            $data->ratingarea = 'post';
+        if (empty($data->ratingpeerarea)) {
+            $data->ratingpeerarea = 'post';
         }
 
-        $newitemid = $DB->insert_record('rating', $data);
+        $newitemid = $DB->insert_record('ratingpeer', $data);
+    }
+
+    protected function process_peerforum_peergrade($data) {
+        global $DB;
+
+        $data = (object) $data;
+
+        // Cannot use peergrade API, cause, it's missing the ability to specify times (modified/created)
+        $data->contextid = $this->task->get_contextid();
+        $data->itemid = $this->get_new_parentid('peerforum_post');
+        if ($data->scaleid < 0) { // scale found, get mapping
+            $data->scaleid = -($this->get_mappingid('scale', abs($data->scaleid)));
+        }
+        $data->peergrade = $data->value;
+        $data->userid = $this->get_mappingid('user', $data->userid);
+
+        // We need to check that component and peergradearea are both set here.
+        if (empty($data->component)) {
+            $data->component = 'mod_peerforum';
+        }
+        if (empty($data->peergradearea)) {
+            $data->peergradearea = 'post';
+        }
+
+        $newitemid = $DB->insert_record('peergrade', $data);
+    }
+
+    protected function process_peerforum_peergrade($data) {
+        global $DB;
+
+        $data = (object) $data;
+
+        // Cannot use peergrade API, cause, it's missing the ability to specify times (modified/created)
+        $data->contextid = $this->task->get_contextid();
+        $data->itemid = $this->get_new_parentid('peerforum_post');
+        if ($data->scaleid < 0) { // scale found, get mapping
+            $data->scaleid = -($this->get_mappingid('scale', abs($data->scaleid)));
+        }
+        $data->peergrade = $data->value;
+        $data->userid = $this->get_mappingid('user', $data->userid);
+
+        // We need to check that component and peergradearea are both set here.
+        if (empty($data->component)) {
+            $data->component = 'mod_peerforum';
+        }
+        if (empty($data->peergradearea)) {
+            $data->peergradearea = 'post';
+        }
+
+        $newitemid = $DB->insert_record('peergrade', $data);
     }
 
     protected function process_peerforum_subscription($data) {
@@ -265,16 +321,10 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
     }
 
     protected function after_execute() {
+        global $DB;
+
         // Add peerforum related files, no need to match by itemname (just internally handled context)
         $this->add_related_files('mod_peerforum', 'intro', null);
-
-        // Add post related files, matching by itemname = 'peerforum_post'
-        $this->add_related_files('mod_peerforum', 'post', 'peerforum_post');
-        $this->add_related_files('mod_peerforum', 'attachment', 'peerforum_post');
-    }
-
-    protected function after_restore() {
-        global $DB;
 
         // If the peerforum is of type 'single' and no discussion has been ignited
         // (non-userinfo backup/restore) create the discussion here, using peerforum
@@ -305,5 +355,9 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
                 $fs->create_file_from_storedfile($newfilerecord, $file);
             }
         }
+
+        // Add post related files, matching by itemname = 'peerforum_post'
+        $this->add_related_files('mod_peerforum', 'post', 'peerforum_post');
+        $this->add_related_files('mod_peerforum', 'attachment', 'peerforum_post');
     }
 }
