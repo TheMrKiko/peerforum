@@ -44,6 +44,7 @@ M.core_ratingpeer = {
                                 var itemid = data.itemid;
 
                                 var node = scope.Y.one('#ratingpeeraggregate' + itemid);
+                                alert('HERE');
                                 node.set('innerHTML', data.aggregate);
 
                                 //empty the count value if no ratingpeers

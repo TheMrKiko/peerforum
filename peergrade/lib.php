@@ -105,6 +105,7 @@ function update_graders($array_peergraders, $postid, $courseid) {
             $data->postsexpired = null;
 
             $data->numpostsassigned = 1;
+            $data->numpoststopeergrade = 1;
 
             $DB->insert_record('peerforum_peergrade_users', $data);
         } else {
@@ -124,6 +125,7 @@ function update_graders($array_peergraders, $postid, $courseid) {
             $posts = implode(';', $array_posts);
 
             $data->poststopeergrade = $posts;
+            $data->numpoststopeergrade = count($array_posts);
             $data->id = $existing_info->id;
 
             $DB->update_record('peerforum_peergrade_users', $data);
@@ -226,6 +228,22 @@ function assign_one_peergrader($postid, $courseid, $peerid) {
 
     $count_peers = count($array_users);
     assign_random($courseid, $array_users, $postauthor, $postid, $peerid);
+}
+
+function get_discussions_name($course, $peerforum) {
+    global $DB;
+
+    $sql = "SELECT p.name
+         FROM {peerforum_discussions} p
+         WHERE p.course = $course AND p.peerforum = $peerforum";
+
+    $data = $DB->get_records_sql($sql);
+    $topics = array();
+
+    foreach ($data as $key => $value) {
+        array_push($topics, $key);
+    }
+    return $topics;
 }
 
 class peergrade implements renderable {
@@ -1115,7 +1133,7 @@ class peergrade_manager {
     public function delete_post_peergrade($postid, $courseid) {
         global $DB;
 
-        $sql = "SELECT p.iduser, p.id, p.postspeergradedone, p.poststopeergrade, p.postsblocked, p.numpostsassigned
+        $sql = "SELECT p.iduser, p.id, p.postspeergradedone, p.poststopeergrade, p.postsblocked, p.numpostsassigned, p.numpoststopeergrade
                   FROM {peerforum_peergrade_users} p
                   WHERE p.courseid = $courseid";
 
@@ -1136,6 +1154,7 @@ class peergrade_manager {
             $posts_blocked = array_filter($posts_blocked);
 
             $numpostsassigned = $posts[$user]->numpostsassigned;
+            $numpoststopeergrade = $posts[$user]->numpoststopeergrade;
 
             $data = new stdClass();
             $data->id = $posts[$user]->id;
@@ -1147,10 +1166,12 @@ class peergrade_manager {
                     $posts_to_grade = array_filter($posts_to_grade);
 
                     $numposts = $numpostsassigned - 1;
+                    $numtograde = $numpoststopeergrade - 1;
 
                     $posts_to_grade_updated = implode(';', $posts_to_grade);
                     $data->poststopeergrade = $posts_to_grade_updated;
                     $data->numpostsassigned = $numposts;
+                    $data->numpoststopeergrade = $numtograde;
                     $DB->update_record("peerforum_peergrade_users", $data);
 
                 }
@@ -1163,10 +1184,12 @@ class peergrade_manager {
                     $posts_done_grade = array_filter($posts_done_grade);
 
                     $numposts = $numpostsassigned - 1;
+                    $numtograde = $numpoststopeergrade - 1;
 
                     $posts_done_grade_updated = implode(';', $posts_done_grade);
                     $data->postspeergradedone = $posts_done_grade_updated;
                     $data->numpostsassigned = $numposts;
+                    $data->numpoststopeergrade = $numtograde;
 
                     $DB->update_record("peerforum_peergrade_users", $data);
                 }

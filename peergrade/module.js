@@ -41,7 +41,7 @@ M.core_peergrade = {
 
                         if (data.success) {
                             //if the user has access to the aggregate then update it
-                            if (data.itemid) { //do not test data.aggregate or data.count otherwise it doesn't refresh value=0 or no value
+                            if (data.itemid /*&& data.canshow*/) { //do not test data.aggregate or data.count otherwise it doesn't refresh value=0 or no value
                                 var itemid = data.itemid;
 
                                 var node = scope.Y.one('#peergradeaggregate' + itemid);

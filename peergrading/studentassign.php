@@ -38,6 +38,7 @@ if (isset($_POST["assignstd" . $itemid])) {
     $student_id = $_POST['menustds' . $itemid];
 
     global $DB;
+    $all_students = null;
 
     if ($student_id != UNSET_STUDENT) {
         $student_id = str_replace(".", "", $student_id);
@@ -45,11 +46,84 @@ if (isset($_POST["assignstd" . $itemid])) {
 
     if ($student_id == UNSET_STUDENT) {
 
-        $all_students = get_students_can_be_assigned($courseid, $itemid, $postauthor);
+        //Get all available students & relevant info
+        $all_students = get_students_can_be_assigned_w_ptpg($courseid, $itemid, $postauthor);
 
-        $id = array_rand($all_students, 1);
+        //// TODO: Use update_gradingsum no?
+        foreach ($all_students as $a => $value) {
 
-        $student_id = $id;
+            //peergradesdone
+            $peergradedone = $all_students[$a]->postspeergradedone;
+            $array_done = explode(";", $peergradedone);
+            $numpeerdone = (count($array_done) - 1);
+
+            //peergradestodo
+            $topeergrade = $all_students[$a]->numpoststopeergrade;
+
+            //sum both values
+            $sum = $topeergrade + $numpeerdone;
+
+            //update sum record
+            $user = $all_students[$a]->userid;
+            $info = $DB->get_record("peerforum_peergrade_users", array('iduser' => $user));
+            $data = new stdClass();
+            $data->id = $info->id;
+            $data->gradesum = $sum;
+            $DB->update_record("peerforum_peergrade_users", $data);
+        }
+
+        $all_students = get_students_can_be_assigned_w_ptpg($courseid, $itemid, $postauthor);
+
+        // Asc sort
+        usort($all_students, function($a, $b) {
+            return $a->gradesum > $b->gradesum;
+        });
+
+        $peerforum_data = $DB->get_record("peerforum", array('course' => $courseid));
+
+        if ($all_students != null) {
+            //Check if advanced attribution is defined, if not just jump this part
+            if ($peerforum_data->threaded_grading) {
+
+                //Get the discussion topic of this submission
+                $discussion_info = $DB->get_record("peerforum_posts", array('id' => $itemid));
+                $discussion = $discussion_info->discussion;
+
+                $post_info = $DB->get_record("peerforum_discussions", array('id' => $discussion));
+                $topic_name = $post_info->name;
+
+                //Check if the type is 1 or 2
+                $list = $DB->get_record("peerforum_peergrade_subject", array('name' => $topic_name));
+
+                if ($list->type == 1) {
+                    //Loop through the (already ordered) given list until it finds a studetns which the grading type is 2
+                    foreach ($all_students as $i => $value) {
+
+                        $thisstudenttopics = $all_students[$i]->topicsassigned;
+                        $listtopics = explode(';', $thisstudenttopics);
+
+                        foreach ($listtopics as $j => $value) {
+                            if ($listtopics[$j] == $topic_name && $all_students[$i]->peergradetype == 1) {
+                                $studentChoosen = ($all_students[$i]);
+                                break 2;
+                            }
+                        }
+                    }
+                } else { //tipo 2
+                    //Loop through the (already ordered) given list until it finds a studetns which the grading type is 2
+                    foreach ($all_students as $k => $value) {
+                        if ($all_students[$k]->peergradetype == 2) {
+                            $studentChoosen = ($all_students[$k]);
+                            break;
+                        }
+                    }
+                }
+            } else {
+                $studentChoosen = ($all_students[0]);
+            }
+
+            $student_id = $studentChoosen->userid; //userid
+        }
     }
 
     if ($student_id != 0) {
@@ -68,14 +142,15 @@ if (isset($_POST["assignstd" . $itemid])) {
         $data->peergraders = $peers_updated;
 
         $DB->update_record("peerforum_posts", $data);
-
         $peers_info = $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $student_id));
 
         if (!empty($peers_info)) {
             $poststograde = $peers_info->poststopeergrade;
 
             $numpostsassigned = $peers_info->numpostsassigned;
+            $numpoststopeergrade = $peers_info->numpoststopeergrade;
             $numposts = $numpostsassigned + 1;
+            $numgrade = $numpoststopeergrade + 1;
 
             $posts = explode(';', $poststograde);
 
@@ -92,7 +167,7 @@ if (isset($_POST["assignstd" . $itemid])) {
             $data2->id = $peers_info->id;
             $data2->poststopeergrade = $posts_updated;
             $data2->numpostsassigned = $numposts;
-
+            $data2->numpoststopeergrade = $numgrade;
             $DB->update_record("peerforum_peergrade_users", $data2);
 
             $time = new stdclass();
@@ -113,6 +188,7 @@ if (isset($_POST["assignstd" . $itemid])) {
             $data2->postsblocked = null;
             $data2->postsexpired = null;
             $data2->numpostsassigned = 0;
+            $data2->numpoststopeergrade = 0;
 
             $time = new stdclass();
             $time->courseid = $courseid;
@@ -125,7 +201,10 @@ if (isset($_POST["assignstd" . $itemid])) {
 
             $DB->insert_record("peerforum_peergrade_users", $data2);
         }
+        //Finally notify user
+        send_peergrade_notification($student_id);
     }
+
 }
 
 $returnurl = new moodle_url('/peergrading/index.php', array('userid' => $userid, 'courseid' => $courseid, 'display' => $display));
