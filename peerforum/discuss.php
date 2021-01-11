@@ -34,8 +34,6 @@ $mark = optional_param('mark', '', PARAM_ALPHA);       // Used for tracking read
 $postid = optional_param('postid', 0, PARAM_INT);        // Used for tracking read posts if user initiated.
 $pin = optional_param('pin', -1, PARAM_INT);          // If set, pin or unpin this discussion.
 
-$currentpage = optional_param('page', 0, PARAM_INT);    // Used for pagination.
-
 $url = new moodle_url('/mod/peerforum/discuss.php', array('d' => $d));
 if ($parent !== 0) {
     $url->param('parent', $parent);
@@ -337,6 +335,8 @@ if ($move == -1 and confirm_sesskey()) {
 }
 
 echo $discussionrenderer->render($USER, $post, $replies);
+
+$peersnotification = false;
 
 echo $OUTPUT->footer();
 

@@ -240,63 +240,6 @@ class discussion {
             $template = 'mod_peerforum/peerforum_discussion';
         }
 
-        // TODO Pagination of peerforum
-        /* $canratepeer = has_capability('mod/peerforum:ratepeer', $modcontext);
-        $cangrade = has_capability('mod/peerforum:grade', $modcontext);
-
-        $enable_pagination = $peerforum->pagination;
-
-        if ($enable_pagination) {
-            $total_posts = count($DB->get_records('peerforum_posts', array('discussion' => $discussion->id)));
-
-            $perpage = $peerforum->postsperpage;
-            $start = $currentpage * $perpage;
-
-            if ($start > $total_posts) {
-                $currentpage = 0;
-                $start = 0;
-            }
-            peerforum_print_discussion(
-                $course,
-                $cm,
-                $peerforum,
-                $discussion,
-                $post,
-                $displaymode,
-                $canreply,
-                $canratepeer,
-                $cangrade,
-                false,
-                true,
-                null,
-                null,
-                $start,
-                $perpage,
-                $enable_pagination
-            );
-
-            // pagination of peerforum
-            echo '</br>';
-            $pageurl = new moodle_url('/mod/peerforum/discuss.php', array('d' => $discussion->id, 'page' => $currentpage));
-            echo $OUTPUT->paging_bar($total_posts, $currentpage, $perpage, $pageurl);
-        } else {
-            peerforum_print_discussion(
-                $course,
-                $cm,
-                $peerforum,
-                $discussion,
-                $post,
-                $displaymode,
-                $canreply,
-                $canratepeer,
-                $cangrade,
-                false,
-                true,
-                null,
-                null
-            );
-        }*/
-
         return $this->renderer->render_from_template($template, $exporteddiscussion);
     }
 

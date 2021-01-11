@@ -272,6 +272,9 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <FIELD NAME="postspeergradedone" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="postsblocked" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="postsexpired" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="peergradetype" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="2" SEQUENCE="false"/>
+                <FIELD NAME="topicsassigned" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="numpoststopeergrade" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="# of posts that user can peer grade at the moment."/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -309,7 +312,7 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <FIELD NAME="peergradearea" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="scaleid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="peergrade" TYPE="float" LENGTH="10" DECIMALS="2" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="peergrade" TYPE="float" LENGTH="10" NOTNULL="true" SEQUENCE="false" DECIMALS="2"/>
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -344,7 +347,7 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <FIELD NAME="peergradearea" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="scaleid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="peergrade" TYPE="float" LENGTH="10" DECIMALS="2" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="peergrade" TYPE="float" LENGTH="10" NOTNULL="true" SEQUENCE="false" DECIMALS="2"/>
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -403,6 +406,27 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <FIELD NAME="not_assigned_users" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="can_grade_users" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="not_can_grade_users" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+        </TABLE>
+        <TABLE NAME="peerforum_peergrade_subject" COMMENT="Association of skill tree topics with peer grading criteria">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="type" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+        </TABLE>
+        <TABLE NAME="peerforum_relationships" COMMENT="Default comment for the table, please edit me">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="iduser" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="id of the student responding to the questionnaire"/>
+                <FIELD NAME="idpeersfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text with all the id of its favorite peers"/>
+                <FIELD NAME="idpeersunfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text w/ the id of all peers the students least likes"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
