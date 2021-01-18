@@ -21,7 +21,7 @@ M.core_rating = {
 
         var inputssize = theinputs.size();
         for (var i = 0; i < inputssize; i++) {
-            if (theinputs.item(i).get("name") != "returnurl") {//dont include return url for ajax requests
+            if (theinputs.item(i).get("name") != "returnurl") { // Dont include return url for ajax requests.
                 thedata[theinputs.item(i).get("name")] = theinputs.item(i).get("value");
             }
         }
@@ -46,7 +46,7 @@ M.core_rating = {
                                 var node = scope.Y.one('#ratingaggregate' + itemid);
                                 node.set('innerHTML', data.aggregate);
 
-                                //empty the count value if no ratings
+                                // Empty the count value if no ratings.
                                 var node = scope.Y.one('#ratingcount' + itemid);
                                 if (data.count > 0) {
                                     node.set('innerHTML', "(" + data.count + ")");
