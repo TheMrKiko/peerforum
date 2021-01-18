@@ -15,26 +15,27 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This page receives non-ajax rating submissions
+ * This page receives non-ajax peergrade submissions
  *
- * It is similar to rate_ajax.php. Unlike rate_ajax.php a return url is required.
+ * It is similar to peergrade_ajax.php. Unlike peergrade_ajax.php a return url is required.
  *
- * @package    core_rating
- * @category   rating
+ * @package    core_peergrade
+ * @category   peergrade
  * @copyright  2010 Andrew Davis
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once('../config.php');
-require_once($CFG->dirroot . '/rating/lib.php');
+require_once($CFG->dirroot . '/peergrade/lib.php');
 
 $contextid = required_param('contextid', PARAM_INT);
 $component = required_param('component', PARAM_COMPONENT);
-$ratingarea = required_param('ratingarea', PARAM_AREA);
+$peergradearea = required_param('peergradearea', PARAM_AREA);
 $itemid = required_param('itemid', PARAM_INT);
 $scaleid = required_param('scaleid', PARAM_INT);
-$userrating = required_param('rating', PARAM_INT);
-$rateduserid = required_param('rateduserid', PARAM_INT); // Which user is being rated. Required to update their grade.
+$userpeergrade = required_param('peergrade', PARAM_INT);
+$peergradeduserid =
+        required_param('peergradeduserid', PARAM_INT); // Which user is being peergraded. Required to update their grade.
 $returnurl = required_param('returnurl', PARAM_LOCALURL); // Required for non-ajax requests.
 
 $result = new stdClass;
@@ -44,58 +45,58 @@ require_login($course, false, $cm);
 
 $contextid = null; // Now we have a context object, throw away the id from the user.
 $PAGE->set_context($context);
-$PAGE->set_url('/rating/rate.php', array('contextid' => $context->id));
+$PAGE->set_url('/peergrade/peergrade.php', array('contextid' => $context->id));
 
-if (!confirm_sesskey() || !has_capability('moodle/rating:rate', $context)) {
-    print_error('ratepermissiondenied', 'rating');
+if (!confirm_sesskey() || !has_capability('moodle/peergrade:peergrade', $context)) {
+    print_error('peergradepermissiondenied', 'peergrade');
 }
 
-$rm = new rating_manager();
+$rm = new peergrade_manager();
 
-// Check the module rating permissions.
-// Doing this check here rather than within rating_manager::get_ratings() so we can choose how to handle the error.
-$pluginpermissionsarray = $rm->get_plugin_permissions_array($context->id, $component, $ratingarea);
+// Check the module peergrade permissions.
+// Doing this check here rather than within peergrade_manager::get_peergrades() so we can choose how to handle the error.
+$pluginpermissionsarray = $rm->get_plugin_permissions_array($context->id, $component, $peergradearea);
 
-if (!$pluginpermissionsarray['rate']) {
-    print_error('ratepermissiondenied', 'rating');
+if (!$pluginpermissionsarray['peergrade']) {
+    print_error('peergradepermissiondenied', 'peergrade');
 } else {
     $params = array(
             'context' => $context,
             'component' => $component,
-            'ratingarea' => $ratingarea,
+            'peergradearea' => $peergradearea,
             'itemid' => $itemid,
             'scaleid' => $scaleid,
-            'rating' => $userrating,
-            'rateduserid' => $rateduserid
+            'peergrade' => $userpeergrade,
+            'peergradeduserid' => $peergradeduserid
     );
-    if (!$rm->check_rating_is_valid($params)) {
+    if (!$rm->check_peergrade_is_valid($params)) {
         echo $OUTPUT->header();
-        echo get_string('ratinginvalid', 'rating');
+        echo get_string('peergradeinvalid', 'peergrade');
         echo $OUTPUT->footer();
         die();
     }
 }
 
-if ($userrating != RATING_UNSET_RATING) {
-    $ratingoptions = new stdClass;
-    $ratingoptions->context = $context;
-    $ratingoptions->component = $component;
-    $ratingoptions->ratingarea = $ratingarea;
-    $ratingoptions->itemid = $itemid;
-    $ratingoptions->scaleid = $scaleid;
-    $ratingoptions->userid = $USER->id;
+if ($userpeergrade != PEERGRADE_UNSET_PEERGRADE) {
+    $peergradeoptions = new stdClass;
+    $peergradeoptions->context = $context;
+    $peergradeoptions->component = $component;
+    $peergradeoptions->peergradearea = $peergradearea;
+    $peergradeoptions->itemid = $itemid;
+    $peergradeoptions->scaleid = $scaleid;
+    $peergradeoptions->userid = $USER->id;
 
-    $rating = new rating($ratingoptions);
-    $rating->update_rating($userrating);
-} else { // Delete the rating if the user set to "Rate..."
+    $peergrade = new peergrade($peergradeoptions);
+    $peergrade->update_peergrade($userpeergrade);
+} else { // Delete the peergrade if the user set to "PeerGrade..."
     $options = new stdClass;
     $options->contextid = $context->id;
     $options->component = $component;
-    $options->ratingarea = $ratingarea;
+    $options->peergradearea = $peergradearea;
     $options->userid = $USER->id;
     $options->itemid = $itemid;
 
-    $rm->delete_ratings($options);
+    $rm->delete_peergrades($options);
 }
 
 if (!empty($cm) && $context->contextlevel == CONTEXT_MODULE) {
@@ -105,7 +106,7 @@ if (!empty($cm) && $context->contextlevel == CONTEXT_MODULE) {
     $functionname = $cm->modname . '_update_grades';
     require_once($CFG->dirroot . "/mod/{$cm->modname}/lib.php");
     if (function_exists($functionname)) {
-        $functionname($modinstance, $rateduserid);
+        $functionname($modinstance, $peergradeduserid);
     }
 }
 

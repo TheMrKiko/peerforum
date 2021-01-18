@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * A page to display a list of ratings for a given item (forum post etc)
+ * A page to display a list of peergrades for a given item (forum post etc)
  *
- * @package    core_rating
- * @category   rating
+ * @package    core_peergrade
+ * @category   peergrade
  * @copyright  2010 Andrew Davis
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -28,7 +28,7 @@ require_once("lib.php");
 
 $contextid = required_param('contextid', PARAM_INT);
 $component = required_param('component', PARAM_COMPONENT);
-$ratingarea = required_param('ratingarea', PARAM_AREA);
+$peergradearea = required_param('peergradearea', PARAM_AREA);
 $itemid = required_param('itemid', PARAM_INT);
 $scaleid = required_param('scaleid', PARAM_INT);
 $sort = optional_param('sort', '', PARAM_ALPHA);
@@ -37,9 +37,9 @@ $popup = optional_param('popup', 0, PARAM_INT); // Any non-zero value if in a po
 list($context, $course, $cm) = get_context_info_array($contextid);
 require_login($course, false, $cm);
 
-$url = new moodle_url('/rating/index.php', array('contextid' => $contextid,
+$url = new moodle_url('/peergrade/index.php', array('contextid' => $contextid,
         'component' => $component,
-        'ratingarea' => $ratingarea,
+        'peergradearea' => $peergradearea,
         'itemid' => $itemid,
         'scaleid' => $scaleid));
 if (!empty($sort)) {
@@ -57,22 +57,22 @@ if ($popup) {
 
 $params = array('contextid' => $contextid,
         'component' => $component,
-        'ratingarea' => $ratingarea,
+        'peergradearea' => $peergradearea,
         'itemid' => $itemid,
         'scaleid' => $scaleid);
-if (!has_capability('moodle/rating:view', $context) ||
-        !component_callback($component, 'rating_can_see_item_ratings', array($params), true)) {
-    print_error('noviewrate', 'rating');
+if (!has_capability('moodle/peergrade:view', $context) ||
+        !component_callback($component, 'peergrade_can_see_item_peergrades', array($params), true)) {
+    print_error('noviewpeergrade', 'peergrade');
 }
 
-$canviewallratings = has_capability('moodle/rating:viewall', $context);
+$canviewallpeergrades = has_capability('moodle/peergrade:viewall', $context);
 
 switch ($sort) {
     case 'firstname':
         $sqlsort = "u.firstname ASC";
         break;
-    case 'rating':
-        $sqlsort = "r.rating ASC";
+    case 'peergrade':
+        $sqlsort = "r.peergrade ASC";
         break;
     default:
         $sqlsort = "r.timemodified ASC";
@@ -80,24 +80,24 @@ switch ($sort) {
 
 $scalemenu = make_grades_menu($scaleid);
 
-$strrating = get_string('rating', 'rating');
+$strpeergrade = get_string('peergrade', 'peergrade');
 $strname = get_string('name');
 $strtime = get_string('time');
 
-$PAGE->set_title(get_string('allratingsforitem', 'rating'));
+$PAGE->set_title(get_string('allpeergradesforitem', 'peergrade'));
 echo $OUTPUT->header();
 
-$ratingoptions = new stdClass;
-$ratingoptions->context = $context;
-$ratingoptions->component = $component;
-$ratingoptions->ratingarea = $ratingarea;
-$ratingoptions->itemid = $itemid;
-$ratingoptions->sort = $sqlsort;
+$peergradeoptions = new stdClass;
+$peergradeoptions->context = $context;
+$peergradeoptions->component = $component;
+$peergradeoptions->peergradearea = $peergradearea;
+$peergradeoptions->itemid = $itemid;
+$peergradeoptions->sort = $sqlsort;
 
-$rm = new rating_manager();
-$ratings = $rm->get_all_ratings_for_item($ratingoptions);
-if (!$ratings) {
-    $msg = get_string('noratings', 'rating');
+$rm = new peergrade_manager();
+$peergrades = $rm->get_all_peergrades_for_item($peergradeoptions);
+if (!$peergrades) {
+    $msg = get_string('nopeergrades', 'peergrade');
     echo html_writer::tag('div', $msg, array('class' => 'mdl-align'));
 } else {
     // To get the sort URL, copy the current URL and remove any previous sort.
@@ -107,43 +107,43 @@ if (!$ratings) {
     $table = new html_table;
     $table->cellpadding = 3;
     $table->cellspacing = 3;
-    $table->attributes['class'] = 'generalbox ratingtable';
+    $table->attributes['class'] = 'generalbox peergradetable';
     $table->head = array(
             '',
             html_writer::link(new moodle_url($sorturl, array('sort' => 'firstname')), $strname),
-            html_writer::link(new moodle_url($sorturl, array('sort' => 'rating')), $strrating),
+            html_writer::link(new moodle_url($sorturl, array('sort' => 'peergrade')), $strpeergrade),
             html_writer::link(new moodle_url($sorturl, array('sort' => 'time')), $strtime)
     );
-    $table->colclasses = array('', 'firstname', 'rating', 'time');
+    $table->colclasses = array('', 'firstname', 'peergrade', 'time');
     $table->data = array();
 
-    // If the scale was changed after ratings were submitted some ratings may have a value above the current maximum.
+    // If the scale was changed after peergrades were submitted some peergrades may have a value above the current maximum.
     // We can't just do count($scalemenu) - 1 as custom scales start at index 1, not 0.
-    $maxrating = max(array_keys($scalemenu));
+    $maxpeergrade = max(array_keys($scalemenu));
 
-    foreach ($ratings as $rating) {
-        if (!$canviewallratings and $USER->id != $rating->userid) {
+    foreach ($peergrades as $peergrade) {
+        if (!$canviewallpeergrades and $USER->id != $peergrade->userid) {
             continue;
         }
 
         // Undo the aliasing of the user id column from user_picture::fields().
-        // We could clone the rating object or preserve the rating id if we needed it again
+        // We could clone the peergrade object or preserve the peergrade id if we needed it again
         // but we don't.
-        $rating->id = $rating->userid;
+        $peergrade->id = $peergrade->userid;
 
         $row = new html_table_row();
-        $row->attributes['class'] = 'ratingitemheader';
+        $row->attributes['class'] = 'peergradeitemheader';
         if ($course && $course->id) {
-            $row->cells[] = $OUTPUT->user_picture($rating, array('courseid' => $course->id));
+            $row->cells[] = $OUTPUT->user_picture($peergrade, array('courseid' => $course->id));
         } else {
-            $row->cells[] = $OUTPUT->user_picture($rating);
+            $row->cells[] = $OUTPUT->user_picture($peergrade);
         }
-        $row->cells[] = fullname($rating);
-        if ($rating->rating > $maxrating) {
-            $rating->rating = $maxrating;
+        $row->cells[] = fullname($peergrade);
+        if ($peergrade->peergrade > $maxpeergrade) {
+            $peergrade->peergrade = $maxpeergrade;
         }
-        $row->cells[] = $scalemenu[$rating->rating];
-        $row->cells[] = userdate($rating->timemodified);
+        $row->cells[] = $scalemenu[$peergrade->peergrade];
+        $row->cells[] = userdate($peergrade->timemodified);
         $table->data[] = $row;
     }
     echo html_writer::table($table);

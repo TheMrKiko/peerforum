@@ -15,12 +15,12 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This page receives ajax rating submissions
+ * This page receives ajax peergrade submissions
  *
- * It is similar to rate.php. Unlike rate.php a return url is NOT required.
+ * It is similar to peergrade.php. Unlike peergrade.php a return url is NOT required.
  *
- * @package    core_rating
- * @category   rating
+ * @package    core_peergrade
+ * @category   peergrade
  * @copyright  2010 Andrew Davis
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -28,16 +28,17 @@
 define('AJAX_SCRIPT', true);
 
 require_once('../config.php');
-require_once($CFG->dirroot . '/rating/lib.php');
+require_once($CFG->dirroot . '/peergrade/lib.php');
 
 $contextid = required_param('contextid', PARAM_INT);
 $component = required_param('component', PARAM_COMPONENT);
-$ratingarea = required_param('ratingarea', PARAM_AREA);
+$peergradearea = required_param('peergradearea', PARAM_AREA);
 $itemid = required_param('itemid', PARAM_INT);
 $scaleid = required_param('scaleid', PARAM_INT);
-$userrating = required_param('rating', PARAM_INT);
-$rateduserid = required_param('rateduserid', PARAM_INT); // The user being rated. Required to update their grade.
-$aggregationmethod = optional_param('aggregation', RATING_AGGREGATE_NONE, PARAM_INT); // Used to calculate the aggregate to return.
+$userpeergrade = required_param('peergrade', PARAM_INT);
+$peergradeduserid = required_param('peergradeduserid', PARAM_INT); // The user being peergraded. Required to update their grade.
+$aggregationmethod =
+        optional_param('aggregation', PEERGRADE_AGGREGATE_NONE, PARAM_INT); // Used to calculate the aggregate to return.
 
 $result = new stdClass;
 
@@ -53,21 +54,22 @@ require_login($course, false, $cm);
 
 $contextid = null; // Now we have a context object, throw away the id from the user.
 $PAGE->set_context($context);
-$PAGE->set_url('/rating/rate_ajax.php', array('contextid' => $context->id));
+$PAGE->set_url('/peergrade/peergrade_ajax.php', array('contextid' => $context->id));
 
-if (!confirm_sesskey() || !has_capability('moodle/rating:rate', $context)) {
+if (!confirm_sesskey() || !has_capability('moodle/peergrade:peergrade', $context)) {
     echo $OUTPUT->header();
-    echo get_string('ratepermissiondenied', 'rating');
+    echo get_string('peergradepermissiondenied', 'peergrade');
     echo $OUTPUT->footer();
     die();
 }
 
-$rm = new rating_manager();
-$result = $rm->add_rating($cm, $context, $component, $ratingarea, $itemid, $scaleid, $userrating, $rateduserid, $aggregationmethod);
+$rm = new peergrade_manager();
+$result = $rm->add_peergrade($cm, $context, $component, $peergradearea, $itemid, $scaleid, $userpeergrade, $peergradeduserid,
+        $aggregationmethod);
 
 // Return translated error.
 if (!empty($result->error)) {
-    $result->error = get_string($result->error, 'rating');
+    $result->error = get_string($result->error, 'peergrade');
 }
 
 echo json_encode($result);

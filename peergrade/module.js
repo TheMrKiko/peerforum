@@ -1,22 +1,22 @@
-M.core_rating = {
+M.core_peergrade = {
 
     Y: null,
-    api: M.cfg.wwwroot + '/rating/rate_ajax.php',
+    api: M.cfg.wwwroot + '/peergrade/peergrade_ajax.php',
 
     init: function (Y) {
         this.Y = Y;
-        Y.all('select.postratingmenu').each(this.attach_rating_events, this);
+        Y.all('select.postpeergrademenu').each(this.attach_peergrade_events, this);
 
         //hide the submit buttons
-        this.Y.all('input.postratingmenusubmit').setStyle('display', 'none');
+        this.Y.all('input.postpeergrademenusubmit').setStyle('display', 'none');
     },
 
-    attach_rating_events: function (selectnode) {
-        selectnode.on('change', this.submit_rating, this, selectnode);
+    attach_peergrade_events: function (selectnode) {
+        selectnode.on('change', this.submit_peergrade, this, selectnode);
     },
 
-    submit_rating: function (e, selectnode) {
-        var theinputs = selectnode.ancestor('form').all('.ratinginput');
+    submit_peergrade: function (e, selectnode) {
+        var theinputs = selectnode.ancestor('form').all('.peergradeinput');
         var thedata = [];
 
         var inputssize = theinputs.size();
@@ -43,11 +43,11 @@ M.core_rating = {
                             if (data.itemid) { //do not test data.aggregate or data.count otherwise it doesn't refresh value=0 or no value
                                 var itemid = data.itemid;
 
-                                var node = scope.Y.one('#ratingaggregate' + itemid);
+                                var node = scope.Y.one('#peergradeaggregate' + itemid);
                                 node.set('innerHTML', data.aggregate);
 
-                                // Empty the count value if no ratings.
-                                var node = scope.Y.one('#ratingcount' + itemid);
+                                // Empty the count value if no peergrades.
+                                var node = scope.Y.one('#peergradecount' + itemid);
                                 if (data.count > 0) {
                                     node.set('innerHTML', "(" + data.count + ")");
                                 } else {

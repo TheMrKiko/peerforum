@@ -15,114 +15,114 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Privacy Subsystem implementation for core_ratings.
+ * Privacy Subsystem implementation for core_peergrades.
  *
- * @package    core_rating
+ * @package    core_peergrade
  * @copyright  2018 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace core_rating\privacy;
+namespace core_peergrade\privacy;
 
 use \core_privacy\local\metadata\collection;
 use \core_privacy\local\request\userlist;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot . '/rating/lib.php');
+require_once($CFG->dirroot . '/peergrade/lib.php');
 
 /**
- * Privacy Subsystem implementation for core_ratings.
+ * Privacy Subsystem implementation for core_peergrades.
  *
  * @copyright  2018 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements
-        // The ratings subsystem contains data.
+        // The peergrades subsystem contains data.
         \core_privacy\local\metadata\provider,
 
-        // The ratings subsystem is only ever used to store data for other components.
+        // The peergrades subsystem is only ever used to store data for other components.
         // It does not store any data of its own and does not need to implement the \core_privacy\local\request\subsystem\provider
         // as a result.
 
-        // The ratings subsystem provides a data service to other components.
+        // The peergrades subsystem provides a data service to other components.
         \core_privacy\local\request\subsystem\plugin_provider,
         \core_privacy\local\request\shared_userlist_provider {
 
     /**
-     * Returns metadata about the ratings subsystem.
+     * Returns metadata about the peergrades subsystem.
      *
      * @param collection $collection The initialised collection to add items to.
      * @return  collection     A listing of user data stored through the subsystem.
      */
     public static function get_metadata(collection $collection): collection {
-        // The table 'rating' cotains data that a user has entered.
-        // It stores the user-entered rating alongside a mapping to describe what was mapped.
-        $collection->add_database_table('rating', [
-                'rating' => 'privacy:metadata:rating:rating',
-                'userid' => 'privacy:metadata:rating:userid',
-                'timecreated' => 'privacy:metadata:rating:timecreated',
-                'timemodified' => 'privacy:metadata:rating:timemodified',
-        ], 'privacy:metadata:rating');
+        // The table 'peergrade' cotains data that a user has entered.
+        // It stores the user-entered peergrade alongside a mapping to describe what was mapped.
+        $collection->add_database_table('peergrade', [
+                'peergrade' => 'privacy:metadata:peergrade:peergrade',
+                'userid' => 'privacy:metadata:peergrade:userid',
+                'timecreated' => 'privacy:metadata:peergrade:timecreated',
+                'timemodified' => 'privacy:metadata:peergrade:timemodified',
+        ], 'privacy:metadata:peergrade');
 
         return $collection;
     }
 
     /**
-     * Export all ratings which match the specified component, areaid, and itemid.
+     * Export all peergrades which match the specified component, areaid, and itemid.
      *
-     * If requesting ratings for a users own content, and you wish to include all ratings of that content, specify
+     * If requesting peergrades for a users own content, and you wish to include all peergrades of that content, specify
      * $onlyuser as false.
      *
-     * When requesting ratings for another users content, you should only export the ratings that the specified user
+     * When requesting peergrades for another users content, you should only export the peergrades that the specified user
      * made themselves.
      *
      * @param int $userid The user whose information is to be exported
      * @param \context $context The context being stored.
      * @param array $subcontext The subcontext within the context to export this information
      * @param string $component The component to fetch data from
-     * @param string $ratingarea The ratingarea that the data was stored in within the component
-     * @param int $itemid The itemid within that ratingarea
-     * @param bool $onlyuser Whether to only export ratings that the current user has made, or all ratings
+     * @param string $peergradearea The peergradearea that the data was stored in within the component
+     * @param int $itemid The itemid within that peergradearea
+     * @param bool $onlyuser Whether to only export peergrades that the current user has made, or all peergrades
      */
-    public static function export_area_ratings(
+    public static function export_area_peergrades(
             int $userid,
             \context $context,
             array $subcontext,
             string $component,
-            string $ratingarea,
+            string $peergradearea,
             int $itemid,
             bool $onlyuser = true
     ) {
         global $DB;
 
-        $rm = new \rating_manager();
-        $ratings = $rm->get_all_ratings_for_item((object) [
+        $rm = new \peergrade_manager();
+        $peergrades = $rm->get_all_peergrades_for_item((object) [
                 'context' => $context,
                 'component' => $component,
-                'ratingarea' => $ratingarea,
+                'peergradearea' => $peergradearea,
                 'itemid' => $itemid,
         ]);
 
         if ($onlyuser) {
-            $ratings = array_filter($ratings, function($rating) use ($userid) {
-                return ($rating->userid == $userid);
+            $peergrades = array_filter($peergrades, function($peergrade) use ($userid) {
+                return ($peergrade->userid == $userid);
             });
         }
 
-        if (empty($ratings)) {
+        if (empty($peergrades)) {
             return;
         }
 
-        $toexport = array_map(function($rating) {
+        $toexport = array_map(function($peergrade) {
             return (object) [
-                    'rating' => $rating->rating,
-                    'author' => $rating->userid,
+                    'peergrade' => $peergrade->peergrade,
+                    'author' => $peergrade->userid,
             ];
-        }, $ratings);
+        }, $peergrades);
 
         $writer = \core_privacy\local\request\writer::with_context($context)
-                ->export_related_data($subcontext, 'rating', $toexport);
+                ->export_related_data($subcontext, 'peergrade', $toexport);
     }
 
     /**
@@ -131,33 +131,33 @@ class provider implements
      * If possible an inner join should be used.
      *
      * @param string $alias The name of the table alias to use.
-     * @param string $component The na eof the component to fetch ratings for.
-     * @param string $ratingarea The rating area to fetch results for.
+     * @param string $component The na eof the component to fetch peergrades for.
+     * @param string $peergradearea The peergrade area to fetch results for.
      * @param string $itemidjoin The right-hand-side of the JOIN ON clause.
      * @param int $userid The ID of the user being stored.
      * @param bool $innerjoin Whether to use an inner join (preferred)
      * @return  \stdClass
      */
-    public static function get_sql_join($alias, $component, $ratingarea, $itemidjoin, $userid, $innerjoin = false) {
+    public static function get_sql_join($alias, $component, $peergradearea, $itemidjoin, $userid, $innerjoin = false) {
         static $count = 0;
         $count++;
 
         $userwhere = '';
 
         if ($innerjoin) {
-            // Join the rating table with the specified alias and the relevant join params.
-            $join = "JOIN {rating} {$alias} ON ";
+            // Join the peergrade table with the specified alias and the relevant join params.
+            $join = "JOIN {peergrade} {$alias} ON ";
             $join .= "{$alias}.itemid = {$itemidjoin}";
 
-            $userwhere .= "{$alias}.userid = :ratinguserid{$count} AND ";
-            $userwhere .= "{$alias}.component = :ratingcomponent{$count} AND ";
-            $userwhere .= "{$alias}.ratingarea = :ratingarea{$count}";
+            $userwhere .= "{$alias}.userid = :peergradeuserid{$count} AND ";
+            $userwhere .= "{$alias}.component = :peergradecomponent{$count} AND ";
+            $userwhere .= "{$alias}.peergradearea = :peergradearea{$count}";
         } else {
-            // Join the rating table with the specified alias and the relevant join params.
-            $join = "LEFT JOIN {rating} {$alias} ON ";
-            $join .= "{$alias}.userid = :ratinguserid{$count} AND ";
-            $join .= "{$alias}.component = :ratingcomponent{$count} AND ";
-            $join .= "{$alias}.ratingarea = :ratingarea{$count} AND ";
+            // Join the peergrade table with the specified alias and the relevant join params.
+            $join = "LEFT JOIN {peergrade} {$alias} ON ";
+            $join .= "{$alias}.userid = :peergradeuserid{$count} AND ";
+            $join .= "{$alias}.component = :peergradecomponent{$count} AND ";
+            $join .= "{$alias}.peergradearea = :peergradearea{$count} AND ";
             $join .= "{$alias}.itemid = {$itemidjoin}";
 
             // Match against the specified user.
@@ -165,9 +165,9 @@ class provider implements
         }
 
         $params = [
-                'ratingcomponent' . $count => $component,
-                'ratingarea' . $count => $ratingarea,
-                'ratinguserid' . $count => $userid,
+                'peergradecomponent' . $count => $component,
+                'peergradearea' . $count => $peergradearea,
+                'peergradeuserid' . $count => $userid,
         ];
 
         $return = (object) [
@@ -179,34 +179,34 @@ class provider implements
     }
 
     /**
-     * Deletes all ratings for a specified context, component, ratingarea and itemid.
+     * Deletes all peergrades for a specified context, component, peergradearea and itemid.
      *
-     * Only delete ratings when the item itself was deleted.
+     * Only delete peergrades when the item itself was deleted.
      *
-     * We never delete ratings for one user but not others - this may affect grades, therefore ratings
+     * We never delete peergrades for one user but not others - this may affect grades, therefore peergrades
      * made by particular user are not considered personal information.
      *
-     * @param \context $context Details about which context to delete ratings for.
+     * @param \context $context Details about which context to delete peergrades for.
      * @param string $component Component to delete.
-     * @param string $ratingarea Rating area to delete.
+     * @param string $peergradearea PeerGrade area to delete.
      * @param int $itemid The item ID for use with deletion.
      */
-    public static function delete_ratings(\context $context, string $component = null,
-            string $ratingarea = null, int $itemid = null) {
+    public static function delete_peergrades(\context $context, string $component = null,
+            string $peergradearea = null, int $itemid = null) {
         global $DB;
 
         $options = ['contextid' => $context->id];
         if ($component) {
             $options['component'] = $component;
         }
-        if ($ratingarea) {
-            $options['ratingarea'] = $ratingarea;
+        if ($peergradearea) {
+            $options['peergradearea'] = $peergradearea;
         }
         if ($itemid) {
             $options['itemid'] = $itemid;
         }
 
-        $DB->delete_records('rating', $options);
+        $DB->delete_records('peergrade', $options);
     }
 
     /**
@@ -215,30 +215,30 @@ class provider implements
      * In most situations you will want to specify $userid as null. Per-user tag instances
      * are possible in Tags API, however there are no components or standard plugins that actually use them.
      *
-     * @param \context $context Details about which context to delete ratings for.
+     * @param \context $context Details about which context to delete peergrades for.
      * @param string $component Component to delete.
-     * @param string $ratingarea Rating area to delete.
+     * @param string $peergradearea PeerGrade area to delete.
      * @param string $itemidstest an SQL fragment that the itemid must match. Used
      *      in the query like WHERE itemid $itemidstest. Must use named parameters,
-     *      and may not use named parameters called contextid, component or ratingarea.
+     *      and may not use named parameters called contextid, component or peergradearea.
      * @param array $params any query params used by $itemidstest.
      */
-    public static function delete_ratings_select(\context $context, string $component,
-            string $ratingarea, $itemidstest, $params = []) {
+    public static function delete_peergrades_select(\context $context, string $component,
+            string $peergradearea, $itemidstest, $params = []) {
         global $DB;
-        $params += ['contextid' => $context->id, 'component' => $component, 'ratingarea' => $ratingarea];
-        $DB->delete_records_select('rating',
-                'contextid = :contextid AND component = :component AND ratingarea = :ratingarea AND itemid ' . $itemidstest,
+        $params += ['contextid' => $context->id, 'component' => $component, 'peergradearea' => $peergradearea];
+        $DB->delete_records_select('peergrade',
+                'contextid = :contextid AND component = :component AND peergradearea = :peergradearea AND itemid ' . $itemidstest,
                 $params);
     }
 
     /**
-     * Add the list of users who have rated in the specified constraints.
+     * Add the list of users who have peergraded in the specified constraints.
      *
      * @param userlist $userlist The userlist to add the users to.
-     * @param string $alias An alias prefix to use for rating selects to avoid interference with your own sql.
+     * @param string $alias An alias prefix to use for peergrade selects to avoid interference with your own sql.
      * @param string $component The component to check.
-     * @param string $area The rating area to check.
+     * @param string $area The peergrade area to check.
      * @param string $insql The SQL to use in a sub-select for the itemid query.
      * @param array $params The params required for the insql.
      */
@@ -246,13 +246,13 @@ class provider implements
             userlist $userlist, string $alias, string $component, string $area, string $insql, $params) {
         // Discussion authors.
         $sql = "SELECT {$alias}.userid
-                  FROM {rating} {$alias}
+                  FROM {peergrade} {$alias}
                  WHERE {$alias}.component = :{$alias}component
-                   AND {$alias}.ratingarea = :{$alias}ratingarea
+                   AND {$alias}.peergradearea = :{$alias}peergradearea
                    AND {$alias}.itemid IN ({$insql})";
 
         $params["{$alias}component"] = $component;
-        $params["{$alias}ratingarea"] = $area;
+        $params["{$alias}peergradearea"] = $area;
 
         $userlist->add_from_sql('userid', $sql, $params);
     }
