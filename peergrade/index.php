@@ -80,6 +80,7 @@ $peergradescalemenu = make_grades_menu($peergradescaleid);
 $strpeergrade = get_string('peergrade', 'peerforum');
 $strname = get_string('name');
 $strtime = get_string('time');
+$strfeedback = get_string('feedback');
 
 $PAGE->set_title(get_string('allpeergradesforitem', 'peerforum'));
 echo $OUTPUT->header();
@@ -109,9 +110,10 @@ if (!$peergrades) {
             '',
             html_writer::link(new moodle_url($sorturl, array('sort' => 'firstname')), $strname),
             html_writer::link(new moodle_url($sorturl, array('sort' => 'peergrade')), $strpeergrade),
+            html_writer::link(new moodle_url($sorturl, array('sort' => 'feedback')), $strfeedback),
             html_writer::link(new moodle_url($sorturl, array('sort' => 'time')), $strtime)
     );
-    $table->colclasses = array('', 'firstname', 'peergrade', 'time');
+    $table->colclasses = array('', 'firstname', 'peergrade', 'feedback', 'time');
     $table->data = array();
 
     // If the scale was changed after peergrades were submitted some peergrades may have a value above the current maximum.
@@ -140,6 +142,7 @@ if (!$peergrades) {
             $peergrade->peergrade = $maxpeergrade;
         }
         $row->cells[] = $peergradescalemenu[$peergrade->peergrade];
+        $row->cells[] = $peergrade->feedback;
         $row->cells[] = userdate($peergrade->timemodified);
         $table->data[] = $row;
     }

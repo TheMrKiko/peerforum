@@ -102,10 +102,14 @@ if (isset($_POST['removepeer' . $itemid])) {
                 $numpostsassigned = $peer_info->numpostsassigned;
                 $numposts = $numpostsassigned - 1;
 
+                $numpoststopeergrade = $peer_info->numpoststopeergrade;
+                $numtograde = $numpoststopeergrade - 1;
+
                 $data2 = new stdClass();
                 $data2->id = $peer_info->id;
                 $data2->poststopeergrade = $topeergrade_updated;
                 $data2->numpostsassigned = $numposts;
+                $data2->numpoststopeergrade = $numtograde;
 
                 $DB->update_record("peerforum_peergrade_users", $data2);
 

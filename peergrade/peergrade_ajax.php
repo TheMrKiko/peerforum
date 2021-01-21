@@ -41,6 +41,8 @@ $peergradeduserid = required_param('peergradeduserid', PARAM_INT); // The user b
 $aggregationmethod =
         optional_param('aggregation', PEERGRADE_AGGREGATE_NONE, PARAM_INT); // Used to calculate the aggregate to return.
 $feedback = required_param('feedback', PARAM_TEXT);
+// TODO: change to zero by default?
+// $canshow = optional_param('canshow', 1, PARAM_INT);
 
 $result = new stdClass;
 
