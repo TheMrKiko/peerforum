@@ -206,7 +206,7 @@ class provider implements
             $options['itemid'] = $itemid;
         }
 
-        $DB->delete_records('peergrade', $options);
+        $DB->delete_records('peerforum_peergrade', $options);
     }
 
     /**
@@ -227,7 +227,7 @@ class provider implements
             string $peergradearea, $itemidstest, $params = []) {
         global $DB;
         $params += ['contextid' => $context->id, 'component' => $component, 'peergradearea' => $peergradearea];
-        $DB->delete_records_select('peergrade',
+        $DB->delete_records_select('peerforum_peergrade',
                 'contextid = :contextid AND component = :component AND peergradearea = :peergradearea AND itemid ' . $itemidstest,
                 $params);
     }

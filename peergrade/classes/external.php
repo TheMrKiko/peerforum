@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * PeerGrade external API
+ * Additional functions on PeerGrade external API
  *
  * @package    core_peergrade
  * @category   external
@@ -54,7 +54,7 @@ class core_peergrade_external extends external_api {
                         'component' => new external_value(PARAM_COMPONENT, 'component'),
                         'peergradearea' => new external_value(PARAM_AREA, 'peergrade area'),
                         'itemid' => new external_value(PARAM_INT, 'associated id'),
-                        'scaleid' => new external_value(PARAM_INT, 'scale id'),
+                        'peergradescaleid' => new external_value(PARAM_INT, 'peergradescale id'),
                         'sort' => new external_value(PARAM_ALPHA, 'sort order (firstname, peergrade or timemodified)')
                 )
         );
@@ -68,13 +68,13 @@ class core_peergrade_external extends external_api {
      * @param string $component the name of the component
      * @param string $peergradearea peergrade area
      * @param int $itemid the item id
-     * @param int $scaleid the scale id
+     * @param int $peergradescaleid the scale id
      * @param string $sort sql order (firstname, peergrade or timemodified)
      * @return array Result and possible warnings
      * @throws moodle_exception
      * @since Moodle 2.9
      */
-    public static function get_item_peergrades($contextlevel, $instanceid, $component, $peergradearea, $itemid, $scaleid, $sort) {
+    public static function get_item_peergrades($contextlevel, $instanceid, $component, $peergradearea, $itemid, $peergradescaleid, $sort) {
         global $USER, $PAGE;
 
         $warnings = array();
@@ -85,7 +85,7 @@ class core_peergrade_external extends external_api {
                 'component' => $component,
                 'peergradearea' => $peergradearea,
                 'itemid' => $itemid,
-                'scaleid' => $scaleid,
+                'peergradescaleid' => $peergradescaleid,
                 'sort' => $sort
         );
 
@@ -100,16 +100,16 @@ class core_peergrade_external extends external_api {
                 'component' => $component,
                 'peergradearea' => $peergradearea,
                 'itemid' => $itemid,
-                'scaleid' => $scaleid);
-        if (!has_capability('moodle/peergrade:view', $context) ||
+                'peergradescaleid' => $peergradescaleid);
+        if (!has_capability('mod/peerforum:view', $context) ||
                 !component_callback($component, 'peergrade_can_see_item_peergrades', array($callbackparams), true)) {
-            throw new moodle_exception('noviewpeergrade', 'peergrade');
+            throw new moodle_exception('noviewratingpeer', 'peergrade');
         }
 
         list($context, $course, $cm) = get_context_info_array($context->id);
 
         // Can we see all peergrades?
-        $canviewallpeergrades = has_capability('moodle/peergrade:viewall', $context);
+        $canviewallpeergrades = has_capability('mod/peerforum:viewall', $context);
 
         // Create the Sql sort order string.
         switch ($params['sort']) {
@@ -132,7 +132,7 @@ class core_peergrade_external extends external_api {
 
         $rm = new peergrade_manager();
         $peergrades = $rm->get_all_peergrades_for_item($peergradeoptions);
-        $scalemenu = make_grades_menu($params['scaleid']);
+        $scalemenu = make_grades_menu($params['peergradescaleid']);
 
         // If the scale was changed after peergrades were submitted some peergrades may have a value above the current maximum.
         // We can't just do count($scalemenu) - 1 as custom scales start at index 1, not 0.
@@ -149,11 +149,12 @@ class core_peergrade_external extends external_api {
                 $result = array();
                 $result['id'] = $peergrade->id;
                 $result['userid'] = $peergrade->userid;
+                $result['feedback'] = $peergrade->feedback;
                 $result['userfullname'] = fullname($peergrade);
                 $result['peergrade'] = $scalemenu[$peergrade->peergrade];
                 $result['timemodified'] = $peergrade->timemodified;
 
-                // The peergrade object has all the required fields for genepeergrade the picture url.
+                // The peergrade object has all the required fields for generate the picture url.
                 // Undo the aliasing of the user id column from user_picture::fields().
                 $peergrade->id = $peergrade->userid;
                 $userpicture = new user_picture($peergrade);
@@ -188,6 +189,7 @@ class core_peergrade_external extends external_api {
                                                 'userpictureurl' => new external_value(PARAM_URL, 'URL user picture'),
                                                 'userfullname' => new external_value(PARAM_NOTAGS, 'user fullname'),
                                                 'peergrade' => new external_value(PARAM_NOTAGS, 'peergrade on scale'),
+                                                'feedback' => new external_value(PARAM_TEXT, 'peergrader feedback'),
                                                 'timemodified' => new external_value(PARAM_INT, 'time modified (timestamp)')
                                         ), 'PeerGrade'
                                 ), 'list of peergrades'
@@ -211,8 +213,9 @@ class core_peergrade_external extends external_api {
                         'component' => new external_value(PARAM_COMPONENT, 'component'),
                         'peergradearea' => new external_value(PARAM_AREA, 'peergrade area'),
                         'itemid' => new external_value(PARAM_INT, 'associated id'),
-                        'scaleid' => new external_value(PARAM_INT, 'scale id'),
+                        'peergradescaleid' => new external_value(PARAM_INT, 'scale id'),
                         'peergrade' => new external_value(PARAM_INT, 'user peergrade'),
+                        'feedback' => new external_value(PARAM_INT, 'user feedback'),
                         'peergradeduserid' => new external_value(PARAM_INT, 'peergraded user id'),
                         'aggregation' => new external_value(PARAM_INT, 'agreggation method', VALUE_DEFAULT,
                                 PEERGRADE_AGGREGATE_NONE)
@@ -228,17 +231,19 @@ class core_peergrade_external extends external_api {
      * @param string $component the name of the component
      * @param string $peergradearea peergrade area
      * @param int $itemid the item id
-     * @param int $scaleid the scale id
+     * @param int $peergradescaleid the scale id
      * @param int $peergrade the user peergrade
      * @param int $peergradeduserid the peergraded user id
      * @param int $aggregation the aggregation method
+     * @param string $feedback the user feedback
      * @return array result and possible warnings
      * @throws moodle_exception
      * @since Moodle 3.2
      */
-    public static function add_peergrade($contextlevel, $instanceid, $component, $peergradearea, $itemid, $scaleid, $peergrade,
+    public static function add_peergrade($contextlevel, $instanceid, $component, $peergradearea, $itemid, $peergradescaleid, $peergrade,
             $peergradeduserid,
-            $aggregation = PEERGRADE_AGGREGATE_NONE) {
+            $aggregation = PEERGRADE_AGGREGATE_NONE,
+            $feedback) {
         $warnings = array();
 
         $params = array(
@@ -247,10 +252,11 @@ class core_peergrade_external extends external_api {
                 'component' => $component,
                 'peergradearea' => $peergradearea,
                 'itemid' => $itemid,
-                'scaleid' => $scaleid,
+                'peergradescaleid' => $peergradescaleid,
                 'peergrade' => $peergrade,
                 'peergradeduserid' => $peergradeduserid,
                 'aggregation' => $aggregation,
+                'feedback' => $feedback,
         );
 
         // Validate and normalize parameters.
@@ -260,12 +266,12 @@ class core_peergrade_external extends external_api {
         self::validate_context($context);
         $cm = get_coursemodule_from_id(false, $context->instanceid, 0, false, MUST_EXIST);
 
-        require_capability('moodle/peergrade:peergrade', $context);
+        require_capability('mod/peerforum:peergrade', $context);
 
         $rm = new peergrade_manager();
         $result = $rm->add_peergrade($cm, $context, $params['component'], $params['peergradearea'], $params['itemid'],
-                $params['scaleid'],
-                $params['peergrade'], $params['peergradeduserid'], $params['aggregation']);
+                $params['peergradescaleid'],
+                $params['peergrade'], $params['peergradeduserid'], $params['aggregation'], $params['feedback']);
 
         if (!empty($result->error)) {
             throw new moodle_exception($result->error, 'peergrade');

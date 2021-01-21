@@ -2,13 +2,12 @@ M.core_peergrade = {
 
     Y: null,
     api: M.cfg.wwwroot + '/peergrade/peergrade_ajax.php',
+    textfeedback: null,
 
     init: function (Y) {
         this.Y = Y;
         Y.all('select.postpeergrademenu').each(this.attach_peergrade_events, this);
 
-        //hide the submit buttons
-        this.Y.all('input.postpeergrademenusubmit').setStyle('display', 'none');
     },
 
     attach_peergrade_events: function (selectnode) {

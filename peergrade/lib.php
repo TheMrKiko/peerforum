@@ -16,6 +16,7 @@
 
 /**
  * A class representing a single peergrade and containing some static methods for manipulating peergrades
+ * Additional functions for peergrading in PeerForums
  *
  * @package    core_peergrade
  * @subpackage peergrade
@@ -24,7 +25,7 @@
  */
 
 define('PEERGRADE_UNSET_PEERGRADE', -999);
-
+define('PEERGRADE_UNSET_FEEDBACK', '');
 define('PEERGRADE_AGGREGATE_NONE', 0); // No peergrades.
 define('PEERGRADE_AGGREGATE_AVERAGE', 1);
 define('PEERGRADE_AGGREGATE_COUNT', 2);
@@ -33,6 +34,183 @@ define('PEERGRADE_AGGREGATE_MINIMUM', 4);
 define('PEERGRADE_AGGREGATE_SUM', 5);
 
 define('PEERGRADE_DEFAULT_SCALE', 5);
+define('UNSET_STUDENT', -1);
+define('UNSET_STUDENT_SELECT', -2);
+
+if (is_file($CFG->dirroot . '/mod/peerforum/lib.php')) {
+    require_once($CFG->dirroot . '/mod/peerforum/lib.php');
+} else {
+    return;
+}
+
+function update_post_peergraders($postid, $peergraders) {
+    global $DB;
+
+    $post = $DB->get_record('peerforum_posts', array('id' => $postid));
+    $post_graders = $post->peergraders;
+
+    $post_graders = explode(';', $post_graders);
+    $post_graders = array_filter($post_graders);
+
+    $peergraders = array_filter($peergraders);
+
+    foreach ($peergraders as $key => $value) {
+        array_push($post_graders, $peergraders[$key]);
+    }
+
+    $post_graders = array_filter($post_graders);
+    $post_graders_upd = implode(';', $post_graders);
+
+    $data = new stdClass();
+    $data->id = $postid;
+    $data->peergraders = $post_graders_upd;
+
+    $DB->update_record('peerforum_posts', $data);
+
+}
+
+function update_graders($array_peergraders, $postid, $courseid) {
+    global $DB;
+
+    foreach ($array_peergraders as $i => $value) {
+        $userid = $array_peergraders[$i];
+        $existing_info = $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $userid));
+
+        $existing_posts = $existing_info->poststopeergrade;
+
+        $data = new stdClass;
+        $data->courseid = $courseid;
+        $data->iduser = $userid;
+
+        if (empty($existing_info)) {
+            $data->poststopeergrade = $postid;
+            $data->postspeergradedone = null;
+            $data->postsblocked = null;
+            $data->postsexpired = null;
+
+            $data->numpostsassigned = 1;
+
+            $DB->insert_record('peerforum_peergrade_users', $data);
+        } else {
+            $array_posts = array();
+            $posts = explode(';', $existing_posts);
+            $posts = array_filter($posts);
+
+            adjust_database();
+
+            foreach ($posts as $post => $value) {
+                array_push($array_posts, $posts[$post]);
+            }
+
+            array_push($array_posts, $postid);
+
+            $array_posts = array_filter($array_posts);
+            $posts = implode(';', $array_posts);
+
+            $data->poststopeergrade = $posts;
+            $data->id = $existing_info->id;
+
+            $DB->update_record('peerforum_peergrade_users', $data);
+        }
+    }
+}
+
+function assign_random($courseid, $array_users, $postauthor, $postid, $peerid) {
+    global $DB;
+    $array_peergraders = array();
+
+    $peers = $DB->get_record('peerforum_posts', array('id' => $postid))->peergraders;
+    $peers = explode(';', $peers);
+    $peers = array_filter($peers);
+
+    if (in_array($peerid, $array_users)) {
+        $keyy = array_search($peerid, $array_users);
+        unset($array_users[$keyy]);
+        $array_users = array_filter($array_users);
+    }
+
+    if (in_array($postauthor, $array_users)) {
+        $keyy = array_search($postauthor, $array_users);
+        unset($array_users[$keyy]);
+        $array_users = array_filter($array_users);
+    }
+
+    $array_users = array_values($array_users);
+    $count_peers = count($array_users);
+
+    $random = rand(0, $count_peers - 1);
+
+    if (!empty($array_users)) {
+
+        $peer = $array_users[$random];
+
+        $conflicts = $DB->get_records('peerforum_peergrade_conflict', array('courseid' => $courseid));
+
+        $conflict = 0;
+
+        foreach ($conflicts as $id => $value) {
+            $students = explode(';', $conflicts[$id]->idstudents);
+            $students = array_filter($students);
+
+            if (in_array(-1, $students)) {
+                $a = array_search(-1, $students);
+                unset($students[$a]);
+                $sts = implode(';', $students);
+                $data = new stdClass();
+                $data->id = $conflicts[$id]->id;
+                $data->idstudents = $sts;
+                $DB->update_record('peerforum_peergrade_conflict', $data);
+            }
+
+            if (in_array($peer, $students) && in_array($postauthor, $students)) {
+                $conflict = 1;
+                break;
+            }
+        }
+
+        if ($conflict == 0) {
+            $key = array_search($peer, $array_users);
+            unset($array_users[$key]);
+            $array_users_upd = array_filter($array_users);
+
+            assign_random($courseid, $array_users_upd, $postauthor, $postid, $peerid);
+        }
+        if ($conflict == 1) {
+            $key = array_search($peer, $array_users);
+            unset($array_users[$key]);
+            $array_users_upd = array_filter($array_users);
+
+            assign_random($courseid, $array_users_upd, $postauthor, $postid, $peerid);
+        }
+    }
+
+    update_graders($array_peergraders, $postid, $courseid);
+    update_post_peergraders($postid, $array_peergraders);
+}
+
+function assign_one_peergrader($postid, $courseid, $peerid) {
+    global $DB, $PAGE;
+
+    $post = $DB->get_record('peerforum_posts', array('id' => $postid));
+    $postauthor = $post->userid;
+
+    $enroledusers = get_students_enroled($courseid);
+
+    if (in_array($postauthor, $enroledusers)) {
+        $key = array_search($postauthor, $enroledusers);
+        unset($enroledusers[$key]);
+        $enroledusers = array_filter($enroledusers);
+    }
+
+    $array_users = array();
+
+    foreach ($enroledusers as $id => $value) {
+        array_push($array_users, $id);
+    }
+
+    $count_peers = count($array_users);
+    assign_random($courseid, $array_users, $postauthor, $postid, $peerid);
+}
 
 /**
  * The peergrade class represents a single peergrade by a single user
@@ -51,7 +229,7 @@ class peergrade implements renderable {
     public $context;
 
     /**
-     * @var string The component using peergrades. For example "mod_forum"
+     * @var string The component using peergrades. For example "mod_peerforum"
      */
     public $component;
 
@@ -67,9 +245,9 @@ class peergrade implements renderable {
     public $itemid;
 
     /**
-     * @var int The id scale (1-5, 0-100) that was in use when the peergrade was submitted
+     * @var int The id peergradescale (1-5, 0-100) that was in use when the peergrade was submitted
      */
-    public $scaleid;
+    public $peergradescaleid;
 
     /**
      * @var int The id of the user who submitted the peergrade
@@ -112,20 +290,32 @@ class peergrade implements renderable {
     public $itemuserid = null;
 
     /**
+     * @var string The feedback of a peergraded post
+     */
+    public $feedback = null;
+
+    
+    /**
+     * @var array The peergraders
+     */
+    public $peergraders = null;
+
+    /**
      * Constructor.
      *
      * @param stdClass $options {
      *            context => context context to use for the peergrade [required]
-     *            component => component using peergrades ie mod_forum [required]
+     *            component => component using peergrades ie mod_peerforum [required]
      *            peergradearea => peergradearea to associate this peergrade with [required]
      *            itemid  => int the id of the associated item (forum post, glossary item etc) [required]
-     *            scaleid => int The scale in use when the peergrade was submitted [required]
+     *            peergradescaleid => int The peergradescale in use when the peergrade was submitted [required]
      *            userid  => int The id of the user who submitted the peergrade [required]
      *            settings => Settings for the peergrade object [optional]
      *            id => The id of this peergrade (if the peergrade is from the db) [optional]
      *            aggregate => The aggregate for the peergrade [optional]
      *            count => The number of peergrades [optional]
      *            peergrade => The peergrade given by the user [optional]
+     *            peergraders => The peergraders [optional]
      * }
      */
     public function __construct($options) {
@@ -133,7 +323,7 @@ class peergrade implements renderable {
         $this->component = $options->component;
         $this->peergradearea = $options->peergradearea;
         $this->itemid = $options->itemid;
-        $this->scaleid = $options->scaleid;
+        $this->peergradescaleid = $options->peergradescaleid;
         $this->userid = $options->userid;
 
         if (isset($options->settings)) {
@@ -151,6 +341,12 @@ class peergrade implements renderable {
         if (isset($options->peergrade)) {
             $this->peergrade = $options->peergrade;
         }
+        if (isset($options->feedback)) {
+            $this->feedback = $options->feedback;
+        }
+        if (isset($options->peergraders)) {
+            $this->peergraders = $options->peergraders;
+        }
     }
 
     /**
@@ -158,7 +354,7 @@ class peergrade implements renderable {
      *
      * @param int $peergrade the integer value of this peergrade
      */
-    public function update_peergrade($peergrade) {
+    public function update_peergrade($peergrade, $feedback = null) {
         global $DB;
 
         $time = time();
@@ -166,6 +362,7 @@ class peergrade implements renderable {
         $data = new stdClass;
         $data->peergrade = $peergrade;
         $data->timemodified = $time;
+        $data->feedback = $feedback;
 
         $item = new stdclass();
         $item->id = $this->itemid;
@@ -177,29 +374,42 @@ class peergrade implements renderable {
         $peergradeoptions->peergradearea = $this->peergradearea;
         $peergradeoptions->items = $items;
         $peergradeoptions->aggregate = PEERGRADE_AGGREGATE_AVERAGE; // We dont actually care what aggregation method is applied.
-        $peergradeoptions->scaleid = $this->scaleid;
+        $peergradeoptions->peergradescaleid = $this->peergradescaleid;
         $peergradeoptions->userid = $this->userid;
+        $peergradeoptions->feedback = $feedback;
 
         $rm = new peergrade_manager();
         $items = $rm->get_peergrades($peergradeoptions);
         $firstitem = $items[0]->peergrade;
 
+        if (!empty($firstitem->id)) {
+            $peergrader = $rm->get_post_peergrader($firstitem->id);
+        }
+
+        //obj does not exist in DB
         if (empty($firstitem->id)) {
             // Insert a new peergrade.
             $data->contextid = $this->context->id;
             $data->component = $this->component;
             $data->peergradearea = $this->peergradearea;
             $data->peergrade = $peergrade;
-            $data->scaleid = $this->scaleid;
+            $data->peergradescaleid = $this->peergradescaleid;
+            $data->peergradescale = 0;
             $data->userid = $this->userid;
             $data->itemid = $this->itemid;
+            $data->feedback = $feedback;
             $data->timecreated = $time;
             $data->timemodified = $time;
-            $DB->insert_record('peergrade', $data);
-        } else {
+            $data->peergraderid = 0;
+            $data->scaleid = 0;
+
+            $DB->insert_record('peerforum_peergrade', $data);
+        }
+
+        if (!empty($firstitem->id) && $peergrader == $this->userid) {
             // Update the peergrade.
             $data->id = $firstitem->id;
-            $DB->update_record('peergrade', $data);
+            $DB->update_record('peerforum_peergrade', $data);
         }
     }
 
@@ -225,16 +435,453 @@ class peergrade implements renderable {
         // Only display aggregate if aggregation method isn't COUNT.
         $aggregatestr = '';
         if (is_numeric($aggregate) && $method != PEERGRADE_AGGREGATE_COUNT) {
-            if ($method != PEERGRADE_AGGREGATE_SUM && !$this->settings->scale->isnumeric) {
+            if ($method != PEERGRADE_AGGREGATE_SUM && !$this->settings->peergradescale->isnumeric) {
 
                 // Round aggregate as we're using it as an index.
-                $aggregatestr .= $this->settings->scale->scaleitems[round($aggregate)];
-            } else { // Aggregation is SUM or the scale is numeric.
+                $aggregatestr .= $this->settings->peergradescale->peergradescaleitems[round($aggregate)];
+            } else { // Aggregation is SUM or the peergradescale is numeric.
                 $aggregatestr .= round($aggregate, 1);
             }
         }
 
         return $aggregatestr;
+    }
+
+    /**
+     * Returns the number of peergraders per post.
+     *
+     * @return
+     */
+    public function get_num_peergrades($postid) {
+        global $DB;
+
+        $sql = "SELECT p.itemid, COUNT(p.peergrade) AS countpeergraders
+                  FROM {peerforum_peergrade} p
+                 WHERE p.itemid = $postid AND p.feedback != ''";
+        $num = $DB->get_records_sql($sql);
+
+        $count = $num[$postid]->countpeergraders;
+
+        return $count;
+
+    }
+
+    /**
+     * Returns the number of peergraders per post.
+     *
+     * @return
+     */
+    public function get_time_modified($id) {
+        global $DB;
+
+        $sql = "SELECT p.id, p.timemodified
+                  FROM {peerforum_peergrade} p
+                 WHERE p.id = $id AND p.feedback != '' OR p.feedback != NULL ";
+        $num = $DB->get_records_sql($sql);
+
+        if (!empty($num)) {
+            $time = $num[$id]->timemodified;
+            return $time;
+
+        }
+
+        return;
+
+    }
+
+    /**
+     * Returns the number of peergraders per post.
+     *
+     * @return
+     */
+    public function exists_feedback($postid) {
+        global $DB;
+
+        /*    $sql = "SELECT p.itemid
+                      FROM {peergrade} p
+                     WHERE p.itemid = $postid AND p.feedback != ''";
+            $post = $DB->get_records_sql($sql);*/
+
+        $sql = "SELECT p.id, p.feedback, p.userid, p.peergrade, p.itemid
+                FROM {peerforum_peergrade} p
+                WHERE p.itemid = $postid";
+        $feedback = $DB->get_records_sql($sql);
+
+        /*    if(empty($feedback)){
+                return false;
+            }else {return true;}
+            */
+        return $feedback;
+
+    }
+
+    /**
+     * Returns this peergrades aggregate value as a string.
+     *
+     * @return string peergrades aggregate value
+     */
+    public function get_feedback($peergrade) {
+
+        global $DB;
+
+        $postid = $peergrade->itemid;
+
+        $sql = "SELECT p.itemid, p.feedback
+                  FROM {peerforum_peergrade} p
+                 WHERE p.itemid = $postid AND p.feedback != ''";
+        $feedback = $DB->get_records_sql($sql);
+
+        return $feedback[$postid]->feedback;
+
+    }
+
+    /**
+     * Returns this peergrades aggregate value as a string.
+     *
+     * @return string peergrades aggregate value
+     */
+    public function post_already_peergraded_by_user($userid, $postid, $courseid) {
+
+        global $DB;
+
+        $sql = "SELECT p.iduser, p.postspeergradedone
+              FROM {peerforum_peergrade_users} p
+             WHERE p.iduser = $userid AND p.courseid = $courseid ";
+        $posts = $DB->get_records_sql($sql);
+
+        $done = '0';
+        if (!empty($posts)) {
+            $all_posts = explode(";", $posts[$userid]->postspeergradedone);
+            $all_posts = array_filter($all_posts);
+
+            if (in_array($postid, $all_posts)) {
+                $done = '1';
+
+            } else {
+                $done = '0';
+            }
+        }
+        return $done;
+
+    }
+
+    public function post_already_peergraded($postid, $userid) {
+
+        global $DB;
+
+        $sql = "SELECT p.id
+              FROM {peerforum_peergrade} p
+              WHERE p.itemid = $postid AND p.userid=$userid";
+        $post = $DB->get_records_sql($sql);
+
+        if (!empty($post)) {
+
+            return 1;
+        } else {
+            return 0;
+        }
+
+    }
+
+    /**
+     * Returns this peergrades aggregate value as a string.
+     *
+     * @return string peergrades aggregate value
+     */
+    public function get_time_created($postid) {
+
+        global $DB;
+
+        $sql = "SELECT p.id, p.created
+              FROM {peerforum_posts} p
+             WHERE p.id = $postid ";
+        $post_time_created = $DB->get_records_sql($sql);
+
+        return $post_time_created[$postid]->created;
+
+    }
+
+    /*
+    public function get_time_assigned($postid, $userid) {
+        global $DB;
+
+        $time = $DB->get_record('peerforum_time_assigned', array('postid' => $postid, 'userid' => $userid));
+
+        if(!empty($time)){
+            return $time->timeassigned;
+        } else {
+            return null;
+        }
+    }
+    */
+    public function get_time_modified_peergrade($postid) {
+        global $DB;
+
+        $time = $DB->get_record('peerforum_time_assigned', array('postid' => $postid, 'userid' => $userid));
+
+        return $time->timemodified;
+    }
+
+    public function verify_end_peergrade_post($postid, $peerforum) {
+        global $DB;
+
+        $finish_peergrade = $peerforum->finishpeergrade;
+
+        if ($finish_peergrade) {
+            $peergrades = $DB->get_records('peerforum_peergrade', array('itemid' => $postid));
+
+            $num_peergrades = count($peergrades);
+
+            $num_ends_peergrade = $peerforum->minpeergraders;
+
+            if ($num_peergrades == $num_ends_peergrade) {
+                //peergrade ends to this post
+                return 1;
+            } else {
+                //do not end peergrade to this post
+                return 0;
+            }
+        }
+        //do not end peergrade to this post
+        return 0;
+    }
+
+    public function time_to_see_feedbacks($peerforum, $userid, $postid, $grader, $post_expired) {
+        global $DB, $PAGE;
+
+        if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            if ($peerforum->whenfeedback == 'always') {
+                return 1;
+            } else if ($peerforum->whenfeedback == 'after peergrade ends') {
+
+                //if post expired, everyone can see
+                if ($peerforum->expirepeergrade == 1 && $post_expired) {
+                    return 1;
+                }
+
+                $peergrade = $DB->get_record('peerforum_peergrade', array('itemid' => $postid, 'userid' => $userid));
+
+                if ($grader == $userid) {
+                    return 1;
+                } else {
+                    $count = $DB->count_records('peerforum_peergrade', array('itemid' => $postid));
+                    $min = $peerforum->minpeergraders;
+
+                    if ($count >= $min) {
+                        return 1;
+                    } else {
+                        return 0;
+                    }
+                }
+            }
+        }
+        if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            return 1;
+        }
+    }
+
+    public function time_to_see_grades($peerforum, $userid, $postid, $grader, $post_expired) {
+        global $DB, $PAGE;
+
+        if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            if ($peerforum->whenpeergrades == 'always') {
+                return 1;
+            } else if ($peerforum->whenpeergrades == 'after peergrade ends') {
+
+                //if post expired, everyone can see
+                if ($peerforum->expirepeergrade == 1 && $post_expired) {
+                    return 1;
+                }
+
+                $peergrade = $DB->get_record('peerforum_peergrade', array('itemid' => $postid, 'userid' => $userid));
+
+                if ($grader == $userid) {
+                    return 1;
+                } else {
+                    $count = $DB->count_records('peerforum_peergrade', array('itemid' => $postid));
+                    $min = $peerforum->minpeergraders;
+
+                    if ($count >= $min) {
+                        return 1;
+                    } else {
+                        return 0;
+                    }
+                }
+            }
+        }
+        if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            return 1;
+        }
+    }
+
+    public function can_see_grades($peerforum, $userid, $postid, $grader, $post_expired) {
+        global $DB, $PAGE;
+
+        if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            if ($peerforum->peergradesvisibility == 'onlyprofessor') {
+
+                if ($grader == $userid) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            } else {
+                if ($peerforum->peergradesvisibility == 'public') {
+                    return 1;
+                } else if ($peerforum->peergradesvisibility == 'private') {
+
+                    //if post expired, everyone can see
+                    if ($peerforum->expirepeergrade == 1 && $post_expired) {
+                        return 1;
+                    }
+
+                    $postauthor = $DB->get_record('peerforum_posts', array('id' => $postid))->userid;
+
+                    //can see if post author
+                    if ($postauthor == $userid) {
+                        return 1;
+                    } else if (!empty($grader)) {
+                        //can see if peergrade author
+                        if ($grader == $userid) {
+                            return 1;
+                        } else {
+                            return 0;
+                        }
+                    }
+                } else {
+                    return 0;
+                }
+            }
+        }
+        if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            return 1;
+        }
+    }
+
+    public function can_see_feedbacks($peerforum, $userid, $postid, $grader, $post_expired) {
+        global $DB, $PAGE;
+
+        if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+
+            if ($peerforum->feedbackvisibility == 'onlyprofessor') {
+                $peergrade = $DB->get_record('peerforum_peergrade', array('itemid' => $postid, 'userid' => $userid));
+
+                if ($grader == $userid) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            } else {
+                if ($peerforum->feedbackvisibility == 'public') {
+                    return 1;
+                } else if ($peerforum->feedbackvisibility == 'private') {
+
+                    //if post expired, everyone can see
+                    if ($peerforum->expirepeergrade == 1 && $post_expired) {
+                        return 1;
+                    }
+
+                    $postauthor = $DB->get_record('peerforum_posts', array('id' => $postid))->userid;
+
+                    //can see if post author
+                    if ($postauthor == $userid) {
+                        return 1;
+                    } //can see if peergrade author
+                    else if ($grader == $userid) {
+                        return 1;
+                    } else {
+                        return 0;
+                    }
+                } else {
+                    return 0;
+                }
+            }
+        }
+        if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            return 1;
+        }
+    }
+
+    public function verify_exclusivity($postauthor, $grader, $courseid) {
+        global $DB;
+
+        $conflicts = $DB->get_records('peerforum_peergrade_conflict', array('courseid' => $courseid));
+        $conflict = 0;
+
+        foreach ($conflicts as $id => $value) {
+            $students = explode(';', $conflicts[$id]->idstudents);
+            $students = array_filter($students);
+
+            if (in_array($grader, $students) && in_array($postauthor, $students)) {
+                $conflict = 1;
+                break;
+            }
+        }
+        return $conflict;
+    }
+
+        /**
+     * Returns true if the user is able to peergrade this peergrade object
+     *
+     * @param int $userid Current user assumed if left empty
+     * @return bool true if the user is able to ratepeer this peergrade object
+     */
+    public function can_peergrade_this_post($userid, $postid, $courseid) {
+        global $DB;
+
+        if (empty($userid)) {
+            global $USER;
+            $userid = $USER->id;
+        }
+        // You can't peergrade your item.
+        if ($this->itemuserid == $userid) {
+            return false;
+        }
+
+        // You can't peergrade if you don't have the system cap.
+        if (!$this->settings->permissions->peergrade) {
+            return false;
+        }
+
+        // You can't peergrade if the item was outside of the assessment times.
+        $timestart = $this->settings->assesstimestart;
+        $timefinish = $this->settings->assesstimefinish;
+        $timecreated = $this->itemtimecreated;
+        if (!empty($timestart) && !empty($timefinish) && ($timecreated < $timestart || $timecreated > $timefinish)) {
+            return false;
+        }
+
+        $sql = "SELECT p.id, p.peergraders
+              FROM {peerforum_posts} p
+             WHERE p.id = $postid AND p.peergraders != ''";
+        $peergraders = $DB->get_records_sql($sql);
+
+        if (!empty($peergraders)) {
+            $users_can_peer = array();
+            $users_can_peer = explode(';', $peergraders[$postid]->peergraders);
+            $users_can_peer = array_filter($users_can_peer);
+
+            if (in_array($userid, $users_can_peer)) {
+                $blocked = $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $userid));
+                if (!empty($blocked)) {
+                    $posts_blocked = explode(';', $blocked->postsblocked);
+                    $posts_blocked = array_filter($posts_blocked);
+
+                    if (!in_array($postid, $posts_blocked)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return true;
+                }
+            } else {
+                return false;
+            }
+
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -254,10 +901,6 @@ class peergrade implements renderable {
         }
         // You can't peergrade if you don't have the system cap.
         if (!$this->settings->permissions->peergrade) {
-            return false;
-        }
-        // You can't peergrade if you don't have the plugin cap.
-        if (!$this->settings->pluginpermissions->peergrade) {
             return false;
         }
 
@@ -318,7 +961,7 @@ class peergrade implements renderable {
                 'component' => $this->component,
                 'peergradearea' => $this->peergradearea,
                 'itemid' => $this->itemid,
-                'scaleid' => $this->settings->scale->id
+                'peergradescaleid' => $this->settings->peergradescale->id
         );
         if ($popup) {
             $attributes['popup'] = 1;
@@ -333,7 +976,50 @@ class peergrade implements renderable {
      * @param moodle_url|string $returnurl The URL to return to.
      * @return moodle_url can be used to peergrade the associated item.
      */
-    public function get_peergrade_url($peergrade = null, $returnurl = null) {
+    public function get_peergrade_url($peergrade = null, $returnurl = null, $iscriteria = null) {
+        if (empty($returnurl)) {
+            if (!empty($this->settings->returnurl)) {
+                $returnurl = $this->settings->returnurl;
+            } else {
+                global $PAGE;
+                $returnurl = $PAGE->url;
+            }
+        }
+        global $DB;
+        $peerforumid = $DB->get_record('course_modules', array('id' => $this->context->instanceid))->instance;
+
+        $args = array(
+                'contextid' => $this->context->id,
+                'component' => $this->component,
+                'peergradearea' => $this->peergradearea,
+                'itemid' => $this->itemid,
+                'feedback' => $this->feedback,
+                'peergradescaleid' => $this->settings->peergradescale->id,
+                'returnurl' => $returnurl,
+                'peergradeduserid' => $this->itemuserid,
+                'aggregation' => $this->settings->aggregationmethod,
+                'sesskey' => sesskey(),
+                'peerforumid' => $peerforumid
+        );
+        if (!empty($peergrade)) {
+            $args['peergrade'] = $peergrade;
+        }
+        if (!$iscriteria) {
+            $url = new moodle_url('/peergrade/peergrade.php', $args);
+        } else if ($iscriteria) {
+            $url = new moodle_url('/peergradecriteria/peergradecriteria.php', $args);
+        }
+        return $url;
+    }
+
+    /**
+     * Returns a URL that can be used to feedback the associated item.
+     *
+     * @param int|null $peergrade The peergrade to give the item, if null then no peergrade param is added.
+     * @param moodle_url|string $returnurl The URL to return to.
+     * @return moodle_url can be used to peergrade the associated item.
+     */
+    public function get_submitfeedback_url($feedback = null, $returnurl = null) {
         if (empty($returnurl)) {
             if (!empty($this->settings->returnurl)) {
                 $returnurl = $this->settings->returnurl;
@@ -347,16 +1033,18 @@ class peergrade implements renderable {
                 'component' => $this->component,
                 'peergradearea' => $this->peergradearea,
                 'itemid' => $this->itemid,
-                'scaleid' => $this->settings->scale->id,
+                'feedback' => $this->feedback,
+                'peergradescaleid' => $this->settings->peergradescale->id,
                 'returnurl' => $returnurl,
                 'peergradeduserid' => $this->itemuserid,
                 'aggregation' => $this->settings->aggregationmethod,
                 'sesskey' => sesskey()
         );
-        if (!empty($peergrade)) {
-            $args['peergrade'] = $peergrade;
+        if (!empty($feedback)) {
+            $args['feedback'] = $feedback;
         }
-        $url = new moodle_url('/peergrade/peergrade.php', $args);
+        //$CFG->dirroot . '/mod/peerforum/submitfeedback.php'
+        $url = new moodle_url('/mod/peerforum/submitfeedback.php', $args);
         return $url;
     }
 
@@ -374,7 +1062,7 @@ class peergrade implements renderable {
 class peergrade_manager {
 
     /**
-     * @var array An array of calculated scale options to save us genepeergrade them for each request.
+     * @var array An array of calculated scale options to save us generate them for each request.
      */
     protected $scales = array();
 
@@ -392,7 +1080,7 @@ class peergrade_manager {
      * @global moodle_database $DB
      */
     public function delete_peergrades($options) {
-        global $DB;
+        global $DB, $COURSE;
 
         if (empty($options->contextid)) {
             throw new coding_exception('The context option is a required option when deleting peergrades.');
@@ -411,7 +1099,261 @@ class peergrade_manager {
                 $conditions[$field] = $options->{$option};
             }
         }
-        $DB->delete_records('peergrade', $conditions);
+        $DB->delete_records('peerforum_peergrade', $conditions);
+
+        $this->delete_post_peergrade($options->itemid, $COURSE->id);
+    }
+
+    public function delete_post_peergrade($postid, $courseid) {
+        global $DB;
+
+        $sql = "SELECT p.iduser, p.id, p.postspeergradedone, p.poststopeergrade, p.postsblocked, p.numpostsassigned
+                  FROM {peerforum_peergrade_users} p
+                  WHERE p.courseid = $courseid";
+
+        $posts = $DB->get_records_sql($sql);
+
+        $DB->delete_records("peerforum_time_assigned", array('postid' => $postid, 'courseid' => $courseid));
+
+        $DB->delete_records('peerforum_users_assigned', array('postid' => $postid));
+
+        foreach ($posts as $user => $value) {
+            $posts_to_grade = explode(";", $posts[$user]->poststopeergrade);
+            $posts_to_grade = array_filter($posts_to_grade);
+
+            $posts_done_grade = explode(";", $posts[$user]->postspeergradedone);
+            $posts_done_grade = array_filter($posts_done_grade);
+
+            $posts_blocked = explode(";", $posts[$user]->postsblocked);
+            $posts_blocked = array_filter($posts_blocked);
+
+            $numpostsassigned = $posts[$user]->numpostsassigned;
+
+            $data = new stdClass();
+            $data->id = $posts[$user]->id;
+
+            if (!empty($posts_to_grade)) {
+                if (in_array($postid, $posts_to_grade)) {
+                    $key = array_search($postid, $posts_to_grade);
+                    unset($posts_to_grade[$key]);
+                    $posts_to_grade = array_filter($posts_to_grade);
+
+                    $numposts = $numpostsassigned - 1;
+
+                    $posts_to_grade_updated = implode(';', $posts_to_grade);
+                    $data->poststopeergrade = $posts_to_grade_updated;
+                    $data->numpostsassigned = $numposts;
+                    $DB->update_record("peerforum_peergrade_users", $data);
+
+                }
+            }
+
+            if (!empty($posts_done_grade)) {
+                if (in_array($postid, $posts_done_grade)) {
+                    $key = array_search($postid, $posts_done_grade);
+                    unset($posts_done_grade[$key]);
+                    $posts_done_grade = array_filter($posts_done_grade);
+
+                    $numposts = $numpostsassigned - 1;
+
+                    $posts_done_grade_updated = implode(';', $posts_done_grade);
+                    $data->postspeergradedone = $posts_done_grade_updated;
+                    $data->numpostsassigned = $numposts;
+
+                    $DB->update_record("peerforum_peergrade_users", $data);
+                }
+            }
+
+            if (!empty($posts_blocked)) {
+                if (in_array($postid, $posts_blocked)) {
+                    $key = array_search($postid, $posts_blocked);
+                    unset($posts_blocked[$key]);
+                    $posts_blocked = array_filter($posts_blocked);
+
+                    $posts_blocked_updated = implode(';', $posts_blocked);
+                    $data->postsblocked = $posts_blocked_updated;
+                    $DB->update_record("peerforum_peergrade_users", $data);
+
+                }
+            }
+        }
+    }
+
+    public function delete_peergrade_done($postid, $userid, $courseid) {
+        global $DB;
+
+        $sql = "SELECT p.iduser, p.id, p.postspeergradedone, p.poststopeergrade
+                  FROM {peerforum_peergrade_users} p
+                 WHERE p.iduser = $userid AND p.courseid = $courseid";
+
+        $posts = $DB->get_records_sql($sql);
+
+        //remove from postspeergradedone
+        $donepeergrade = explode(';', $posts[$userid]->postspeergradedone);
+        $donepeergrade = array_filter($donepeergrade);
+
+        if (in_array($postid, $donepeergrade)) {
+            $key = array_search($postid, $donepeergrade);
+            unset($donepeergrade[$key]);
+            $donepeergrade = array_filter($donepeergrade);
+
+            $donepeergrade_updated = implode(';', $donepeergrade);
+        }
+
+        //insert into poststopeergrade
+        $topeergrade = explode(';', $posts[$userid]->poststopeergrade);
+        $topeergrade = array_filter($topeergrade);
+
+        if (!in_array($postid, $topeergrade)) {
+            array_push($topeergrade, $postid);
+        }
+        $topeergrade = array_filter($topeergrade);
+        $topeergrade_updated = implode(';', $topeergrade);
+
+        $data = new stdClass();
+        $data->id = $posts[$userid]->id;
+        $data->postspeergradedone = $donepeergrade_updated;
+        $data->poststopeergrade = $topeergrade_updated;
+
+        $DB->update_record("peerforum_peergrade_users", $data);
+
+    }
+
+    /**
+     * Returns this peergrades aggregate value as a string.
+     *
+     * @return string peergrades aggregate value
+     */
+    public function exist_post_peergraded($postid) {
+        global $DB;
+
+        $sql = "SELECT p.itemid
+                  FROM {peerforum_peergrade} p
+                 WHERE p.itemid = $postid";
+        $exist = $DB->get_records_sql($sql);
+
+        if (empty($exist)) {
+            return false;
+        } else {
+
+            return true;
+        }
+    }
+
+    public function get_id() {
+
+        global $DB;
+
+        $sql = "SELECT p.id AS id_max
+                  FROM {peerforum_peergrade} p
+                 ORDER BY p.id DESC LIMIT 1";
+        $id = $DB->get_records_sql($sql);
+
+        if (empty($id)) {
+            return 0;
+        } else {
+            return $id['0']->id_max;
+
+        }
+    }
+
+    /**
+     * Returns this peergrades aggregate value as a string.
+     *
+     * @return string peergrades aggregate value
+     */
+    public function get_post_peergrader($id) {
+
+        global $DB;
+
+        $sql = "SELECT p.id, p.userid
+                  FROM {peerforum_peergrade} p
+                 WHERE p.id = $id";
+        $post = $DB->get_records_sql($sql);
+
+        return $post[$id]->userid;
+    }
+
+    /**
+     * @param
+     *
+     * @return
+     */
+
+    public function update_peergrader_posts($userid, $postid, $courseid) {
+        global $DB, $PAGE;
+
+        $sql = "SELECT p.iduser, p.postspeergradedone, p.id
+                      FROM {peerforum_peergrade_users} p
+                     WHERE p.iduser = $userid AND p.courseid = $courseid";
+        $posts = $DB->get_records_sql($sql);
+
+        if (empty($posts)) {
+            $data_prof = new stdClass();
+            $data_prof->iduser = $userid;
+            $data_prof->courseid = $courseid;
+            $data_prof->poststopeergrade = null;
+            $data_prof->postspeergradedone = null;
+            $data_prof->postsblocked = null;
+            $data_prof->postsexpired = null;
+            $data_prof->numpostsassigned = 0;
+
+            $DB->insert_record('peerforum_peergrade_users', $data_prof);
+
+            $sql = "SELECT p.iduser, p.postspeergradedone, p.id
+                          FROM {peerforum_peergrade_users} p
+                         WHERE p.iduser = $userid AND p.courseid = $courseid";
+            $posts = $DB->get_records_sql($sql);
+        }
+
+        adjust_database();
+
+        $all_posts = array();
+
+        if (empty($posts[$userid]->postspeergradedone)) {
+            array_push($all_posts, $postid);
+        } else {
+            $all_posts = explode(';', $posts[$userid]->postspeergradedone);
+            if (!in_array($postid, $all_posts)) {
+                array_push($all_posts, $postid);
+            }
+        }
+
+        $all_posts = array_filter($all_posts);
+        $posts_updated = implode(';', $all_posts);
+
+        $data = new stdClass();
+        $data->id = $posts[$userid]->id;
+        $data->postspeergradedone = $posts_updated;
+
+        $DB->update_record("peerforum_peergrade_users", $data);
+
+        //remove from posts to peergrade
+        $sql2 = "SELECT p.iduser, p.poststopeergrade, p.id
+                      FROM {peerforum_peergrade_users} p
+                     WHERE p.iduser = $userid AND p.courseid = $courseid";
+        $posts2 = $DB->get_records_sql($sql2);
+
+        if (!empty($posts2[$userid]->poststopeergrade)) {
+            $all_posts2 = array();
+            $all_posts2 = explode(';', $posts2[$userid]->poststopeergrade);
+            $all_posts2 = array_filter($all_posts2);
+
+            if (in_array($postid, $all_posts2)) {
+                $key = array_search($postid, $all_posts2);
+                unset($all_posts2[$key]);
+                $all_posts2 = array_filter($all_posts2);
+
+                $posts_updated2 = implode(';', $all_posts2);
+
+                $data2 = new stdClass();
+                $data2->id = $posts2[$userid]->id;
+                $data2->poststopeergrade = $posts_updated2;
+
+                $DB->update_record("peerforum_peergrade_users", $data2);
+            }
+        }
+
     }
 
     /**
@@ -421,7 +1363,7 @@ class peergrade_manager {
      *
      * @param stdClass $options {
      *            context => context the context in which the peergrades exists [required]
-     *            component => component using peergrades ie mod_forum [required]
+     *            component => component using peergrades ie mod_peerforum [required]
      *            peergradearea => peergradearea to associate this peergrade with [required]
      *            itemid  =>  int the id of the associated item (forum post, glossary item etc) [required]
      *            sort    => string SQL sort by clause [optional]
@@ -457,7 +1399,7 @@ class peergrade_manager {
         );
         $userfields = user_picture::fields('u', null, 'userid');
         $sql = "SELECT r.id, r.peergrade, r.itemid, r.userid, r.timemodified, r.component, r.peergradearea, $userfields
-                  FROM {peergrade} r
+                  FROM {peerforum_peergrade} r
              LEFT JOIN {user} u ON r.userid = u.id
                  WHERE r.contextid = :contextid AND
                        r.itemid  = :itemid AND
@@ -474,12 +1416,12 @@ class peergrade_manager {
      *
      * @param stdClass $options {
      *      context          => context the context in which the peergrades exists [required]
-     *      component        => the component name ie mod_forum [required]
+     *      component        => the component name ie mod_peerforum [required]
      *      peergradearea    => the peergradearea we are interested in [required]
      *      items            => array items like forum posts or glossary items. Each item needs an 'id' ie $items[0]->id [required]
      *      aggregate        => int aggregation method to apply. PEERGRADE_AGGREGATE_AVERAGE, PEERGRADE_AGGREGATE_MAXIMUM etc
      *         [required]
-     *      scaleid          => int the scale from which the user can select a peergrade [required]
+     *      peergradescaleid => int the scale from which the user can select a peergrade [required]
      *      userid           => int the id of the current user [optional]
      *      returnurl        => string the url to return the user to after submitting a peergrade. Null for ajax requests [optional]
      *      assesstimestart  => int only allow peergrade of items created after this timestamp [optional]
@@ -501,8 +1443,8 @@ class peergrade_manager {
             throw new coding_exception('The peergradearea option is a required option when getting peergrades.');
         }
 
-        if (!isset($options->scaleid)) {
-            throw new coding_exception('The scaleid option is a required option when getting peergrades.');
+        if (!isset($options->peergradescaleid)) {
+            throw new coding_exception('The peergradescaleid option is a required option when getting peergrades.');
         }
 
         if (!isset($options->items)) {
@@ -550,8 +1492,8 @@ class peergrade_manager {
         $params['component'] = $options->component;
         $params['peergradearea'] = $options->peergradearea;
 
-        $sql = "SELECT r.id, r.itemid, r.userid, r.scaleid, r.peergrade AS userspeergrade
-                  FROM {peergrade} r
+        $sql = "SELECT r.id, r.itemid, r.userid, r.peergradescaleid, r.feedback, r.peergrade AS userspeergrade
+                  FROM {peerforum_peergrade} r
                  WHERE r.userid = :userid AND
                        r.contextid = :contextid AND
                        r.itemid {$itemidtest} AND
@@ -561,7 +1503,7 @@ class peergrade_manager {
         $userpeergrades = $DB->get_records_sql($sql, $params);
 
         $sql = "SELECT r.itemid, $aggregatestr(r.peergrade) AS aggrpeergrade, COUNT(r.peergrade) AS numpeergrades
-                  FROM {peergrade} r
+                  FROM {peerforum_peergrade} r
                  WHERE r.contextid = :contextid AND
                        r.itemid {$itemidtest} AND
                        r.component = :component AND
@@ -574,7 +1516,7 @@ class peergrade_manager {
         $peergradeoptions->context = $options->context;
         $peergradeoptions->component = $options->component;
         $peergradeoptions->peergradearea = $options->peergradearea;
-        $peergradeoptions->settings = $this->genepeergrade_peergrade_settings_object($options);
+        $peergradeoptions->settings = $this->generate_peergrade_settings_object($options);
         foreach ($options->items as $item) {
             $founduserpeergrade = false;
             foreach ($userpeergrades as $userpeergrade) {
@@ -582,18 +1524,20 @@ class peergrade_manager {
                 if ($item->{$itemidcol} == $userpeergrade->itemid) {
                     // Note: rec->scaleid = the id of scale at the time the peergrade was submitted.
                     // It may be different from the current scale id.
-                    $peergradeoptions->scaleid = $userpeergrade->scaleid;
+                    $peergradeoptions->peergradescaleid = $userpeergrade->peergradescaleid;
                     $peergradeoptions->userid = $userpeergrade->userid;
+                    $peergradeoptions->feedback = $userpeergrade->feedback;
                     $peergradeoptions->id = $userpeergrade->id;
-                    $peergradeoptions->peergrade = min($userpeergrade->userspeergrade, $peergradeoptions->settings->scale->max);
+                    $peergradeoptions->peergrade = min($userpeergrade->userspeergrade, $peergradeoptions->settings->peergradescale->max);
 
                     $founduserpeergrade = true;
                     break;
                 }
             }
             if (!$founduserpeergrade) {
-                $peergradeoptions->scaleid = null;
+                $peergradeoptions->peergradescaleid = null;
                 $peergradeoptions->userid = null;
+                $peergradeoptions->feedback = null;
                 $peergradeoptions->id = null;
                 $peergradeoptions->peergrade = null;
             }
@@ -601,7 +1545,7 @@ class peergrade_manager {
             if (array_key_exists($item->{$itemidcol}, $aggregatepeergrades)) {
                 $rec = $aggregatepeergrades[$item->{$itemidcol}];
                 $peergradeoptions->itemid = $item->{$itemidcol};
-                $peergradeoptions->aggregate = min($rec->aggrpeergrade, $peergradeoptions->settings->scale->max);
+                $peergradeoptions->aggregate = min($rec->aggrpeergrade, $peergradeoptions->settings->peergradescale->max);
                 $peergradeoptions->count = $rec->numpeergrades;
             } else {
                 $peergradeoptions->itemid = $item->{$itemidcol};
@@ -621,7 +1565,7 @@ class peergrade_manager {
     }
 
     /**
-     * Genepeergrades a peergrade settings object based upon the options it is provided.
+     * Generates a peergrade settings object based upon the options it is provided.
      *
      * @param stdClass $options {
      *      context           => context the context in which the peergrades exists [required]
@@ -629,37 +1573,40 @@ class peergrade_manager {
      *      peergradearea        => string The peergradearea the items belong to [required]
      *      aggregate         => int Aggregation method to apply. PEERGRADE_AGGREGATE_AVERAGE, PEERGRADE_AGGREGATE_MAXIMUM etc
      *         [required]
-     *      scaleid           => int the scale from which the user can select a peergrade [required]
+     *      peergradescaleid  => int the scale from which the user can select a peergrade [required]
      *      returnurl         => string the url to return the user to after submitting a peergrade. Null for ajax requests
      *         [optional]
      *      assesstimestart   => int only allow peergrade of items created after this timestamp [optional]
      *      assesstimefinish  => int only allow peergrade of items created before this timestamp [optional]
      *      plugintype        => string plugin type ie 'mod' Used to find the permissions callback [optional]
-     *      pluginname        => string plugin name ie 'forum' Used to find the permissions callback [optional]
+     *      pluginname        => string plugin name ie 'peerforum' Used to find the permissions callback [optional]
      * }
      * @return stdClass peergrade settings object
      */
-    protected function genepeergrade_peergrade_settings_object($options) {
+    protected function generate_peergrade_settings_object($options) {
 
         if (!isset($options->context)) {
-            throw new coding_exception('The context option is a required option when genepeergrade a peergrade settings object.');
+            throw new coding_exception('The context option is a required option when generate a peergrade settings object.');
         }
         if (!isset($options->component)) {
-            throw new coding_exception('The component option is now a required option when genepeergrade a peergrade settings object.');
+            throw new coding_exception('The component option is now a required option when generate a peergrade settings object.');
         }
         if (!isset($options->peergradearea)) {
-            throw new coding_exception('The peergradearea option is now a required option when genepeergrade a peergrade settings object.');
+            throw new coding_exception('The peergradearea option is now a required option when generate a peergrade settings object.');
         }
         if (!isset($options->aggregate)) {
-            throw new coding_exception('The aggregate option is now a required option when genepeergrade a peergrade settings object.');
+            throw new coding_exception('The aggregate option is now a required option when generate a peergrade settings object.');
         }
-        if (!isset($options->scaleid)) {
-            throw new coding_exception('The scaleid option is now a required option when genepeergrade a peergrade settings object.');
+        if (!isset($options->peergradescaleid)) {
+            throw new coding_exception('The peergradescaleid option2 is now a required option when generate a peergrade settings object.');
         }
 
+        global $DB;
+        $peerforumid = $DB->get_record('course_modules', array('id' => $options->context->instanceid))->instance;
         // Settings that are common to all peergrades objects in this context.
         $settings = new stdClass;
-        $settings->scale = $this->genepeergrade_peergrade_scale_object($options->scaleid); // The scale to use now.
+        $settings->peergradescale = $this->generate_peergrade_peergradescale_object($options->peergradescaleid,
+                $peerforumid); // The peergradescale to use now.
         $settings->aggregationmethod = $options->aggregate;
         $settings->assesstimestart = null;
         $settings->assesstimefinish = null;
@@ -678,13 +1625,13 @@ class peergrade_manager {
         // Check site capabilities.
         $settings->permissions = new stdClass;
         // Can view the aggregate of peergrades of their own items.
-        $settings->permissions->view = has_capability('moodle/peergrade:view', $options->context);
+        $settings->permissions->view = has_capability('mod/peerforum:view', $options->context);
         // Can view the aggregate of peergrades of other people's items.
-        $settings->permissions->viewany = has_capability('moodle/peergrade:viewany', $options->context);
+        $settings->permissions->viewany = has_capability('mod/peerforum:viewany', $options->context);
         // Can view individual peergrades.
-        $settings->permissions->viewall = has_capability('moodle/peergrade:viewall', $options->context);
+        $settings->permissions->viewall = has_capability('mod/peerforum:viewall', $options->context);
         // Can submit peergrades.
-        $settings->permissions->peergrade = has_capability('moodle/peergrade:peergrade', $options->context);
+        $settings->permissions->peergrade = has_capability('mod/peerforum:peergrade', $options->context);
 
         // Check module capabilities
         // This is mostly for backwards compatability with old modules that previously implemented their own peergrades.
@@ -701,49 +1648,52 @@ class peergrade_manager {
     }
 
     /**
-     * Genepeergrades a scale object that can be returned
+     * Generates a scale object that can be returned
      *
-     * @param int $scaleid scale-type identifier
+     * @param int $peergradescaleid scale-type identifier
      * @return stdClass scale for peergrades
      * @global moodle_database $DB moodle database object
      */
-    protected function genepeergrade_peergrade_scale_object($scaleid) {
-        global $DB;
-        if (!array_key_exists('s' . $scaleid, $this->scales)) {
-            $scale = new stdClass;
-            $scale->id = $scaleid;
-            $scale->name = null;
-            $scale->courseid = null;
-            $scale->scaleitems = array();
-            $scale->isnumeric = true;
-            $scale->max = $scaleid;
+    protected function generate_peergrade_peergradescale_object($peergradescaleid, $peerforumid) {
+        global $CFG, $DB, $PAGE;
+        if (!array_key_exists('s' . $peergradescaleid, $this->scales)) {
+            $peergradescale = new stdClass;
+            $peergradescale->id = $peergradescaleid;
+            $peergradescale->name = null;
+            $peergradescale->courseid = null;
+            $peergradescale->peergradescaleitems = array();
+            $peergradescale->isnumeric = true;
+            $peergradescale->max = $peergradescaleid;
 
-            if ($scaleid < 0) {
+            if ($peergradescaleid < 0) {
                 // It is a proper scale (not numeric).
-                $scalerecord = $DB->get_record('scale', array('id' => abs($scaleid)));
-                if ($scalerecord) {
-                    // We need to genepeergrade an array with string keys starting at 1.
-                    $scalearray = explode(',', $scalerecord->scale);
-                    $c = count($scalearray);
+                $peergradescalerecord = $DB->get_record('peergradescale', array('id' => abs($peergradescaleid)));
+                if ($peergradescalerecord) {
+                    // We need to generate an array with string keys starting at 1.
+                    $peergradescalearray = explode(',', $peergradescalerecord->peergradescale);
+                    $c = count($peergradescalearray);
                     for ($i = 0; $i < $c; $i++) {
                         // Treat index as a string to allow sorting without changing the value.
-                        $scale->scaleitems[(string) ($i + 1)] = $scalearray[$i];
+                        $peergradescale->peergradescaleitems[(string) ($i + 1)] = $peergradescalearray[$i];
                     }
-                    krsort($scale->scaleitems); // Have the highest grade scale item appear first.
-                    $scale->isnumeric = false;
-                    $scale->name = $scalerecord->name;
-                    $scale->courseid = $scalerecord->courseid;
-                    $scale->max = count($scale->scaleitems);
+                    krsort($peergradescale->peergradescaleitems); // Have the highest grade scale item appear first.
+                    $peergradescale->isnumeric = false;
+                    $peergradescale->name = $peergradescalerecord->name;
+                    $peergradescale->courseid = $peergradescalerecord->courseid;
+                    $peergradescale->max = count($peergradescale->peergradescaleitems);
                 }
             } else {
-                // Genepeergrade an array of values for numeric scales.
-                for ($i = 0; $i <= (int) $scaleid; $i++) {
-                    $scale->scaleitems[(string) $i] = $i;
+                // Generate an array of values for numeric scales.
+                $peergradescalerecord = $DB->get_record('peerforum', array('id' => $peerforumid))->peergradescale;
+                $DB->set_field('peerforum', 'peergradescale', $peergradescalerecord, null);
+                $peergradescale->id = $peergradescalerecord;
+                for ($i = 0; $i <= (int) $peergradescaleid; $i++) {
+                    $peergradescale->peergradescaleitems[(string) $i] = $i;
                 }
             }
-            $this->scales['s' . $scaleid] = $scale;
+            $this->scales['s' . $peergradescaleid] = $peergradescale;
         }
-        return $this->scales['s' . $scaleid];
+        return $this->scales['s' . $peergradescaleid];
     }
 
     /**
@@ -774,7 +1724,7 @@ class peergrade_manager {
      *         [required]
      *      aggregationmethod => int the aggregation method to apply when calculating grades ie PEERGRADE_AGGREGATE_AVERAGE
      *         [required]
-     *      scaleid => int the scale from which the user can select a peergrade. Used for bounds checking. [required]
+     *      peergradescaleid => int the scale from which the user can select a peergrade. Used for bounds checking. [required]
      *      itemtable => int the table containing the items [required]
      *      itemtableusercolum => int the column of the user table containing the item owner's user id [required]
      *      component => The component for the peergrades [required]
@@ -785,7 +1735,7 @@ class peergrade_manager {
      * }
      * @return array the array of the user's grades
      */
-    public function get_user_grades($options) {
+    public function get_user_students_peergrades($options) {
         global $DB;
 
         $contextid = null;
@@ -824,7 +1774,112 @@ class peergrade_manager {
         $params['peergradearea'] = $options->peergradearea;
         $itemtable = $options->itemtable;
         $itemtableusercolumn = $options->itemtableusercolumn;
-        $scaleid = $options->scaleid;
+        $peergradescaleid = $options->peergradescaleid;
+        $aggregationstring = $this->get_aggregation_method($options->aggregationmethod);
+
+        // If userid is not 0 we only want the grade for a single user.
+        $singleuserwhere = '';
+        if ($options->userid != 0) {
+            $params['userid1'] = intval($options->userid);
+            $singleuserwhere = "AND i.{$itemtableusercolumn} = :userid1";
+        }
+
+        // MDL-24648 The where line used to be "WHERE (r.contextid is null or r.contextid=:contextid)".
+        // r.contextid will be null for users who haven't been peergraded yet.
+        // No longer including users who haven't been peergraded to reduce memory requirements.
+        $sql = "SELECT u.id as id, u.id AS userid, $aggregationstring(p.peergrade) AS rawgrade
+                  FROM {user} u
+             LEFT JOIN {{$itemtable}} i ON u.id=i.{$itemtableusercolumn}
+             LEFT JOIN {peerforum_peergrade} p ON p.itemid=i.id
+             LEFT JOIN {role_assignments} ra ON ra.userid = p.userid
+                 WHERE ra.roleid = 5 AND
+                       p.contextid = :contextid AND
+                       p.component = :component AND
+                       p.peergradearea = :peergradearea
+                       $singleuserwhere
+              GROUP BY u.id";
+        $results = $DB->get_records_sql($sql, $params);
+
+        if ($results) {
+
+            $peergradescale = null;
+            $max = 0;
+            if ($options->peergradescaleid >= 0) {
+                // Numeric.
+                $max = $options->peergradescaleid;
+            } else {
+                // Custom scales.
+                $peergradescale = $DB->get_record('peergradescale', array('id' => -$options->peergradescaleid));
+                if ($peergradescale) {
+                    $peergradescale = explode(',', $peergradescale->peergradescale);
+                    $max = count($peergradescale);
+                } else {
+                    debugging('peergrade_manager::get_user_students_peergrades() received a peergradescale ID that doesnt exist');
+                }
+            }
+
+            // It could throw off the grading if count and sum returned a rawgrade higher than scale
+            // so to prevent it we review the results and ensure that rawgrade does not exceed the scale.
+            // If it does we set rawgrade = scale (i.e. full credit).
+
+            foreach ($results as $rid => $result) {
+                if ($options->peergradescaleid >= 0) {
+                    // Numeric.
+                    if ($result->rawgrade > $options->peergradescaleid) {
+                        $results[$rid]->rawgrade = $options->peergradescaleid;
+                    }
+                } else {
+                    // Scales.
+                    if (!empty($peergradescale) && $result->rawgrade > $max) {
+                        $results[$rid]->rawgrade = $max;
+                    }
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    public function get_user_professors_peergrades($options) {
+        global $DB;
+
+        $contextid = null;
+
+        if (!isset($options->component)) {
+            throw new coding_exception('The component option is now a required option when getting user grades from peergrades.');
+        }
+        if (!isset($options->peergradearea)) {
+            throw new coding_exception('The peergradearea option is now a required option when getting user grades from peergrades.');
+        }
+
+        // If the calling code doesn't supply a context id we'll have to figure it out.
+        if (!empty($options->contextid)) {
+            $contextid = $options->contextid;
+        } else if (!empty($options->modulename) && !empty($options->moduleid)) {
+            $modulename = $options->modulename;
+            $moduleid = intval($options->moduleid);
+
+            // Going direct to the db for the context id seems wrong.
+            $ctxselect = ', ' . context_helper::get_preload_record_columns_sql('ctx');
+            $ctxjoin = "LEFT JOIN {context} ctx ON (ctx.instanceid = cm.id AND ctx.contextlevel = :contextlevel)";
+            $sql = "SELECT cm.* $ctxselect
+                      FROM {course_modules} cm
+                 LEFT JOIN {modules} mo ON mo.id = cm.module
+                 LEFT JOIN {{$modulename}} m ON m.id = cm.instance $ctxjoin
+                     WHERE mo.name=:modulename AND
+                           m.id=:moduleid";
+            $params = array('modulename' => $modulename, 'moduleid' => $moduleid, 'contextlevel' => CONTEXT_MODULE);
+            $contextrecord = $DB->get_record_sql($sql, $params, '*', MUST_EXIST);
+            $contextid = $contextrecord->ctxid;
+        }
+
+        $params = array();
+        $params['contextid'] = $contextid;
+        $params['component'] = $options->component;
+        $params['peergradearea'] = $options->peergradearea;
+        $itemtable = $options->itemtable;
+        $itemtableusercolumn = $options->itemtableusercolumn;
+        $peergradescaleid = $options->peergradescaleid;
         $aggregationstring = $this->get_aggregation_method($options->aggregationmethod);
 
         // If userid is not 0 we only want the grade for a single user.
@@ -840,8 +1895,10 @@ class peergrade_manager {
         $sql = "SELECT u.id as id, u.id AS userid, $aggregationstring(r.peergrade) AS rawgrade
                   FROM {user} u
              LEFT JOIN {{$itemtable}} i ON u.id=i.{$itemtableusercolumn}
-             LEFT JOIN {peergrade} r ON r.itemid=i.id
-                 WHERE r.contextid = :contextid AND
+             LEFT JOIN {peerforum_peergrade} r ON r.itemid=i.id
+             LEFT JOIN {role_assignments} ra ON ra.userid = r.userid
+             WHERE ra.roleid != 5 AND
+                       r.contextid = :contextid AND
                        r.component = :component AND
                        r.peergradearea = :peergradearea
                        $singleuserwhere
@@ -850,19 +1907,19 @@ class peergrade_manager {
 
         if ($results) {
 
-            $scale = null;
+            $peergradescale = null;
             $max = 0;
-            if ($options->scaleid >= 0) {
+            if ($options->peergradescaleid >= 0) {
                 // Numeric.
-                $max = $options->scaleid;
+                $max = $options->peergradescaleid;
             } else {
                 // Custom scales.
-                $scale = $DB->get_record('scale', array('id' => -$options->scaleid));
-                if ($scale) {
-                    $scale = explode(',', $scale->scale);
-                    $max = count($scale);
+                $peergradescale = $DB->get_record('peergradescale', array('id' => -$options->peergradescaleid));
+                if ($peergradescale) {
+                    $peergradescale = explode(',', $peergradescale->peergradescale);
+                    $max = count($peergradescale);
                 } else {
-                    debugging('peergrade_manager::get_user_grades() received a scale ID that doesnt exist');
+                    debugging('peergrade_manager::get_user_professors_peergrades() received a peergradescale ID that doesnt exist');
                 }
             }
 
@@ -870,14 +1927,14 @@ class peergrade_manager {
             // so to prevent it we review the results and ensure that rawgrade does not exceed the scale.
             // If it does we set rawgrade = scale (i.e. full credit).
             foreach ($results as $rid => $result) {
-                if ($options->scaleid >= 0) {
+                if ($options->peergradescaleid >= 0) {
                     // Numeric.
-                    if ($result->rawgrade > $options->scaleid) {
-                        $results[$rid]->rawgrade = $options->scaleid;
+                    if ($result->rawgrade > $options->peergradescaleid) {
+                        $results[$rid]->rawgrade = $options->peergradescaleid;
                     }
                 } else {
                     // Scales.
-                    if (!empty($scale) && $result->rawgrade > $max) {
+                    if (!empty($peergradescale) && $result->rawgrade > $max) {
                         $results[$rid]->rawgrade = $max;
                     }
                 }
@@ -893,12 +1950,12 @@ class peergrade_manager {
      * @return array aggregate types
      */
     public function get_aggregate_types() {
-        return array(PEERGRADE_AGGREGATE_NONE => get_string('aggregatenone', 'peergrade'),
-                PEERGRADE_AGGREGATE_AVERAGE => get_string('aggregateavg', 'peergrade'),
-                PEERGRADE_AGGREGATE_COUNT => get_string('aggregatecount', 'peergrade'),
-                PEERGRADE_AGGREGATE_MAXIMUM => get_string('aggregatemax', 'peergrade'),
-                PEERGRADE_AGGREGATE_MINIMUM => get_string('aggregatemin', 'peergrade'),
-                PEERGRADE_AGGREGATE_SUM => get_string('aggregatesum', 'peergrade'));
+        return array(PEERGRADE_AGGREGATE_NONE => get_string('peeraggregatenone', 'peerforum'),
+                PEERGRADE_AGGREGATE_AVERAGE => get_string('peeraggregateavg', 'peerforum'),
+                PEERGRADE_AGGREGATE_COUNT => get_string('peeraggregatecount', 'peerforum'),
+                PEERGRADE_AGGREGATE_MAXIMUM => get_string('peeraggregatemax', 'peerforum'),
+                PEERGRADE_AGGREGATE_MINIMUM => get_string('peeraggregatemin', 'peerforum'),
+                PEERGRADE_AGGREGATE_SUM => get_string('peeraggregatesum', 'peerforum'));
     }
 
     /**
@@ -937,14 +1994,14 @@ class peergrade_manager {
      * peergraded
      *
      * @param int $contextid The current context id
-     * @param string $component the name of the component that is using peergrades ie 'mod_forum'
+     * @param string $component the name of the component that is using peergrades ie 'mod_peerforum'
      * @param string $peergradearea The area the peergrade is associated with
      * @return array peergrade related permissions
      */
     public function get_plugin_permissions_array($contextid, $component, $peergradearea) {
         $pluginpermissionsarray = null;
         // Deny by default.
-        $defaultpluginpermissions = array('peergrade' => false, 'view' => false, 'viewany' => false, 'viewall' => false);
+        $defaultpluginpermissions = array('peergrade' => true, 'view' => true, 'viewany' => true, 'viewall' => true);
         if (!empty($component)) {
             list($type, $name) = core_component::normalize_component($component);
             $pluginpermissionsarray = plugin_callback($type,
@@ -967,7 +2024,7 @@ class peergrade_manager {
      *      component => The component the peergrade belongs to [required]
      *      peergradearea => The peergradearea the peergrade is associated with [required]
      *      itemid => int the ID of the object being peergraded [required]
-     *      scaleid => int the scale from which the user can select a peergrade. Used for bounds checking. [required]
+     *      peergradescaleid => int the scale from which the user can select a peergrade. Used for bounds checking. [required]
      *      peergrade => int the submitted peergrade
      *      peergradeduserid => int the id of the user whose items have been peergraded. 0 to update all. [required]
      *      aggregation => int the aggregation method to apply when calculating grades ie PEERGRADE_AGGREGATE_AVERAGE [optional]
@@ -988,16 +2045,19 @@ class peergrade_manager {
         if (!isset($params['itemid'])) {
             throw new coding_exception('The itemid option is now a required option when checking peergrade validity');
         }
-        if (!isset($params['scaleid'])) {
-            throw new coding_exception('The scaleid option is now a required option when checking peergrade validity');
+        if (!isset($params['peergradescaleid'])) {
+            throw new coding_exception('The peergradescaleid option is now a required option when checking peergrade validity');
         }
         if (!isset($params['peergradeduserid'])) {
             throw new coding_exception('The peergradeduserid option is now a required option when checking peergrade validity');
         }
+        if (!isset($params['feedback'])) {
+            throw new coding_exception('The feedback option is now a required option when checking peergrade validity');
+        }
 
         list($plugintype, $pluginname) = core_component::normalize_component($params['component']);
 
-        // This looks for a function like forum_peergrade_validate() in mod_forum lib.php
+        // This looks for a function like peerforum_peergrade_validate() in mod_peerforum lib.php
         // wrapping the params array in another array as call_user_func_array() expands arrays into multiple arguments.
         $isvalid = plugin_callback($plugintype, $pluginname, 'peergrade', 'validate', array($params), null);
 
@@ -1007,6 +2067,63 @@ class peergrade_manager {
             debugging('peergrade validation callback not found for component ' . clean_param($component, PARAM_ALPHANUMEXT));
         }
         return $isvalid;
+    }
+
+    public function initialise_assignpeer_javascript(moodle_page $page) {
+        global $CFG;
+
+        // Only needs to be initialized once.
+        static $done = false;
+        if ($done) {
+            return true;
+        }
+
+        $module = array('name' => 'core_peerforum_assignpeer',
+                'fullpath' => '/mod/peerforum/assignpeer.js',
+                'requires' => array('node', 'event', 'overlay', 'io-base', 'json'));
+
+        $page->requires->js_init_call('M.core_peerforum_assignpeer.init', null, false, $module);
+        $done = true;
+
+        return true;
+    }
+
+    public function initialise_assignpeersparent_javascript(moodle_page $page) {
+        global $CFG;
+
+        // Only needs to be initialized once.
+        static $done = false;
+        if ($done) {
+            return true;
+        }
+
+        $module = array('name' => 'core_peerforum_assignpeersparent',
+                'fullpath' => '/mod/peerforum/assignpeersparent.js',
+                'requires' => array('node', 'event', 'overlay', 'io-base', 'json'));
+
+        $page->requires->js_init_call('M.core_peerforum_assignpeersparent.init', null, false, $module);
+        $done = true;
+
+        return true;
+    }
+
+    public function initialise_removepeer_javascript(moodle_page $page) {
+        global $CFG;
+
+        // Only needs to be initialized once.
+        static $done = false;
+        if ($done) {
+            return true;
+        }
+
+        $module = array('name' => 'core_peerforum_removepeer',
+                'fullpath' => '/mod/peerforum/removepeer.js',
+                'requires' => array('node', 'event', 'overlay', 'io-base', 'json'));
+
+        $page->requires->js_init_call('M.core_peerforum_removepeer.init', null, false, $module);
+        $done = true;
+
+        return true;
     }
 
     /**
@@ -1024,7 +2141,30 @@ class peergrade_manager {
             return true;
         }
 
-        $page->requires->js_init_call('M.core_peergrade.init');
+        $module = array('name' => 'core_peergrade',
+                'fullpath' => '/peergrade/module.js',
+                'requires' => array('node', 'event', 'overlay', 'io-base', 'json'));
+
+        $page->requires->js_init_call('M.core_peergrade.init', null, false, $module);
+        $done = true;
+
+        return true;
+    }
+
+    public function initialise_peergradecriteria_javascript(moodle_page $page) {
+        global $CFG;
+
+        // Only needs to be initialized once.
+        static $done = false;
+        if ($done) {
+            return true;
+        }
+
+        $module = array('name' => 'core_peergradecriteria',
+                'fullpath' => '/peergradecriteria/module.js',
+                'requires' => array('node', 'event', 'overlay', 'io-base', 'json'));
+
+        $page->requires->js_init_call('M.core_peergradecriteria.init', null, false, $module);
         $done = true;
 
         return true;
@@ -1040,19 +2180,19 @@ class peergrade_manager {
         $aggregatelabel = '';
         switch ($aggregationmethod) {
             case PEERGRADE_AGGREGATE_AVERAGE :
-                $aggregatelabel .= get_string("aggregateavg", "peergrade");
+                $aggregatelabel .= get_string("peeraggregateavg", "peerforum");
                 break;
             case PEERGRADE_AGGREGATE_COUNT :
-                $aggregatelabel .= get_string("aggregatecount", "peergrade");
+                $aggregatelabel .= get_string("peeraggregatecount", "peerforum");
                 break;
             case PEERGRADE_AGGREGATE_MAXIMUM :
-                $aggregatelabel .= get_string("aggregatemax", "peergrade");
+                $aggregatelabel .= get_string("peeraggregatemax", "peerforum");
                 break;
             case PEERGRADE_AGGREGATE_MINIMUM :
-                $aggregatelabel .= get_string("aggregatemin", "peergrade");
+                $aggregatelabel .= get_string("peeraggregatemin", "peerforum");
                 break;
             case PEERGRADE_AGGREGATE_SUM :
-                $aggregatelabel .= get_string("aggregatesum", "peergrade");
+                $aggregatelabel .= get_string("peeraggregatesum", "peerforum");
                 break;
         }
         $aggregatelabel .= get_string('labelsep', 'langconfig');
@@ -1067,14 +2207,15 @@ class peergrade_manager {
      * @param string $component component name
      * @param string $peergradearea peergrade area
      * @param int $itemid the item id
-     * @param int $scaleid the scale id
+     * @param int $peergradescaleid the scale id
      * @param int $userpeergrade the user peergrade
      * @param int $peergradeduserid the peergraded user id
      * @param int $aggregationmethod the aggregation method
+     * @param string $feedback the feedback
      * @since Moodle 3.2
      */
-    public function add_peergrade($cm, $context, $component, $peergradearea, $itemid, $scaleid, $userpeergrade, $peergradeduserid,
-            $aggregationmethod) {
+    public function add_peergrade($cm, $context, $component, $peergradearea, $itemid, $peergradescaleid, $userpeergrade, $peergradeduserid,
+            $aggregationmethod, $feedback) {
         global $CFG, $DB, $USER;
 
         $result = new stdClass;
@@ -1091,9 +2232,10 @@ class peergrade_manager {
                     'component' => $component,
                     'peergradearea' => $peergradearea,
                     'itemid' => $itemid,
-                    'scaleid' => $scaleid,
+                    'peergradescaleid' => $peergradescaleid,
                     'peergrade' => $userpeergrade,
                     'peergradeduserid' => $peergradeduserid,
+                    'feedback' => $feedback,
                     'aggregation' => $aggregationmethod
             );
             if (!$this->check_peergrade_is_valid($params)) {
@@ -1108,21 +2250,21 @@ class peergrade_manager {
         $peergradeoptions->peergradearea = $peergradearea;
         $peergradeoptions->component = $component;
         $peergradeoptions->itemid = $itemid;
-        $peergradeoptions->scaleid = $scaleid;
+        $peergradeoptions->peergradescaleid = $peergradescaleid;
+        $peergradeoptions->feedback = $feedback;
         $peergradeoptions->userid = $USER->id;
 
-        if ($userpeergrade != PEERGRADE_UNSET_PEERGRADE) {
+        if ($userpeergrade != PEERGRADE_UNSET_PEERGRADE && $feedback != PEERGRADE_UNSET_FEEDBACK) {
             $peergrade = new peergrade($peergradeoptions);
-            $peergrade->update_peergrade($userpeergrade);
+            $peergrade->update_peergrade($userpeergrade, $feedback);
         } else { // Delete the peergrade if the user set to "PeerGrade..."
             $options = new stdClass;
             $options->contextid = $context->id;
             $options->component = $component;
             $options->peergradearea = $peergradearea;
             $options->userid = $USER->id;
+            $options->feedback = $feedback;
             $options->itemid = $itemid;
-
-            $this->delete_peergrades($options);
         }
 
         // Future possible enhancement: add a setting to turn grade updating off for those who don't want them in gradebook.
@@ -1157,21 +2299,21 @@ class peergrade_manager {
         // See if the user has permission to see the peergrade aggregate.
         if ($firstpeergrade->user_can_view_aggregate()) {
 
-            // For custom scales return text not the value.
-            // This scales weirdness will go away when scales are refactored.
-            $scalearray = null;
+            // For custom peergradescales return text not the value.
+            // This peergradescales weirdness will go away when peergradescales are refactored.
+            $peergradescalearray = null;
             $aggregatetoreturn = round($firstpeergrade->aggregate, 1);
 
             // Output a dash if aggregation method == COUNT as the count is output next to the aggregate anyway.
             if ($firstpeergrade->settings->aggregationmethod == PEERGRADE_AGGREGATE_COUNT or $firstpeergrade->count == 0) {
                 $aggregatetoreturn = ' - ';
-            } else if ($firstpeergrade->settings->scale->id < 0) { // If its non-numeric scale.
-                // Dont use the scale item if the aggregation method is sum as adding items from a custom scale makes no sense.
+            } else if ($firstpeergrade->settings->peergradescale->id < 0) { // If its non-numeric peergradescale.
+                // Dont use the peergradescale item if the aggregation method is sum as adding items from a custom peergradescale makes no sense.
                 if ($firstpeergrade->settings->aggregationmethod != PEERGRADE_AGGREGATE_SUM) {
-                    $scalerecord = $DB->get_record('scale', array('id' => -$firstpeergrade->settings->scale->id));
-                    if ($scalerecord) {
-                        $scalearray = explode(',', $scalerecord->scale);
-                        $aggregatetoreturn = $scalearray[$aggregatetoreturn - 1];
+                    $peergradescalerecord = $DB->get_record('peergradescale', array('id' => -$firstpeergrade->settings->$peergradescale->id));
+                    if ($peergradescalerecord) {
+                        $peergradescalearray = explode(',', $peergradescalerecord->peergradescale);
+                        $aggregatetoreturn = $peergradescalearray[$aggregatetoreturn - 1];
                     }
                 }
             }
@@ -1179,6 +2321,7 @@ class peergrade_manager {
             $result->aggregate = $aggregatetoreturn;
             $result->count = $firstpeergrade->count;
             $result->itemid = $itemid;
+            $result->feedback = $feedback;
         }
         return $result;
     }
@@ -1197,7 +2340,7 @@ class peergrade_manager {
 
         $peergradessince = array();
         $where = 'contextid = ? AND component = ? AND (timecreated > ? OR timemodified > ?)';
-        $peergrades = $DB->get_records_select('peergrade', $where, array($context->id, $component, $since, $since));
+        $peergrades = $DB->get_records_select('peerforum_peergrade', $where, array($context->id, $component, $since, $since));
         // Check area by area if we have permissions.
         $permissions = array();
         $rm = new peergrade_manager();
@@ -1234,9 +2377,9 @@ class peergrade_exception extends moodle_exception {
     public $message;
 
     /**
-     * Genepeergrade exceptions that can be easily identified as coming from the peergrades system
+     * Generate exceptions that can be easily identified as coming from the peergrades system
      *
-     * @param string $errorcode the error code to genepeergrade
+     * @param string $errorcode the error code to generate
      */
     public function __construct($errorcode) {
         $this->errorcode = $errorcode;

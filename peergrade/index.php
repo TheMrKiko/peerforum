@@ -16,6 +16,7 @@
 
 /**
  * A page to display a list of peergrades for a given item (forum post etc)
+ * Additional functions for PeerForum' peegrading
  *
  * @package    core_peergrade
  * @category   peergrade
@@ -30,7 +31,7 @@ $contextid = required_param('contextid', PARAM_INT);
 $component = required_param('component', PARAM_COMPONENT);
 $peergradearea = required_param('peergradearea', PARAM_AREA);
 $itemid = required_param('itemid', PARAM_INT);
-$scaleid = required_param('scaleid', PARAM_INT);
+$peergradescaleid = required_param('peergradescaleid', PARAM_INT);
 $sort = optional_param('sort', '', PARAM_ALPHA);
 $popup = optional_param('popup', 0, PARAM_INT); // Any non-zero value if in a popup window.
 
@@ -41,7 +42,7 @@ $url = new moodle_url('/peergrade/index.php', array('contextid' => $contextid,
         'component' => $component,
         'peergradearea' => $peergradearea,
         'itemid' => $itemid,
-        'scaleid' => $scaleid));
+        'peergradescaleid' => $peergradescaleid));
 if (!empty($sort)) {
     $url->param('sort', $sort);
 }
@@ -60,12 +61,8 @@ $params = array('contextid' => $contextid,
         'peergradearea' => $peergradearea,
         'itemid' => $itemid,
         'scaleid' => $scaleid);
-if (!has_capability('moodle/peergrade:view', $context) ||
-        !component_callback($component, 'peergrade_can_see_item_peergrades', array($params), true)) {
-    print_error('noviewpeergrade', 'peergrade');
-}
 
-$canviewallpeergrades = has_capability('moodle/peergrade:viewall', $context);
+$canviewallpeergrades = has_capability('mod/peerforum:viewall', $context);
 
 switch ($sort) {
     case 'firstname':
@@ -78,13 +75,13 @@ switch ($sort) {
         $sqlsort = "r.timemodified ASC";
 }
 
-$scalemenu = make_grades_menu($scaleid);
+$peergradescalemenu = make_grades_menu($peergradescaleid);
 
-$strpeergrade = get_string('peergrade', 'peergrade');
+$strpeergrade = get_string('peergrade', 'peerforum');
 $strname = get_string('name');
 $strtime = get_string('time');
 
-$PAGE->set_title(get_string('allpeergradesforitem', 'peergrade'));
+$PAGE->set_title(get_string('allpeergradesforitem', 'peerforum'));
 echo $OUTPUT->header();
 
 $peergradeoptions = new stdClass;
@@ -97,7 +94,7 @@ $peergradeoptions->sort = $sqlsort;
 $rm = new peergrade_manager();
 $peergrades = $rm->get_all_peergrades_for_item($peergradeoptions);
 if (!$peergrades) {
-    $msg = get_string('nopeergrades', 'peergrade');
+    $msg = get_string('nopeergrades', 'peerforum');
     echo html_writer::tag('div', $msg, array('class' => 'mdl-align'));
 } else {
     // To get the sort URL, copy the current URL and remove any previous sort.
@@ -119,7 +116,7 @@ if (!$peergrades) {
 
     // If the scale was changed after peergrades were submitted some peergrades may have a value above the current maximum.
     // We can't just do count($scalemenu) - 1 as custom scales start at index 1, not 0.
-    $maxpeergrade = max(array_keys($scalemenu));
+    $maxpeergrade = max(array_keys($peergradescalemenu));
 
     foreach ($peergrades as $peergrade) {
         if (!$canviewallpeergrades and $USER->id != $peergrade->userid) {
@@ -142,7 +139,7 @@ if (!$peergrades) {
         if ($peergrade->peergrade > $maxpeergrade) {
             $peergrade->peergrade = $maxpeergrade;
         }
-        $row->cells[] = $scalemenu[$peergrade->peergrade];
+        $row->cells[] = $peergradescalemenu[$peergrade->peergrade];
         $row->cells[] = userdate($peergrade->timemodified);
         $table->data[] = $row;
     }

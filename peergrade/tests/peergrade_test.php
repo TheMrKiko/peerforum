@@ -58,69 +58,75 @@ class core_peergrade_testcase extends advanced_testcase {
         $peergrades = array(
             // User 1's items. Average == 2.
                 array('contextid' => $ctxid,
-                        'component' => 'mod_forum',
+                        'component' => 'mod_peerforum',
                         'peergradearea' => 'post',
                         'itemid' => 1,
                         'scaleid' => 10,
                         'peergrade' => 1,
+                        'feedback' => 'Nice',
                         'userid' => 2,
                         'timecreated' => 1,
                         'timemodified' => 1),
 
                 array('contextid' => $ctxid,
-                        'component' => 'mod_forum',
+                        'component' => 'mod_peerforum',
                         'peergradearea' => 'post',
                         'itemid' => 1,
                         'scaleid' => 10,
                         'peergrade' => 3,
+                        'feedback' => 'Nice',
                         'userid' => 3,
                         'timecreated' => 1,
                         'timemodified' => 1),
 
             // User 2's items. Average == 3.
                 array('contextid' => $ctxid,
-                        'component' => 'mod_forum',
+                        'component' => 'mod_peerforum',
                         'peergradearea' => 'post',
                         'itemid' => 2,
                         'scaleid' => 10,
                         'peergrade' => 1,
+                        'feedback' => 'Nice',
                         'userid' => 1,
                         'timecreated' => 1,
                         'timemodified' => 1),
 
                 array('contextid' => $ctxid,
-                        'component' => 'mod_forum',
+                        'component' => 'mod_peerforum',
                         'peergradearea' => 'post',
                         'itemid' => 2,
                         'scaleid' => 10,
                         'peergrade' => 5,
+                        'feedback' => 'Nice',
                         'userid' => 3,
                         'timecreated' => 1,
                         'timemodified' => 1),
 
             // User 3's items. Average == 4.
                 array('contextid' => $ctxid,
-                        'component' => 'mod_forum',
+                        'component' => 'mod_peerforum',
                         'peergradearea' => 'post',
                         'itemid' => 3,
                         'scaleid' => 10,
                         'peergrade' => 3,
+                        'feedback' => 'Nice',
                         'userid' => 1,
                         'timecreated' => 1,
                         'timemodified' => 1),
 
                 array('contextid' => $ctxid,
-                        'component' => 'mod_forum',
+                        'component' => 'mod_peerforum',
                         'peergradearea' => 'post',
                         'itemid' => 3,
                         'scaleid' => 10,
                         'peergrade' => 5,
+                        'feedback' => 'Nice',
                         'userid' => 2,
                         'timecreated' => 1,
                         'timemodified' => 1)
         );
         foreach ($peergrades as $peergrade) {
-            $DB->insert_record('peergrade', $peergrade);
+            $DB->insert_record('peerforum_peergrade', $peergrade);
         }
 
         // A post (item) by user 1 (peergraded above by user 2 and 3 with average = 2).
@@ -136,7 +142,7 @@ class core_peergrade_testcase extends advanced_testcase {
         // Prepare the default options.
         $defaultoptions = array(
                 'context' => context_system::instance(),
-                'component' => 'mod_forum',
+                'component' => 'mod_peerforum',
                 'peergradearea' => 'post',
                 'scaleid' => 10,
                 'aggregate' => PEERGRADE_AGGREGATE_AVERAGE);

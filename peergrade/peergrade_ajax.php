@@ -16,6 +16,7 @@
 
 /**
  * This page receives ajax peergrade submissions
+ * Additional functions for peergrading in PeerForums
  *
  * It is similar to peergrade.php. Unlike peergrade.php a return url is NOT required.
  *
@@ -34,11 +35,12 @@ $contextid = required_param('contextid', PARAM_INT);
 $component = required_param('component', PARAM_COMPONENT);
 $peergradearea = required_param('peergradearea', PARAM_AREA);
 $itemid = required_param('itemid', PARAM_INT);
-$scaleid = required_param('scaleid', PARAM_INT);
+$peergradescaleid = required_param('peergradescaleid', PARAM_INT);
 $userpeergrade = required_param('peergrade', PARAM_INT);
 $peergradeduserid = required_param('peergradeduserid', PARAM_INT); // The user being peergraded. Required to update their grade.
 $aggregationmethod =
         optional_param('aggregation', PEERGRADE_AGGREGATE_NONE, PARAM_INT); // Used to calculate the aggregate to return.
+$feedback = required_param('feedback', PARAM_TEXT);
 
 $result = new stdClass;
 
@@ -56,7 +58,7 @@ $contextid = null; // Now we have a context object, throw away the id from the u
 $PAGE->set_context($context);
 $PAGE->set_url('/peergrade/peergrade_ajax.php', array('contextid' => $context->id));
 
-if (!confirm_sesskey() || !has_capability('moodle/peergrade:peergrade', $context)) {
+if (!confirm_sesskey() || !has_capability('mod/peerforum:peergrade', $context)) {
     echo $OUTPUT->header();
     echo get_string('peergradepermissiondenied', 'peergrade');
     echo $OUTPUT->footer();
@@ -65,7 +67,7 @@ if (!confirm_sesskey() || !has_capability('moodle/peergrade:peergrade', $context
 
 $rm = new peergrade_manager();
 $result = $rm->add_peergrade($cm, $context, $component, $peergradearea, $itemid, $scaleid, $userpeergrade, $peergradeduserid,
-        $aggregationmethod);
+        $aggregationmethod, $feedback);
 
 // Return translated error.
 if (!empty($result->error)) {
