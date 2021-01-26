@@ -73,8 +73,6 @@
                 <FIELD NAME="gradecriteria2" TYPE="char" LENGTH="50" NOTNULL="true" DEFAULT="Completeness" SEQUENCE="false"/>
                 <FIELD NAME="gradecriteria3" TYPE="char" LENGTH="50" NOTNULL="true" DEFAULT="Creativity" SEQUENCE="false"/>
                 <FIELD NAME="showpostid" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="pagination" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
-                <FIELD NAME="postsperpage" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="5" SEQUENCE="false"/>
                 <FIELD NAME="showdetails" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="autoassignreplies" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="hidereplies" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
@@ -131,7 +129,6 @@
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="created" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="modified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="page" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="mailed" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="subject" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="message" TYPE="text" NOTNULL="true" SEQUENCE="false"/>

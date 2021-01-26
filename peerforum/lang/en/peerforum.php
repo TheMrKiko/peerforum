@@ -1047,8 +1047,6 @@ $string['showpostid_help'] =
 $string['enable_attribution_advanced'] = 'Enable advanced topic attribution';
 $string['enable_attribution_advanced_help'] =
         "Select 'no' if you do not want to have different topics with different peer grading attribution rules.";
-$string['postsperpage'] = '#Posts per page';
-$string['postsperpage_help'] = 'Select the number of posts you want to be shown per page on discussions.';
 $string['showdetails'] = 'Show option of remove/assign students on post';
 $string['showdetails_help'] =
         "Select 'yes' if you want to show, in a PeerForum post, two select options about assigning and removing students to peer grade the post.";
