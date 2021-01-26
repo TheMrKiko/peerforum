@@ -132,11 +132,11 @@ class core_peergrade_external extends external_api {
 
         $rm = new peergrade_manager();
         $peergrades = $rm->get_all_peergrades_for_item($peergradeoptions);
-        $scalemenu = make_grades_menu($params['peergradescaleid']);
+        $peergradescalemenu = make_grades_menu($params['peergradescaleid']);
 
         // If the scale was changed after peergrades were submitted some peergrades may have a value above the current maximum.
         // We can't just do count($scalemenu) - 1 as custom scales start at index 1, not 0.
-        $maxpeergrade = max(array_keys($scalemenu));
+        $maxpeergrade = max(array_keys($peergradescalemenu));
 
         $results = array();
 
@@ -151,7 +151,7 @@ class core_peergrade_external extends external_api {
                 $result['userid'] = $peergrade->userid;
                 $result['feedback'] = $peergrade->feedback;
                 $result['userfullname'] = fullname($peergrade);
-                $result['peergrade'] = $scalemenu[$peergrade->peergrade];
+                $result['peergrade'] = $peergradescalemenu[$peergrade->peergrade];
                 $result['timemodified'] = $peergrade->timemodified;
 
                 // The peergrade object has all the required fields for generate the picture url.

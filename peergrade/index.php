@@ -60,7 +60,7 @@ $params = array('contextid' => $contextid,
         'component' => $component,
         'peergradearea' => $peergradearea,
         'itemid' => $itemid,
-        'scaleid' => $scaleid);
+        'peergradescaleid' => $peergradescaleid);
 
 $canviewallpeergrades = has_capability('mod/peerforum:viewall', $context);
 

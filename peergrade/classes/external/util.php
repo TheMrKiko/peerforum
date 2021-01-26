@@ -60,7 +60,7 @@ class util {
                         'canviewany' => new external_value(PARAM_BOOL,
                                 'Whether the user can view aggregate of peergrades of others.',
                                 VALUE_OPTIONAL),
-                        'scales' => new external_multiple_structure(
+                        'peergradescales' => new external_multiple_structure(
                                 new external_single_structure (
                                         [
                                                 'id' => new external_value(PARAM_INT, 'Scale id.'),
@@ -85,7 +85,7 @@ class util {
                                 new external_single_structure (
                                         [
                                                 'itemid' => new external_value(PARAM_INT, 'Item id.'),
-                                                'scaleid' => new external_value(PARAM_INT, 'Scale id.', VALUE_OPTIONAL),
+                                                'peergradescaleid' => new external_value(PARAM_INT, 'Scale id.', VALUE_OPTIONAL),
                                                 'userid' => new external_value(PARAM_INT, 'User who peergraded id.',
                                                         VALUE_OPTIONAL),
                                                 'aggregate' => new external_value(PARAM_FLOAT, 'Aggregated peergrades grade.',
@@ -132,20 +132,20 @@ class util {
                 'peergradearea' => $peergradearea,
                 'canviewall' => null,
                 'canviewany' => null,
-                'scales' => [],
+                'peergradescales' => [],
                 'peergrades' => [],
         ];
-        if ($mod->assessed != PEERGRADE_AGGREGATE_NONE) {
+        if ($mod->peergradeassessed != PEERGRADE_AGGREGATE_NONE) {
             $peergradeoptions = new stdClass;
             $peergradeoptions->context = $context;
             $peergradeoptions->component = $component;
             $peergradeoptions->peergradearea = $peergradearea;
             $peergradeoptions->items = $items;
-            $peergradeoptions->aggregate = $mod->assessed;
-            $peergradeoptions->scaleid = $mod->scale;
+            $peergradeoptions->aggregate = $mod->peergradeassessed;
+            $peergradeoptions->peergradescaleid = $mod->peergradescale;
             $peergradeoptions->userid = $USER->id;
-            $peergradeoptions->assesstimestart = $mod->assesstimestart;
-            $peergradeoptions->assesstimefinish = $mod->assesstimefinish;
+            $peergradeoptions->assesstimestart = $mod->peergradeassesstimestart;
+            $peergradeoptions->assesstimefinish = $mod->peergradeassesstimefinish;
 
             $rm = new peergrade_manager();
             $allitems = $rm->get_peergrades($peergradeoptions);
@@ -156,7 +156,7 @@ class util {
                 }
                 $peergrade = [
                         'itemid' => $item->peergrade->itemid,
-                        'scaleid' => $item->peergrade->scaleid,
+                        'peergradescaleid' => $item->peergrade->peergradescaleid,
                         'userid' => $item->peergrade->userid,
                         'peergrade' => $item->peergrade->peergrade,
                         'canpeergrade' => $item->peergrade->user_can_peergrade(),
@@ -179,21 +179,21 @@ class util {
                 }
                 // If the user can peergrade, return the scale information only one time.
                 if ($peergrade['canpeergrade'] &&
-                        !empty($item->peergrade->settings->scale->id) &&
-                        !isset($peergradeinfo['scales'][$item->peergrade->settings->scale->id])) {
-                    $scale = $item->peergrade->settings->scale;
+                        !empty($item->peergrade->settings->peergradescale->id) &&
+                        !isset($peergradeinfo['peergradescales'][$item->peergrade->settings->peergradescale->id])) {
+                    $peergradescale = $item->peergrade->settings->peergradescale;
                     // Return only non numeric scales (to avoid return lots of data just including items from 0 to $scale->max).
-                    if (!$scale->isnumeric) {
-                        $scaleitems = [];
-                        foreach ($scale->scaleitems as $value => $name) {
-                            $scaleitems[] = [
+                    if (!$peergradescale->isnumeric) {
+                        $peergradescaleitems = [];
+                        foreach ($peergradescale->peergradescaleitems as $value => $name) {
+                            $peergradescaleitems[] = [
                                     'name' => $name,
                                     'value' => $value,
                             ];
                         }
-                        $scale->items = $scaleitems;
+                        $peergradescale->items = $peergradescaleitems;
                     }
-                    $peergradeinfo['scales'][$item->peergrade->settings->scale->id] = (array) $scale;
+                    $peergradeinfo['peergradescales'][$item->peergrade->settings->peergradescale->id] = (array) $peergradescale;
                 }
                 $peergradeinfo['peergrades'][] = $peergrade;
             }

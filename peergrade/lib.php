@@ -333,6 +333,7 @@ class peergrade implements renderable {
      *            aggregate => The aggregate for the peergrade [optional]
      *            count => The number of peergrades [optional]
      *            peergrade => The peergrade given by the user [optional]
+     *            feedback => The feedback given by the user [optional]
      *            peergraders => The peergraders [optional]
      * }
      */
@@ -394,7 +395,6 @@ class peergrade implements renderable {
         $peergradeoptions->aggregate = PEERGRADE_AGGREGATE_AVERAGE; // We dont actually care what aggregation method is applied.
         $peergradeoptions->peergradescaleid = $this->peergradescaleid;
         $peergradeoptions->userid = $this->userid;
-        $peergradeoptions->feedback = $feedback;
 
         $rm = new peergrade_manager();
         $items = $rm->get_peergrades($peergradeoptions);
@@ -1080,9 +1080,9 @@ class peergrade implements renderable {
 class peergrade_manager {
 
     /**
-     * @var array An array of calculated scale options to save us generate them for each request.
+     * @var array An array of calculated peergradescale options to save us generate them for each request.
      */
-    protected $scales = array();
+    protected $peergradescales = array();
 
     /**
      * Delete one or more peergrades. Specify either a peergrade id, an item id or just the context id.
@@ -1679,7 +1679,7 @@ class peergrade_manager {
      */
     protected function generate_peergrade_peergradescale_object($peergradescaleid, $peerforumid) {
         global $CFG, $DB, $PAGE;
-        if (!array_key_exists('s' . $peergradescaleid, $this->scales)) {
+        if (!array_key_exists('s' . $peergradescaleid, $this->peergradescales)) {
             $peergradescale = new stdClass;
             $peergradescale->id = $peergradescaleid;
             $peergradescale->name = null;
@@ -1714,9 +1714,9 @@ class peergrade_manager {
                     $peergradescale->peergradescaleitems[(string) $i] = $i;
                 }
             }
-            $this->scales['s' . $peergradescaleid] = $peergradescale;
+            $this->peergradescales['s' . $peergradescaleid] = $peergradescale;
         }
-        return $this->scales['s' . $peergradescaleid];
+        return $this->peergradescales['s' . $peergradescaleid];
     }
 
     /**

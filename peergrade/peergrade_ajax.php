@@ -68,7 +68,7 @@ if (!confirm_sesskey() || !has_capability('mod/peerforum:peergrade', $context)) 
 }
 
 $rm = new peergrade_manager();
-$result = $rm->add_peergrade($cm, $context, $component, $peergradearea, $itemid, $scaleid, $userpeergrade, $peergradeduserid,
+$result = $rm->add_peergrade($cm, $context, $component, $peergradearea, $itemid, $peergradescaleid, $userpeergrade, $peergradeduserid,
         $aggregationmethod, $feedback);
 
 // Return translated error.
