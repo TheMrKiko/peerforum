@@ -34,6 +34,7 @@ use mod_peerforum\local\factories\exporter as exporter_factory;
 use mod_peerforum\local\factories\vault as vault_factory;
 use mod_peerforum\local\factories\manager as manager_factory;
 use rating_manager;
+use peergrade_manager;
 use renderer_base;
 use stdClass;
 
@@ -74,6 +75,9 @@ class exported_discussion_summaries {
     /** @var rating_manager $ratingmanager Rating manager */
     private $ratingmanager;
 
+    /** @var peergrade_manager $peergrademanager Peergrade manager */
+    private $peergrademanager;
+
     /**
      * Constructor.
      *
@@ -96,6 +100,7 @@ class exported_discussion_summaries {
         $this->vaultfactory = $vaultfactory;
         $this->managerfactory = $managerfactory;
         $this->ratingmanager = $managerfactory->get_rating_manager();
+        $this->peergrademanager = $managerfactory->get_peergrade_manager();
     }
 
     /**

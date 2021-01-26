@@ -36,6 +36,7 @@ use context;
 use core_tag_tag;
 use moodle_exception;
 use rating_manager;
+use peergrade_manager;
 use renderer_base;
 use stdClass;
 
@@ -72,6 +73,9 @@ class exported_posts {
     /** @var rating_manager $ratingmanager Rating manager */
     private $ratingmanager;
 
+    /** @var peergrade_manager $peergrademanager peergrade manager */
+    private $peergrademanager;
+
     /**
      * Constructor.
      *
@@ -80,19 +84,22 @@ class exported_posts {
      * @param exporter_factory $exporterfactory Exporter factory
      * @param vault_factory $vaultfactory Vault factory
      * @param rating_manager $ratingmanager Rating manager
+     * @param peergrade_manager $peergrademanager Peergrade manager
      */
     public function __construct(
             renderer_base $renderer,
             legacy_data_mapper_factory $legacydatamapperfactory,
             exporter_factory $exporterfactory,
             vault_factory $vaultfactory,
-            rating_manager $ratingmanager
+            rating_manager $ratingmanager,
+            peergrade_manager $peergrademanager
     ) {
         $this->renderer = $renderer;
         $this->legacydatamapperfactory = $legacydatamapperfactory;
         $this->exporterfactory = $exporterfactory;
         $this->vaultfactory = $vaultfactory;
         $this->ratingmanager = $ratingmanager;
+        $this->peergrademanager = $peergrademanager;
     }
 
     /**
@@ -142,6 +149,7 @@ class exported_posts {
         $groupsbycourseandauthorid = $this->get_author_groups_from_posts($groupedposts);
         $tagsbypostid = $this->get_tags_from_posts($posts);
         $ratingbypostid = $this->get_ratings_from_posts($user, $groupedposts);
+        $peergradebypostid = $this->get_peergrades_from_posts($user, $groupedposts);
         $readreceiptcollectionbypeerforumid = $this->get_read_receipts_from_posts($user, $groupedposts);
         $exportedposts = [];
 
@@ -168,6 +176,7 @@ class exported_posts {
                     $readreceiptcollectionbypeerforumid[$peerforumid] ?? null,
                     $tagsbypostid,
                     $ratingbypostid,
+                    $peergradebypostid,
                     true
             );
             ['posts' => $exportedgroupedposts] = (array) $postsexporter->export($this->renderer);

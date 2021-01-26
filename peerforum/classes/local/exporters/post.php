@@ -320,6 +320,13 @@ class post extends exporter {
                                         'type' => PARAM_RAW,
                                         'description' => 'The HTML source to rate the post',
                                 ],
+                                'peergrade' => [
+                                        'optional' => true,
+                                        'default' => null,
+                                        'null' => NULL_ALLOWED,
+                                        'type' => PARAM_RAW,
+                                        'description' => 'The HTML source to peergrade the post',
+                                ],
                                 'taglist' => [
                                         'optional' => true,
                                         'default' => null,
@@ -355,12 +362,14 @@ class post extends exporter {
         $user = $this->related['user'];
         $readreceiptcollection = $this->related['readreceiptcollection'];
         $rating = $this->related['rating'];
+        $peergrade = $this->related['peergrade'];
         $tags = $this->related['tags'];
         $attachments = $this->related['attachments'];
         $includehtml = $this->related['includehtml'];
         $isdeleted = $post->is_deleted();
         $isprivatereply = $post->is_private_reply();
         $hasrating = $rating != null;
+        $haspeergrade = $peergrade != null;
         $hastags = !empty($tags);
         $discussionid = $post->get_discussion_id();
         $parentid = $post->get_parent_id();
@@ -474,6 +483,7 @@ class post extends exporter {
                 'tags' => ($loadcontent && $hastags) ? $this->export_tags($tags) : [],
                 'html' => $includehtml ? [
                         'rating' => ($loadcontent && $hasrating) ? $output->render($rating) : null,
+                        'peergrade' => ($loadcontent && $haspeergrade) ? $output->render($peergrade) : null,
                         'taglist' => ($loadcontent && $hastags) ? $output->tag_list($tags) : null,
                         'authorsubheading' => ($loadcontent) ? $this->get_author_subheading_html($exportedauthor, $timecreated) :
                                 null
@@ -501,6 +511,7 @@ class post extends exporter {
                 'attachments' => '\stored_file[]?',
                 'tags' => '\core_tag_tag[]?',
                 'rating' => 'rating?',
+                'peergrade' => 'peergrade?',
                 'includehtml' => 'bool'
         ];
     }

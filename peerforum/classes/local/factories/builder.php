@@ -90,7 +90,8 @@ class builder {
                 $this->legacydatamapperfactory,
                 $this->exporterfactory,
                 $this->vaultfactory,
-                $this->managerfactory->get_rating_manager()
+                $this->managerfactory->get_rating_manager(),
+                $this->managerfactory->get_peergrade_manager()
         );
     }
 
@@ -120,7 +121,8 @@ class builder {
                 $this->legacydatamapperfactory,
                 $this->exporterfactory,
                 $this->vaultfactory,
-                $this->managerfactory->get_rating_manager()
+                $this->managerfactory->get_rating_manager(),
+                $this->managerfactory->get_peergrade_manager()
         );
     }
 }

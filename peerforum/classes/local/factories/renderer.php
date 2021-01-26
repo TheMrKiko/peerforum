@@ -120,6 +120,7 @@ class renderer {
 
         $capabilitymanager = $this->managerfactory->get_capability_manager($peerforum);
         $ratingmanager = $this->managerfactory->get_rating_manager();
+        $peergrademanager = $this->managerfactory->get_peergrade_manager();
         $rendererbase = $this->rendererbase;
 
         $baseurl = $this->urlfactory->get_discussion_view_url_from_discussion($discussion);
@@ -139,6 +140,7 @@ class renderer {
                 $this->entityfactory,
                 $capabilitymanager,
                 $ratingmanager,
+                $peergrademanager,
                 $this->entityfactory->get_exported_posts_sorter(),
                 $baseurl,
                 $notifications,
@@ -610,6 +612,7 @@ class renderer {
 
         $capabilitymanager = $this->managerfactory->get_capability_manager($peerforum);
         $ratingmanager = $this->managerfactory->get_rating_manager();
+        $peergrademanager = $this->managerfactory->get_peergrade_manager();
         $rendererbase = $this->rendererbase;
 
         $cmid = $peerforum->get_course_module_record()->id;
@@ -635,6 +638,7 @@ class renderer {
                 $this->entityfactory,
                 $capabilitymanager,
                 $ratingmanager,
+                $peergrademanager,
                 $this->entityfactory->get_exported_posts_sorter(),
                 $baseurl,
                 $notifications

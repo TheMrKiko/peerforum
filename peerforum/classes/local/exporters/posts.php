@@ -55,6 +55,8 @@ class posts extends exporter {
     private $tagsbypostid;
     /** @var array $ratingbypostid List of ratings indexed by post id */
     private $ratingbypostid;
+    /** @var array $peergradebypostid List of peergrades indexed by post id */
+    private $peergradebypostid;
 
     /**
      * Constructor.
@@ -66,6 +68,7 @@ class posts extends exporter {
      * @param array $groupsbyauthorid List of author's groups indexed by author id
      * @param array $tagsbypostid List of tags indexed by post id
      * @param array $ratingbypostid List of ratings indexed by post id
+     * @param array $peergradebypostid List of peergrades indexed by post id
      * @param array $related The related objects for exporting
      */
     public function __construct(
@@ -76,6 +79,7 @@ class posts extends exporter {
             array $groupsbyauthorid = [],
             array $tagsbypostid = [],
             array $ratingbypostid = [],
+            array $peergradebypostid = [],
             array $related = []
     ) {
         $this->posts = $posts;
@@ -85,6 +89,7 @@ class posts extends exporter {
         $this->groupsbyauthorid = $groupsbyauthorid;
         $this->tagsbypostid = $tagsbypostid;
         $this->ratingbypostid = $ratingbypostid;
+        $this->peergradebypostid = $peergradebypostid;
         return parent::__construct([], $related);
     }
 
@@ -116,6 +121,7 @@ class posts extends exporter {
         $groupsbyauthorid = $this->groupsbyauthorid;
         $tagsbypostid = $this->tagsbypostid;
         $ratingbypostid = $this->ratingbypostid;
+        $peergradebypostid = $this->peergradebypostid;
         $exportedposts = array_map(
                 function($post) use (
                         $related,
@@ -125,6 +131,7 @@ class posts extends exporter {
                         $groupsbyauthorid,
                         $tagsbypostid,
                         $ratingbypostid,
+                        $peergradebypostid,
                         $output
                 ) {
                     $authorid = $post->get_author_id();
@@ -135,13 +142,15 @@ class posts extends exporter {
                     $authorgroups = isset($groupsbyauthorid[$authorid]) ? $groupsbyauthorid[$authorid] : [];
                     $tags = isset($tagsbypostid[$postid]) ? $tagsbypostid[$postid] : [];
                     $rating = isset($ratingbypostid[$postid]) ? $ratingbypostid[$postid] : null;
+                    $peergrade = isset($peergradebypostid[$postid]) ? $peergradebypostid[$postid] : null;
                     $exporter = new post_exporter($post, array_merge($related, [
                             'author' => $author,
                             'authorcontextid' => $authorcontextid,
                             'attachments' => $attachments,
                             'authorgroups' => $authorgroups,
                             'tags' => $tags,
-                            'rating' => $rating
+                            'rating' => $rating,
+                            'peergrade' => $peergrade
                     ]));
                     return $exporter->export($output);
                 },

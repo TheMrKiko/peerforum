@@ -46,6 +46,7 @@ use moodle_exception;
 use moodle_page;
 use moodle_url;
 use rating_manager;
+use peergrade_manager;
 use renderer_base;
 use single_button;
 use single_select;
@@ -92,6 +93,8 @@ class discussion {
     private $capabilitymanager;
     /** @var rating_manager $ratingmanager Rating manager */
     private $ratingmanager;
+    /** @var peergrade_manager $peergrademanager Peergrade manager */
+    private $peergrademanager;
     /** @var moodle_url $baseurl The base URL for the discussion */
     private $baseurl;
     /** @var array $notifications List of HTML notifications to display */
@@ -117,6 +120,7 @@ class discussion {
      * @param entity_factory $entityfactory Entity factory
      * @param capability_manager $capabilitymanager Capability manager
      * @param rating_manager $ratingmanager Rating manager
+     * @param peergrade_manager $peergrademanager Peergrade manager
      * @param sorter_entity $exportedpostsorter Sorter for the exported posts
      * @param moodle_url $baseurl The base URL for the discussion
      * @param array $notifications List of HTML notifications to display
@@ -136,6 +140,7 @@ class discussion {
             entity_factory $entityfactory,
             capability_manager $capabilitymanager,
             rating_manager $ratingmanager,
+            peergrade_manager $peergrademanager,
             sorter_entity $exportedpostsorter,
             moodle_url $baseurl,
             array $notifications = [],
@@ -155,6 +160,7 @@ class discussion {
         $this->entityfactory = $entityfactory;
         $this->capabilitymanager = $capabilitymanager;
         $this->ratingmanager = $ratingmanager;
+        $this->peergrademanager = $peergrademanager;
         $this->notifications = $notifications;
 
         $this->exportedpostsorter = $exportedpostsorter;

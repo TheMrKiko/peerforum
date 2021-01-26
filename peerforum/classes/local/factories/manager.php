@@ -28,10 +28,12 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 require_once($CFG->dirroot . '/rating/lib.php');
+require_once($CFG->dirroot . '/peergrade/lib.php');
 
 use mod_peerforum\local\entities\peerforum as peerforum_entity;
 use mod_peerforum\local\managers\capability as capability_manager;
 use rating_manager;
+use peergrade_manager;
 
 /**
  * Managers factory.
@@ -77,5 +79,15 @@ class manager {
      */
     public function get_rating_manager(): rating_manager {
         return new rating_manager();
+    }
+
+
+    /**
+     * Create a peergrade manager.
+     *
+     * @return peergrade_manager
+     */
+    public function get_peergrade_manager(): peergrade_manager {
+        return new peergrade_manager();
     }
 }

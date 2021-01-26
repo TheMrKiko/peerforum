@@ -41,6 +41,7 @@ use mod_peerforum\local\exporters\post as post_exporter;
 use mod_peerforum\local\exporters\posts as posts_exporter;
 use context;
 use rating;
+use peergrade;
 use stdClass;
 
 /**
@@ -223,6 +224,7 @@ class exporter {
      * @param post_read_receipt_collection_entity|null $readreceiptcollection Details of read receipts for each post
      * @param array $tagsbypostid List of tags for each post indexed by post id
      * @param rating[] $ratingbypostid List of ratings for each post indexed by post id
+     * @param peergrade[] $peergradebypostid List of peergrades for each post indexed by post id
      * @param bool $includehtml Include some pre-constructed HTML in the export
      * @return  post_exporter
      */
@@ -238,6 +240,7 @@ class exporter {
             post_read_receipt_collection_entity $readreceiptcollection = null,
             array $tagsbypostid = [],
             array $ratingbypostid = [],
+            array $peergradebypostid = [],
             bool $includehtml = false
     ): posts_exporter {
         return new posts_exporter(
@@ -248,6 +251,7 @@ class exporter {
                 $groupsbyauthorid,
                 $tagsbypostid,
                 $ratingbypostid,
+                $peergradebypostid,
                 [
                         'capabilitymanager' => $this->managerfactory->get_capability_manager($peerforum),
                         'urlfactory' => $this->urlfactory,

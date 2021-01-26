@@ -32,6 +32,7 @@ use mod_peerforum\local\factories\legacy_data_mapper as legacy_data_mapper_facto
 use mod_peerforum\local\factories\exporter as exporter_factory;
 use mod_peerforum\local\factories\vault as vault_factory;
 use rating_manager;
+use peergrade_manager;
 use renderer_base;
 use stdClass;
 
@@ -68,6 +69,9 @@ class exported_discussion {
     /** @var rating_manager $ratingmanager Rating manager */
     private $ratingmanager;
 
+    /** @var peergrade_manager $peergrademanager Peergrade manager */
+    private $peergrademanager;
+
     /**
      * Constructor.
      *
@@ -76,19 +80,22 @@ class exported_discussion {
      * @param exporter_factory $exporterfactory Exporter factory
      * @param vault_factory $vaultfactory Vault factory
      * @param rating_manager $ratingmanager Rating manager
+     * @param peergrade_manager $peergrademanager Peergrade manager
      */
     public function __construct(
             renderer_base $renderer,
             legacy_data_mapper_factory $legacydatamapperfactory,
             exporter_factory $exporterfactory,
             vault_factory $vaultfactory,
-            rating_manager $ratingmanager
+            rating_manager $ratingmanager,
+            peergrade_manager $peergrademanager
     ) {
         $this->renderer = $renderer;
         $this->legacydatamapperfactory = $legacydatamapperfactory;
         $this->exporterfactory = $exporterfactory;
         $this->vaultfactory = $vaultfactory;
         $this->ratingmanager = $ratingmanager;
+        $this->peergrademanager = $peergrademanager;
     }
 
     /**
