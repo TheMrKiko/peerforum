@@ -131,6 +131,7 @@
                 {{/isdeleted}}
 
                 <div class="no-overflow w-100 content-alignment-container">
+                    {{#capabilities.viewreply}}
                     <div id="post-content-{{id}}" class="post-content-container">
                         {{{message}}}
                     </div>
@@ -326,6 +327,12 @@
 
                         {{$footer}}{{/footer}}
                     {{/isdeleted}}
+                    {{/capabilities.viewreply}}
+                    {{^capabilities.viewreply}}
+                        <div id="post-content-{{id}}" class="content post-content-container">
+                            Sorry, you can't see this post yet.
+                        </div>
+                    {{/capabilities.viewreply}}
                 </div>
             </div>
         </div>

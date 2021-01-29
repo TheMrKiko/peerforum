@@ -11381,56 +11381,6 @@ function end_peergrade_post($postid, $peerforum) {
     return 0;
 }
 
-/**
- * Returns if a reply given by a teacher can be seen by students.
- * Posts need to either have the minimum peergrades given or expired!
- *
- * @param object $post
- * @param object $peerforum
- * @return bool if students can see teacher reply.
- */
-function can_see_reply($post, $peerforum) {
-    global $DB, $COURSE, $PAGE;
-
-    $postid = $post->id;
-    $post_info = $DB->get_record("peerforum_posts", array('id' => $postid));
-
-    $post_author = $post_info->userid;
-
-    $cContext = context_course::instance($COURSE->id);
-    $isstudent = current(get_user_roles($cContext, $post_author))->shortname == 'student' ? true : false;
-
-    if ($isstudent) {
-        return true;
-    } else {
-        $parent_post = $post_info->parent;
-        if ($parent_post == 0) {
-            return true;
-        }
-        $post_parent = $DB->get_record("peerforum_posts", array('id' => $parent_post));
-        $post_parent_author = $post_parent->userid;
-
-        //this student is the author!
-        $student = current(get_user_roles($cContext, $post_parent_author))->shortname == 'student' ? true : false;
-
-        if ($student && (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context))) {
-
-            $minpeergraders = end_peergrade_post($post_parent->id, $peerforum);
-            if ($minpeergraders) {
-                return true;
-            } else {
-                $expired = post_has_expired($post, $peerforum);
-                if ($expired) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        } else { //post if from student but being acessed by teacher
-            return true;
-        }
-    }
-}
 
 /**
  * Returns true if the time to peergrade a post has expired for all assigned students

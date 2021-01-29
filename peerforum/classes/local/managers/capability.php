@@ -32,6 +32,7 @@ use mod_peerforum\local\data_mappers\legacy\post as legacy_post_data_mapper;
 use mod_peerforum\local\entities\discussion as discussion_entity;
 use mod_peerforum\local\entities\peerforum as peerforum_entity;
 use mod_peerforum\local\entities\post as post_entity;
+use mod_peerforum\local\container;
 use mod_peerforum\subscriptions;
 use context;
 use context_system;
@@ -411,6 +412,42 @@ class capability {
      */
     public function can_view_any_private_reply(stdClass $user): bool {
         return has_capability('mod/peerforum:readprivatereplies', $this->get_context(), $user);
+    }
+
+    /**
+     * Returns if a reply given by a teacher can be seen by students.
+     * Posts need to either have the minimum peergrades given or expired!
+     *
+     * @param post_entity $post
+     * @return bool if students can see teacher reply.
+     */
+    public function can_see_reply(post_entity $post): bool {
+        $peerforum = $this->get_peerforum();
+        if (!$peerforum->is_hidereplies()) {
+            return true;
+        }
+
+        $postauthor = $post->get_author_id();
+        // TODO Fazer disto uma capacidade!
+        $isstudent = current(get_user_roles($this->get_context(), $postauthor))->shortname == 'student';
+        if ($isstudent || !$post->has_parent()) {
+            return true;
+        }
+
+        $parentpostid = $post->get_parent_id();
+        $postparentauthor = container::get_vault_factory()->get_post_vault()->get_from_id($parentpostid)->get_author_id();
+        // This student is the author!
+        $isstudent = current(get_user_roles($this->get_context(), $postparentauthor))->shortname == 'student';
+
+        if ($isstudent && !has_capability('mod/peerforum:viewallpeergrades', $this->get_context())) {
+            $minpeergraders = end_peergrade_post($parentpostid, $this->get_peerforum_record());
+            if ($minpeergraders) {
+                return true;
+            }
+            return post_has_expired($this->get_post_record($post), $this->get_peerforum_record());
+        }
+        // Post if from student but being acessed by teacher.
+        return true;
     }
 
     /**
