@@ -8510,6 +8510,8 @@ function peerforum_extend_settings_navigation(settings_navigation $settingsnav, 
         $url = new moodle_url('/mod/peerforum/export.php', ['id' => $peerforumobject->id]);
         $peerforumnode->add(get_string('export', 'mod_peerforum'), $url, navigation_node::TYPE_SETTING);
     }
+    $url = new moodle_url('/mod/peerforum/build_training.php', ['peerforum' => $peerforumobject->id]);
+    $peerforumnode->add("Training pages", $url, navigation_node::TYPE_SETTING);
 }
 
 /**
@@ -10877,4 +10879,99 @@ function remove_blocked_students($all_students) {
     }
 
     return $eligible_students;
+}
+
+/**
+ * Add a new training page.
+ *
+ * @param stdClass $trainingpage The page data
+ * @param mixed $mform The submitted form
+ * @return int
+ */
+function peerforum_add_new_training_page($trainingpage, $mform) {
+    global $USER, $CFG, $DB;
+
+    $peerforum = $DB->get_record('peerforum', array('id' => $trainingpage->peerforum));
+    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
+    $context = context_module::instance($cm->id);
+
+    //$trainingpage->created = $trainingpage->modified = time();
+    if (!isset($trainingpage->totalscore)) {
+        $trainingpage->totalscore = 0;
+    }
+
+    // \mod_peerforum\local\entities\post::add_message_counts($trainingpage);
+    $id = $DB->insert_record("peerforum_training_page", $trainingpage);
+    $trainingpage->description = file_save_draft_area_files($trainingpage->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id,
+            mod_peerforum_build_training_form::editor_options(), $trainingpage->description);
+    $DB->set_field('peerforum_training_page', 'description', $trainingpage->description, array('id' => $id));
+
+    // Update discussion modified date
+    // $DB->set_field("peerforum_discussions", "timemodified", $post->modified, array("id" => $post->discussion));
+
+    foreach ($trainingpage->description_eg as $key => $desc) {
+        $trainingexample = $desc;
+
+        $trainingexample->n = $key;
+        $trainingexample->pageid = $trainingpage->id;
+        $trainingexample->name = $trainingpage->name_eg[$key];
+
+        $egid = $DB->insert_record("peerforum_training_example", $trainingexample);
+
+        $trainingexample->description = file_save_draft_area_files($trainingexample->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id.$key,
+                mod_peerforum_build_training_form::editor_options(), $trainingexample->description);
+
+        $DB->set_field('peerforum_training_example', 'description', $trainingexample->description, array('id' => $egid));
+    }
+
+    return $id;
+}
+
+/**
+ * Update a training page.
+ *
+ * @param stdClass $trainingpage The page to update
+ * @param mixed $mform The submitted form
+ * @return  bool
+ */
+function peerforum_update_training_page($trainingpage, $mform) {
+    global $USER, $CFG, $DB;
+
+    $peerforum = $DB->get_record('peerforum', array('id' => $trainingpage->peerforum));
+    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
+    $context = context_module::instance($cm->id);
+
+    // $trainingpage->modified = time();
+
+    $DB->update_record('peerforum_training_page', $trainingpage);
+
+    $trainingpage->description = file_save_draft_area_files($trainingpage->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id,
+            mod_peerforum_build_training_form::editor_options(), $trainingpage->description);
+
+    // \mod_peerforum\local\entities\post::add_message_counts($post);
+    $DB->set_field('peerforum_training_page', 'description', $trainingpage->description, array('id' => $trainingpage->id));
+
+    foreach ($trainingpage->description_eg as $key => $desc) {
+        $trainingexample = $desc;
+
+        $trainingexample->n = $key;
+        $trainingexample->id = $trainingpage->id_eg[$key];
+        $trainingexample->pageid = $trainingpage->id;
+        $trainingexample->name = $trainingpage->name_eg[$key];
+
+        $egid = $trainingexample->id;
+
+        if ($egid == -1) { // Hack: should be a constant but ya
+            $egid = $DB->insert_record("peerforum_training_example", $trainingexample);
+        } else {
+            $DB->update_record("peerforum_training_example", $trainingexample, array('id' => $egid));
+        }
+
+        $trainingexample->description = file_save_draft_area_files($trainingexample->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id.$key,
+                mod_peerforum_build_training_form::editor_options(), $trainingexample->description);
+
+        $DB->set_field('peerforum_training_example', 'description', $trainingexample->description, array('id' => $egid));
+    }
+
+    return true;
 }
