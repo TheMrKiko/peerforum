@@ -72,14 +72,14 @@ class mod_peerforum_build_training_form extends moodleform {
         $mform->setType('name', PARAM_NOTAGS);  // Set type of element.
         $mform->addRule('name', 'lol', 'required');
 
-        $mform->addElement('editor', 'description', get_string('labeltext', 'langfile'),
+        $mform->addElement('editor', 'description', 'Skill description with some examples',
                 null, self::editor_options());
         $mform->setType('description', PARAM_RAW);
 
         $repeatarray = array();
-        $repeatarray[] = $mform->createElement('header', 'nameforyourheaderelement', get_string('titleforlegened', 'modulename'));
-        $repeatarray[] = $mform->createElement('text', 'name_eg', 'Title of example {no}');
-        $repeatarray[] = $mform->createElement('editor', 'description_eg', get_string('limitno', 'choice'), null,
+        $repeatarray[] = $mform->createElement('header', 'nameforyourheaderelement', 'Exercise {no}');
+        $repeatarray[] = $mform->createElement('text', 'name_eg', 'Title of exercise {no}');
+        $repeatarray[] = $mform->createElement('editor', 'description_eg', 'Exercise description', null,
                 self::editor_options());
 
         $repeatarray[] = $mform->createElement('hidden', 'id_eg', -1);
@@ -87,16 +87,14 @@ class mod_peerforum_build_training_form extends moodleform {
         $repeatno = !empty($edit) ? $trainingpage->examples : 1;
 
         $repeateloptions = array();
-        // $repeateloptions['name_eg']['default'] = "Queenzy";
-
-        // $repeateloptions['description_eg']['helpbutton'] = array('choiceoptions', 'choice');
+        $repeateloptions['description_eg']['helpbutton'] = array('choiceoptions', 'choice');
 
         $mform->setType('id_eg', PARAM_INT);
         $mform->setType('name_eg', PARAM_NOTAGS);
         $mform->setType('description_eg', PARAM_RAW);
 
         $this->repeat_elements($repeatarray, $repeatno, $repeateloptions, 'examples',
-                'option_add_fields', 1, null);
+                'option_add_fields', 1, 'Add {no} more exercise');
 
         $this->add_action_buttons();
 
@@ -125,9 +123,6 @@ class mod_peerforum_build_training_form extends moodleform {
      */
     function validation($data, $files) {
         $errors = parent::validation($data, $files);
-        /*if (($data['timeend'] != 0) && ($data['timestart'] != 0) && $data['timeend'] <= $data['timestart']) {
-            $errors['timeend'] = get_string('timestartenderror', 'peerforum');
-        }*/
         if (empty($data['description']['text'])) {
             $errors['description'] = get_string('erroremptymessage', 'peerforum');
         }

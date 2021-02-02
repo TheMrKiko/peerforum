@@ -490,5 +490,31 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <INDEX NAME="n-pageid" UNIQUE="false" FIELDS="pageid, n"/>
             </INDEXES>
         </TABLE>
+        <TABLE NAME="peerforum_training_submit" COMMENT="Submissions in training pages">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="pageid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="opened" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="submitted" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="peerforum_training_page" REFFIELDS="id"/>
+            </KEYS>
+        </TABLE>
+        <TABLE NAME="peerforum_training_rating" COMMENT="Submissions in training pages">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="submissionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="exid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="submissionid" TYPE="foreign" FIELDS="submissionid" REFTABLE="peerforum_training_submit" REFFIELDS="id"/>
+                <KEY NAME="exid" TYPE="foreign" FIELDS="exid" REFTABLE="peerforum_training_example" REFFIELDS="id"/>
+            </KEYS>
+        </TABLE>
     </TABLES>
 </XMLDB>

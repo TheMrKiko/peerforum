@@ -33,6 +33,7 @@ use mod_peerforum\local\vaults\discussion_list as discussion_list_vault;
 use mod_peerforum\local\vaults\peerforum as peerforum_vault;
 use mod_peerforum\local\vaults\post as post_vault;
 use mod_peerforum\local\vaults\training_page as training_page_vault;
+use mod_peerforum\local\vaults\training_submission as training_submission_vault;
 use mod_peerforum\local\vaults\post_attachment as post_attachment_vault;
 use mod_peerforum\local\vaults\post_read_receipt_collection as post_read_receipt_collection_vault;
 use file_storage;
@@ -169,6 +170,19 @@ class vault {
      */
     public function get_training_page_vault(): training_page_vault {
         return new training_page_vault(
+                $this->db,
+                $this->entityfactory,
+                null
+        );
+    }
+
+    /**
+     * Create a traning submission vault.
+     *
+     * @return training_submission_vault
+     */
+    public function get_training_submission_vault(): training_submission_vault {
+        return new training_submission_vault(
                 $this->db,
                 $this->entityfactory,
                 null

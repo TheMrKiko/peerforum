@@ -44,16 +44,13 @@ class mod_peerforum_training_form extends moodleform {
      * @return void
      */
     function definition() {
-        global $CFG;
-
         $mform = $this->_form; // Don't forget the underscore!
 
-        $course = $this->_customdata['course'];
-        $cm = $this->_customdata['cm'];
-        $coursecontext = $this->_customdata['coursecontext'];
         $modcontext = $this->_customdata['modcontext'];
         $peerforum = $this->_customdata['peerforum'];
         $trainingpage = $this->_customdata['trainingpage'];
+        $trainingsubmission = $this->_customdata['submission'];
+        $submitted = isset($trainingsubmission) && !empty($trainingsubmission);
 
         $ratingoptions = (object) [
                 'context' => $modcontext,
@@ -77,15 +74,17 @@ class mod_peerforum_training_form extends moodleform {
         $scalearray = array(RATING_UNSET_RATING => 'Rating...') + $rating->settings->scale->scaleitems;
 
         foreach (range(0, $examples - 1) as $k) {
+            $exid = $trainingpage->id_eg[$k];
             $mform->addElement('header', 'header' . $k, $trainingpage->name_eg[$k]);
-            $availablefromgroup = array();
-            $availablefromgroup[] =& $mform->createElement('html', $trainingpage->description_eg[$k]);
-            $mform->addGroup($availablefromgroup, 'availablefromgroup'.$k);
-            // $mform->addElement('html', $trainingpage->description_eg[$k]);
-            $mform->addElement('select', 'rating'.$k, 'How would you grade this?', $scalearray);
-            // $mform->addRule('rating'.$k, get_string('error'), 'required');
-            $mform->addElement('html', '<p style="color: red;"><b>Wrong</b>: Look at the lights, lol.</p>');
-            //$mform->hideIf('rating'.$k, 'submitted', 'eq', 1);
+            $mform->addElement('html', $trainingpage->description_eg[$k]);
+            $mform->addElement('select', 'grades['.$exid.']', 'How would you grade this?', $scalearray);
+
+            if ($submitted) {
+                $grade = $trainingsubmission->grades[$exid]->grade;
+                $mform->addElement('html', '<p style="color: red;"><b>Wrong</b>: Look at the lights, lol. ('.$grade.') </p>');
+            }
+
+            $mform->addRule('grades['.$exid.']', get_string('error'), 'required');
         }
 
         $this->add_action_buttons();
@@ -102,23 +101,8 @@ class mod_peerforum_training_form extends moodleform {
         $mform->addElement('hidden', 'examples');
         $mform->setType('examples', PARAM_INT);
 
-        $mform->addElement('hidden', 'submitted');
-        $mform->setType('submitted', PARAM_INT);
-    }
-
-    function definition_after_data() {
-        $mformpage =& $this->_form;
-        if ($this->is_submitted()) {
-            $rating = $mformpage->getElement('availablefromgroup1');
-            $rating->_elements[0]->_attributes['hidden'] = true;
-            //$value = $rating->_values[0];
-        }
-        //$config_text =& $mform->getElement(‘config_text’);
-        //$config_checkbox =& $mform->getElement(‘config_checkbox’);
-
-        //if (isset($config_checkbox->_attributes[‘checked’])) {
-        //    $config_text->attributes[‘value’] = "The checkbox is checked";
-        //} // if
+        $mform->addElement('hidden', 'open');
+        $mform->setType('open', PARAM_INT);
     }
 
     /**
@@ -130,15 +114,11 @@ class mod_peerforum_training_form extends moodleform {
      */
     function validation($data, $files) {
         $errors = parent::validation($data, $files);
-        /*if (($data['timeend'] != 0) && ($data['timestart'] != 0) && $data['timeend'] <= $data['timestart']) {
-            $errors['timeend'] = get_string('timestartenderror', 'peerforum');
+        foreach ($data['grades'] as $exid => $g) {
+            if ($g == RATING_UNSET_RATING) {
+                $errors['grades['.$exid.']'] = get_string('erroremptysubject', 'peerforum');
+            }
         }
-        if (empty($data['description']['text'])) {
-            $errors['description'] = get_string('erroremptymessage', 'peerforum');
-        }
-        if (empty($data['name'])) {
-            $errors['name'] = get_string('erroremptysubject', 'peerforum');
-        }*/
         return $errors;
     }
 }

@@ -10902,6 +10902,7 @@ function peerforum_add_new_training_page($trainingpage, $mform) {
 
     // \mod_peerforum\local\entities\post::add_message_counts($trainingpage);
     $id = $DB->insert_record("peerforum_training_page", $trainingpage);
+    $trainingpage->id = $id;
     $trainingpage->description = file_save_draft_area_files($trainingpage->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id,
             mod_peerforum_build_training_form::editor_options(), $trainingpage->description);
     $DB->set_field('peerforum_training_page', 'description', $trainingpage->description, array('id' => $id));
@@ -10974,4 +10975,37 @@ function peerforum_update_training_page($trainingpage, $mform) {
     }
 
     return true;
+}
+
+/**
+ * Update a training page.
+ *
+ * @param stdClass $trainingpage The page to update
+ * @param mixed $mform The submitted form
+ * @return bool|int
+ */
+function peerforum_submit_training_page($trainingpage, $mform) {
+    global $USER, $CFG, $DB;
+
+    $peerforum = $DB->get_record('peerforum', array('id' => $trainingpage->peerforum));
+    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
+    $context = context_module::instance($cm->id);
+
+    $submit = $DB->insert_record('peerforum_training_submit', (object) [
+                'userid' => $USER->id,
+                'pageid' => $trainingpage->id,
+                'opened' => $trainingpage->open,
+                'submitted'=> time(),
+        ]);
+
+    $grades = $trainingpage->grades;
+    foreach ($grades as $exid => $grade) {
+        $DB->insert_record('peerforum_training_rating', (object) [
+                'submissionid' => $submit,
+                'exid' => $exid,
+                'grade' => $grade,
+        ]);
+    }
+
+    return $submit;
 }
