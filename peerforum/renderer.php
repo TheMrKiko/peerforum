@@ -44,6 +44,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
      * @return string
      */
     public function render_ratingpeer(ratingpeer $ratingpeer) {
+        // Disclaimer: this is an adaptation of the render_rating() from moodle outputrenderer.php ...
         global $CFG, $USER, $PAGE, $DB, $COURSE;
 
         if ($ratingpeer->settings->aggregationmethod == RATINGPEER_AGGREGATE_NONE) {
@@ -72,6 +73,78 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $isStudent = current(get_user_roles($cContext, $post_author))->shortname == 'student' ? true : false;
         if ($isStudent != 1) {
             return null;
+        }
+
+        if (has_capability('mod/peerforum:viewallratingpeer', $PAGE->context)) {
+            $isstudent = false;
+        } else {
+            $isstudent = true;
+        }
+
+        //Verify if peer grade can only be shown after rating is done
+        $showafterpeergrade = $peerforum->showafterpeergrade;
+
+        //If showing ratings is restricted...
+        //Case 1 - Verify if post has expired for all assigned peergraders
+        if ($showafterpeergrade) {
+
+            //Some variables
+            $posthasexpired = false;
+            $expiredposts = 0;
+
+            //Gather info
+            $post_info = $DB->get_record("peerforum_posts", array('id' => $post_topeergrade));
+            $peergraders = explode(";", $post_info->peergraders);
+            $peergrades = $DB->get_records('peerforum_peergrade', array('itemid' => $post_topeergrade));
+
+            if (!empty($peergraders)) {
+                for ($i = 0; $i < count($peergraders); $i++) {
+                    $post_time = verify_post_expired($post_topeergrade, $peerforum, $peergraders[$i], $COURSE->id);
+                    if ($post_time->post_expired) {
+                        $expiredposts++;
+                    }
+                }
+                if ($expiredposts == count($peergraders)) {
+                    $posthasexpired = true;
+                }
+            }
+        }
+
+        //Case 2 - Verify if mininum number of peergraders have already graded this post
+        if ($showafterpeergrade) {
+            $canseerating = end_peergrade_post($post_topeergrade, $peerforum);
+        } else {
+            $canseerating = true;
+        }
+
+        // permissions check - can they view the aggregate?
+        if ($isstudent && $peerforum->showratings && ($canseerating || $posthasexpired) || !$isstudent) {
+        // if ($ratingpeer->user_can_view_aggregate()) { SHOULD BE TODO
+
+            $aggregatelabel = $ratingpeermanager->get_aggregate_label($ratingpeer->settings->aggregationmethod);
+            $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'ratingpeer-aggregate-label'));
+            $aggregatestr = $ratingpeer->get_aggregate_string();
+
+            $aggregatehtml = html_writer::tag('span', $aggregatestr,
+                            array('id' => 'ratingpeeraggregate' . $ratingpeer->itemid, 'class' => 'ratingpeeraggregate')) . ' ';
+            if ($ratingpeer->count > 0) {
+                $countstr = "({$ratingpeer->count})";
+            } else {
+                $countstr = '-';
+            }
+            $aggregatehtml .= html_writer::tag('span', $countstr,
+                            array('id' => "ratingpeercount{$ratingpeer->itemid}", 'class' => 'ratingpeercount')) . ' ';
+
+            if ($ratingpeer->settings->permissions->viewall && $ratingpeer->settings->pluginpermissions->viewall) {
+
+                $nonpopuplink = $ratingpeer->get_view_ratingpeers_url();
+                $popuplink = $ratingpeer->get_view_ratingpeers_url(true);
+
+                $action = new popup_action('click', $popuplink, 'ratingpeers', array('height' => 400, 'width' => 600));
+                $aggregatehtml = $this->action_link($nonpopuplink, $aggregatehtml, $action);
+            }
+
+            $ratingpeerhtml .= html_writer::tag('span', $aggregatelabel . $aggregatehtml, array('class' => 'ratingpeer-aggregate-container'));
         }
 
         $formstart = null;
@@ -131,79 +204,6 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             $ratingpeerhtml .= html_writer::end_tag('form');
         }
 
-        if (has_capability('mod/peerforum:viewallratingpeer', $PAGE->context)) {
-            $isstudent = false;
-        } else {
-            $isstudent = true;
-        }
-
-        //Verify if peer grade can only be shown after rating is done
-        $showafterpeergrade = $peerforum->showafterpeergrade;
-
-        //If showing ratings is restricted...
-        //Case 1 - Verify if post has expired for all assigned peergraders
-        if ($showafterpeergrade) {
-
-            //Some variables
-            $posthasexpired = false;
-            $expiredposts = 0;
-
-            //Gather info
-            $post_info = $DB->get_record("peerforum_posts", array('id' => $post_topeergrade));
-            $peergraders = explode(";", $post_info->peergraders);
-            $peergrades = $DB->get_records('peerforum_peergrade', array('itemid' => $post_topeergrade));
-
-            if (!empty($peergraders)) {
-                for ($i = 0; $i < count($peergraders); $i++) {
-                    $post_time = verify_post_expired($post_topeergrade, $peerforum, $peergraders[$i], $COURSE->id);
-                    if ($post_time->post_expired) {
-                        $expiredposts++;
-                    }
-                }
-                if ($expiredposts == count($peergraders)) {
-                    $posthasexpired = true;
-                }
-            }
-        }
-
-        //Case 2 - Verify if mininum number of peergraders have already graded this post
-        if ($showafterpeergrade) {
-            $canseerating = end_peergrade_post($post_topeergrade, $peerforum);
-        } else {
-            $canseerating = true;
-        }
-
-        // permissions check - can they view the aggregate?
-        if ($isstudent && $peerforum->showratings && ($canseerating || $posthasexpired) || !$isstudent) {
-
-            $aggregatelabel = $ratingpeermanager->get_aggregate_label($ratingpeer->settings->aggregationmethod);
-            $aggregatestr = $ratingpeer->get_aggregate_string();
-            $aggregatehtml = html_writer::tag('span', $aggregatestr,
-                            array('id' => 'ratingpeeraggregate' . $ratingpeer->itemid, 'class' => 'ratingpeeraggregate')) . ' ';
-            if ($ratingpeer->count > 0) {
-                $countstr = "({$ratingpeer->count})";
-            } else {
-                $countstr = '-';
-            }
-            $aggregatehtml .= html_writer::tag('span', $countstr,
-                            array('id' => "ratingpeercount{$ratingpeer->itemid}", 'class' => 'ratingpeercount')) . ' ';
-
-            $ratingpeerhtml .= html_writer::tag('span', $aggregatelabel, array('class' => 'ratingpeer-aggregate-label'));
-
-            if ($ratingpeer->settings->permissions->viewall && $ratingpeer->settings->pluginpermissions->viewall) {
-
-                $nonpopuplink = $ratingpeer->get_view_ratingpeers_url();
-                $popuplink = $ratingpeer->get_view_ratingpeers_url(true);
-
-                $action = new popup_action('click', $popuplink, 'ratingpeers', array('height' => 400, 'width' => 600));
-                $ratingpeerhtml .= $this->action_link($nonpopuplink, $aggregatehtml, $action);
-
-            } else {
-
-                $ratingpeerhtml .= $aggregatehtml;
-
-            }
-        }
         return $ratingpeerhtml;
     }
 
