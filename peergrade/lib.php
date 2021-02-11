@@ -273,6 +273,11 @@ class peergrade implements renderable {
     public $userid;
 
     /**
+     * @var int The time the peer grade was first submitted
+     */
+    public $timecreated;
+
+    /**
      * @var stdclass settings for this peergrade. Necessary to render the peergrade.
      */
     public $settings;
@@ -310,13 +315,32 @@ class peergrade implements renderable {
     /**
      * @var string The feedback of a peergraded post
      */
-    public $feedback = null;
+    public $feedback = PEERGRADE_UNSET_FEEDBACK;
 
-    
     /**
      * @var array The peergraders
      */
     public $peergraders = null;
+
+    /**
+     * @var stdClass When the item was assigned to the user
+     */
+    public $assigned = null;
+
+    /**
+     * @var int The number of still active assignes, not expired nor graded
+     */
+    public $countnotexpired = 0;
+
+    /**
+     * @var bool If the user is blocked from peer grading
+     */
+    public $userblocked = false;
+
+    /**
+     * @var bool If the user is blocked from peer grading this item
+     */
+    public $postblocked = false;
 
     /**
      * Constructor.
@@ -328,6 +352,7 @@ class peergrade implements renderable {
      *            itemid  => int the id of the associated item (forum post, glossary item etc) [required]
      *            peergradescaleid => int The peergradescale in use when the peergrade was submitted [required]
      *            userid  => int The id of the user who submitted the peergrade [required]
+     *            timecreated  => int The time the peer grade was first submitted [required]
      *            settings => Settings for the peergrade object [optional]
      *            id => The id of this peergrade (if the peergrade is from the db) [optional]
      *            aggregate => The aggregate for the peergrade [optional]
@@ -335,6 +360,10 @@ class peergrade implements renderable {
      *            peergrade => The peergrade given by the user [optional]
      *            feedback => The feedback given by the user [optional]
      *            peergraders => The peergraders [optional]
+     *            assigned => When the item was assigned to the user [optional]
+     *            countnotexpired => The number of not expired assigns [optional]
+     *            userblocked => If the user is blocked from peer grading [optional]
+     *            postblocked => If the user is blocked from peer grading this item [optional]
      * }
      */
     public function __construct($options) {
@@ -344,6 +373,7 @@ class peergrade implements renderable {
         $this->itemid = $options->itemid;
         $this->peergradescaleid = $options->peergradescaleid;
         $this->userid = $options->userid;
+        $this->timecreated = $options->timecreated;
 
         if (isset($options->settings)) {
             $this->settings = $options->settings;
@@ -365,6 +395,18 @@ class peergrade implements renderable {
         }
         if (isset($options->peergraders)) {
             $this->peergraders = $options->peergraders;
+        }
+        if (isset($options->assigned)) {
+            $this->assigned = $options->assigned;
+        }
+        if (isset($options->countnotexpired)) {
+            $this->countnotexpired = $options->countnotexpired;
+        }
+        if (isset($options->userblocked)) {
+            $this->userblocked = $options->userblocked;
+        }
+        if (isset($options->postblocked)) {
+            $this->postblocked = $options->postblocked;
         }
     }
 
@@ -505,6 +547,50 @@ class peergrade implements renderable {
 
         return;
 
+    }
+
+    /**
+     * Returns the time until the post expires.
+     *
+     * @return string
+     */
+    public function get_time_to_expire() {
+        if (empty($this->assigned)) {
+            return null;
+        }
+
+        $time = time();
+        $timeassigned = $this->assigned->timeassigned;
+        $timetilexpire = $this->settings->timetoexpire * 60 * 60 * 24;
+        $timewhenexpires = $timeassigned + $timetilexpire;
+
+        return get_time_interval_string($time, $timewhenexpires);
+    }
+
+    /**
+     * Returns if the user can edit the grade already submitted.
+     *
+     * @return bool
+     */
+    public function can_edit() {
+        if (empty($this->assigned) || empty($this->timecreated)) {
+            return false;
+        }
+
+        global $USER, $CFG;
+        $userid = $USER->id;
+
+        // You only can peergrade your item.
+        if ($this->itemuserid != $userid) {
+            return false;
+        }
+
+        $time = time();
+        $timecreated = $this->timecreated;
+        $timetoedit = $CFG->maxeditingtime;
+        $timewhenstopsediting = $timecreated + $timetoedit;
+
+        return $timewhenstopsediting > $time;
     }
 
     /**
@@ -838,7 +924,7 @@ class peergrade implements renderable {
         return $conflict;
     }
 
-        /**
+    /**
      * Returns true if the user is able to peergrade this peergrade object
      *
      * @param int $userid Current user assumed if left empty
@@ -929,7 +1015,59 @@ class peergrade implements renderable {
         if (!empty($timestart) && !empty($timefinish) && ($timecreated < $timestart || $timecreated > $timefinish)) {
             return false;
         }
+
+        // You can't peergrade if it was not assigned to you.
+        if (empty($this->assigned)) {
+            return false;
+        }
+
+        // You can't peergrade if the peer grading is over or expired.
+        if ($this->is_expired_for_user()) {
+            return false;
+        }
+
+        // You can't peergrade if you are blocked.
+        if ($this->userblocked || $this->postblocked) {
+            return false;
+        } // TODO exlusive and finalgrademode!
         return true;
+    }
+
+    /**
+     * Returns true if the user is able to peergrade this peergrade object
+     *
+     * @return bool true if the user is able to peergrade this peergrade object
+     */
+    public function is_ended() {
+        $finishpeergrade = $this->settings->finishpeergrade;
+
+        if ($finishpeergrade) {
+            $numendspeergrade = $this->settings->minpeergraders;
+            if ($this->count >= $numendspeergrade && !$this->user_can_peergrade()) {
+                return true;
+            }
+        }
+
+        // If the user has already peer graded this.
+        if ($this->get_peergrade()) {
+            return true;
+        }
+
+        // If there are no active assigns waiting for grade or expiration.
+        if (!$this->countnotexpired) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if the user did not let the item expire.
+     *
+     * @return bool true if the user did not let the item expire.
+     */
+    public function is_expired_for_user() {
+        return $this->assigned->expired ?? false;
     }
 
     /**
@@ -991,10 +1129,11 @@ class peergrade implements renderable {
      * Returns a URL that can be used to peergrade the associated item.
      *
      * @param int|null $peergrade The peergrade to give the item, if null then no peergrade param is added.
+     * @param string|null $feedback The feedback to give the item, if null then no feedback param is added.
      * @param moodle_url|string $returnurl The URL to return to.
      * @return moodle_url can be used to peergrade the associated item.
      */
-    public function get_peergrade_url($peergrade = null, $returnurl = null, $iscriteria = null) {
+    public function get_peergrade_url($peergrade = null, $feedback = null, $returnurl = null, $iscriteria = null) {
         if (empty($returnurl)) {
             if (!empty($this->settings->returnurl)) {
                 $returnurl = $this->settings->returnurl;
@@ -1011,7 +1150,6 @@ class peergrade implements renderable {
                 'component' => $this->component,
                 'peergradearea' => $this->peergradearea,
                 'itemid' => $this->itemid,
-                'feedback' => $this->feedback,
                 'peergradescaleid' => $this->settings->peergradescale->id,
                 'returnurl' => $returnurl,
                 'peergradeduserid' => $this->itemuserid,
@@ -1019,9 +1157,14 @@ class peergrade implements renderable {
                 'sesskey' => sesskey(),
                 'peerforumid' => $peerforumid
         );
-        if (!empty($peergrade)) {
+        if ($peergrade !== null) {
             $args['peergrade'] = $peergrade;
         }
+
+        if (!empty($feedback)) {
+            $args['feedback'] = $feedback;
+        }
+
         if (!$iscriteria) {
             $url = new moodle_url('/peergrade/peergrade.php', $args);
         } else if ($iscriteria) {
@@ -1420,8 +1563,9 @@ class peergrade_manager {
                 'component' => $options->component,
                 'peergradearea' => $options->peergradearea,
         );
+
         $userfields = user_picture::fields('u', null, 'userid');
-        $sql = "SELECT r.id, r.peergrade, r.itemid, r.userid, r.timemodified, r.component, r.peergradearea, $userfields
+        $sql = "SELECT r.id, r.peergrade, r.feedback, r.itemid, r.userid, r.timemodified, r.component, r.peergradearea, $userfields
                   FROM {peerforum_peergrade} r
              LEFT JOIN {user} u ON r.userid = u.id
                  WHERE r.contextid = :contextid AND
@@ -1515,7 +1659,7 @@ class peergrade_manager {
         $params['component'] = $options->component;
         $params['peergradearea'] = $options->peergradearea;
 
-        $sql = "SELECT r.id, r.itemid, r.userid, r.peergradescaleid, r.feedback, r.peergrade AS userspeergrade
+        $sql = "SELECT r.id, r.itemid, r.userid, r.peergradescaleid, r.timecreated, r.feedback, r.peergrade AS userspeergrade
                   FROM {peerforum_peergrade} r
                  WHERE r.userid = :userid AND
                        r.contextid = :contextid AND
@@ -1535,6 +1679,25 @@ class peergrade_manager {
               ORDER BY r.itemid";
         $aggregatepeergrades = $DB->get_records_sql($sql, $params);
 
+        $sql = "SELECT r.id, r.postid, r.userid, r.expired, r.timeassigned, r.timemodified
+                  FROM {peerforum_time_assigned} r
+                 WHERE r.userid = :userid AND
+                       r.postid {$itemidtest}
+              ORDER BY r.postid";
+        $userassigned = $DB->get_records_sql($sql, $params);
+
+        $sql = "SELECT r.postid, COUNT(r.expired) AS numnotexpired
+                  FROM {peerforum_time_assigned} r
+                 WHERE r.postid {$itemidtest} AND
+                       r.expired = 0 AND
+                       r.peergraded = 0
+              GROUP BY r.postid
+              ORDER BY r.postid";
+        $aggregateassigned = $DB->get_records_sql($sql, $params);
+
+        $userinfo = $DB->get_record('peerforum_peergrade_users', array('iduser' => $userid));
+        $postsblocked = $userinfo ? explode(';', $userinfo->postsblocked) : array();
+        // TODO WARNING! Cuidado porque é preciso meter courseid supostamente!
         $peergradeoptions = new stdClass;
         $peergradeoptions->context = $options->context;
         $peergradeoptions->component = $options->component;
@@ -1550,8 +1713,10 @@ class peergrade_manager {
                     $peergradeoptions->peergradescaleid = $userpeergrade->peergradescaleid;
                     $peergradeoptions->userid = $userpeergrade->userid;
                     $peergradeoptions->feedback = $userpeergrade->feedback;
+                    $peergradeoptions->timecreated = $userpeergrade->timecreated;
                     $peergradeoptions->id = $userpeergrade->id;
-                    $peergradeoptions->peergrade = min($userpeergrade->userspeergrade, $peergradeoptions->settings->peergradescale->max);
+                    $peergradeoptions->peergrade = min($userpeergrade->userspeergrade,
+                            $peergradeoptions->settings->peergradescale->max);
 
                     $founduserpeergrade = true;
                     break;
@@ -1561,6 +1726,7 @@ class peergrade_manager {
                 $peergradeoptions->peergradescaleid = null;
                 $peergradeoptions->userid = null;
                 $peergradeoptions->feedback = null;
+                $peergradeoptions->timecreated = null;
                 $peergradeoptions->id = null;
                 $peergradeoptions->peergrade = null;
             }
@@ -1574,6 +1740,24 @@ class peergrade_manager {
                 $peergradeoptions->itemid = $item->{$itemidcol};
                 $peergradeoptions->aggregate = null;
                 $peergradeoptions->count = 0;
+            }
+
+            if (array_key_exists($item->{$itemidcol}, $userassigned)) {
+                $rec = $userassigned[$item->{$itemidcol}];
+                $peergradeoptions->assigned = $rec;
+            }
+
+            if (array_key_exists($item->{$itemidcol}, $aggregateassigned)) {
+                $rec = $aggregateassigned[$item->{$itemidcol}];
+                $peergradeoptions->countnotexpired = $rec->numnotexpired;
+            }
+
+            if (in_array($item->{$itemidcol}, $postsblocked)) {
+                $peergradeoptions->postblocked = true;
+            }
+
+            if ($userinfo && $userinfo->userblocked) {
+                $peergradeoptions->userblocked = true;
             }
 
             $peergrade = new peergrade($peergradeoptions);
@@ -1603,6 +1787,15 @@ class peergrade_manager {
      *      assesstimefinish  => int only allow peergrade of items created before this timestamp [optional]
      *      plugintype        => string plugin type ie 'mod' Used to find the permissions callback [optional]
      *      pluginname        => string plugin name ie 'peerforum' Used to find the permissions callback [optional]
+     *      timetoexpire      => settings data [optional]
+     *      finishpeergrade   => settings data [optional]
+     *      enablefeedback    => settings data [optional]
+     *      showpeergrades    => settings data [optional]
+     *      minpeergraders    => settings data [optional]
+     *      expirepost        => settings data [optional]
+     *      remainanonymous   => settings data [optional]
+     *      peergradevisibility => settings data [optional]
+     *      whenpeergradevisible => settings data [optional]
      * }
      * @return stdClass peergrade settings object
      */
@@ -1643,6 +1836,33 @@ class peergrade_manager {
         }
         if (!empty($options->returnurl)) {
             $settings->returnurl = $options->returnurl;
+        }
+        if (isset($options->timetoexpire)) {
+            $settings->timetoexpire = $options->timetoexpire;
+        }
+        if (isset($options->finishpeergrade)) {
+            $settings->finishpeergrade = $options->finishpeergrade;
+        }
+        if (isset($options->enablefeedback)) {
+            $settings->enablefeedback = $options->enablefeedback;
+        }
+        if (isset($options->showpeergrades)) {
+            $settings->showpeergrades = $options->showpeergrades;
+        }
+        if (isset($options->minpeergraders)) {
+            $settings->minpeergraders = $options->minpeergraders;
+        }
+        if (isset($options->peergradevisibility)) {
+            $settings->peergradevisibility = $options->peergradevisibility;
+        }
+        if (isset($options->expirepost)) {
+            $settings->expirepost = $options->expirepost;
+        }
+        if (isset($options->remainanonymous)) {
+            $settings->remainanonymous = $options->remainanonymous;
+        }
+        if (isset($options->whenpeergradevisible)) {
+            $settings->whenpeergradevisible = $options->whenpeergradevisible;
         }
 
         // Check site capabilities.
