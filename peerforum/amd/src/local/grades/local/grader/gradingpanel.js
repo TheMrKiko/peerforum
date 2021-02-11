@@ -34,7 +34,7 @@
  * @param {String} itemName The name of the thing being graded
  * @return {Object}
  */
-export default async (component, context, gradingComponent, gradingSubtype, itemName) => {
+export default async(component, context, gradingComponent, gradingSubtype, itemName) => {
     let gradingMethodHandler = `${gradingComponent}/grades/grader/gradingpanel`;
     if (gradingSubtype) {
         gradingMethodHandler += `/${gradingSubtype}`;

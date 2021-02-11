@@ -21,7 +21,7 @@
  * @copyright  2019 Jun Pataleta <jun@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define([], function () {
+define([], function() {
     return {
         SUBSCRIPTION_TOGGLED: 'mod_peerforum/subscription_toggle:subscriptionToggled',
     };

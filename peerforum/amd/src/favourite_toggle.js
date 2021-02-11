@@ -29,7 +29,7 @@ define([
     'mod_peerforum/repository',
     'mod_peerforum/selectors',
     'core/str',
-], function (
+], function(
     $,
     Templates,
     Notification,
@@ -45,20 +45,20 @@ define([
      * @param {boolean} preventDefault Should the default action of the event be prevented
      * @param {function} callback Success callback
      */
-    var registerEventListeners = function (root, preventDefault, callback) {
-        root.on('click', Selectors.favourite.toggle, function (e) {
+    var registerEventListeners = function(root, preventDefault, callback) {
+        root.on('click', Selectors.favourite.toggle, function(e) {
             var toggleElement = $(this);
             var peerforumId = toggleElement.data('peerforumid');
             var discussionId = toggleElement.data('discussionid');
             var subscriptionState = toggleElement.data('targetstate');
 
             Repository.setFavouriteDiscussionState(peerforumId, discussionId, subscriptionState)
-                .then(function (context) {
+                .then(function(context) {
                     return callback(toggleElement, context);
                 })
-                .then(function () {
+                .then(function() {
                     return String.get_string("favouriteupdated", "peerforum")
-                        .done(function (s) {
+                        .done(function(s) {
                             return Notification.addNotification({
                                 message: s,
                                 type: "info"

@@ -232,7 +232,7 @@ const buildShowInPageReplyFormFunction = (additionalTemplateContext) => {
      *
      * @param {Object} postContainer jQuery element for the post container
      */
-    return async (postContainer) => {
+    return async(postContainer) => {
 
         const inPageReplyContainer = getInPageReplyContainer(postContainer);
         const repliesVisibilityToggleContainer = getRepliesVisibilityToggleContainer(postContainer);

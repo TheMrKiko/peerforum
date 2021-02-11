@@ -33,7 +33,7 @@ define([
     'core/yui',
     'mod_peerforum/selectors',
     'mod_peerforum/inpage_reply',
-], function (
+], function(
     $,
     Templates,
     Notification,
@@ -43,8 +43,8 @@ define([
     InPageReply
 ) {
 
-    var registerEventListeners = function (root) {
-        root.on('click', Selectors.post.inpageReplyLink, function (e) {
+    var registerEventListeners = function(root) {
+        root.on('click', Selectors.post.inpageReplyLink, function(e) {
             e.preventDefault();
             // After adding a reply a url hash is being generated that scrolls (points) to the newly added reply.
             // The hash being present causes this scrolling behavior to the particular reply to persists even when
@@ -71,14 +71,14 @@ define([
 
             if (!currentRoot.find(Selectors.post.inpageReplyContent).length) {
                 Templates.render('mod_peerforum/inpage_reply', context)
-                    .then(function (html, js) {
+                    .then(function(html, js) {
                         return Templates.appendNodeContents(currentTarget, html, js);
                     })
-                    .then(function () {
+                    .then(function() {
                         return currentRoot.find(Selectors.post.inpageReplyContent)
                             .slideToggle(300, pending.resolve).find('textarea').focus();
                     })
-                    .then(function () {
+                    .then(function() {
                         // Load formchangechecker module.
                         Y.use('moodle-core-formchangechecker', () => {
                             M.core_formchangechecker.init({formid: `inpage-reply-${context.postid}`});
@@ -117,7 +117,7 @@ define([
     };
 
     return {
-        init: function (root) {
+        init: function(root) {
             registerEventListeners(root);
             InPageReply.init(root);
         }

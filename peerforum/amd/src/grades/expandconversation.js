@@ -41,7 +41,7 @@ const findGradableNode = node => node.closest(PeerForumSelectors.expandConversat
  *
  * @param {HTMLElement} rootNode The button that has been clicked
  */
-const showPostInContext = async (rootNode, {
+const showPostInContext = async(rootNode, {
     focusOnClose = null,
 } = {}) => {
     const postId = rootNode.dataset.postid;
@@ -85,7 +85,7 @@ const showPostInContext = async (rootNode, {
     });
 
     // Handle hidden event.
-    modal.getRoot().on(ModalEvents.hidden, function () {
+    modal.getRoot().on(ModalEvents.hidden, function() {
         // Destroy when hidden.
         modal.destroy();
         try {

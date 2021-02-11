@@ -27,7 +27,7 @@ define([
     'core/notification',
     'mod_peerforum/repository',
     'mod_peerforum/selectors',
-], function (
+], function(
     $,
     Templates,
     Notification,
@@ -41,15 +41,15 @@ define([
      * @param {object} root The discussion list root element
      * @param {boolean} preventDefault Should the default action of the event be prevented
      */
-    var registerEventListeners = function (root, preventDefault) {
-        root.on('click', Selectors.lock.toggle, function (e) {
+    var registerEventListeners = function(root, preventDefault) {
+        root.on('click', Selectors.lock.toggle, function(e) {
             var toggleElement = $(this);
             var peerforumId = toggleElement.data('peerforumid');
             var discussionId = toggleElement.data('discussionid');
             var state = toggleElement.data('state');
 
             Repository.setDiscussionLockState(peerforumId, discussionId, state)
-                .then(function () {
+                .then(function() {
                     return location.reload();
                 })
                 .catch(Notification.exception);

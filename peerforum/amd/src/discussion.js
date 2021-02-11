@@ -31,7 +31,7 @@ define(
         'core/str',
         'core/notification',
     ],
-    function (
+    function(
         $,
         CustomEvents,
         Selectors,
@@ -47,7 +47,7 @@ define(
          *
          * @param {Object} currentPost The post that currently has focus
          */
-        var focusPreviousPost = function (currentPost) {
+        var focusPreviousPost = function(currentPost) {
             // See if there is a previous sibling post.
             var prevPost = currentPost.prev(Selectors.post.post);
 
@@ -77,7 +77,7 @@ define(
          *
          * @param {Object} currentPost The post that currently has focus
          */
-        var focusNextPost = function (currentPost) {
+        var focusNextPost = function(currentPost) {
             // The next post in the visual list would be the first reply to this one
             // so let's see if we have one.
             var replyPost = currentPost.find(Selectors.post.post).first();
@@ -116,7 +116,7 @@ define(
          * @param {Object} element The element to check
          * @return {Boolean}
          */
-        var isElementInInPageReplySection = function (element) {
+        var isElementInInPageReplySection = function(element) {
             var inPageReply = $(element).closest(Selectors.post.inpageReplyContent);
             return inPageReply.length ? true : false;
         };
@@ -126,11 +126,11 @@ define(
          *
          * @param {Object} root The discussion root element
          */
-        var initAccessibilityKeyboardNav = function (root) {
+        var initAccessibilityKeyboardNav = function(root) {
             var posts = root.find(Selectors.post.post);
 
             // Take each post action out of the tab index.
-            posts.each(function (index, post) {
+            posts.each(function(index, post) {
                 var actions = $(post).find(Selectors.post.action);
                 var firstAction = actions.first();
                 actions.attr('tabindex', '-1');
@@ -146,7 +146,7 @@ define(
                 CustomEvents.events.end,
             ]);
 
-            root.on(CustomEvents.events.up, function (e, data) {
+            root.on(CustomEvents.events.up, function(e, data) {
                 var activeElement = document.activeElement;
 
                 if (isElementInInPageReplySection(activeElement)) {
@@ -166,7 +166,7 @@ define(
                 data.originalEvent.preventDefault();
             });
 
-            root.on(CustomEvents.events.down, function (e, data) {
+            root.on(CustomEvents.events.down, function(e, data) {
                 var activeElement = document.activeElement;
 
                 if (isElementInInPageReplySection(activeElement)) {
@@ -186,7 +186,7 @@ define(
                 data.originalEvent.preventDefault();
             });
 
-            root.on(CustomEvents.events.home, function (e, data) {
+            root.on(CustomEvents.events.home, function(e, data) {
                 if (isElementInInPageReplySection(document.activeElement)) {
                     // Focus is currently inside the in page reply section so don't move focus
                     // to another post.
@@ -196,7 +196,7 @@ define(
                 data.originalEvent.preventDefault();
             });
 
-            root.on(CustomEvents.events.end, function (e, data) {
+            root.on(CustomEvents.events.end, function(e, data) {
                 if (isElementInInPageReplySection(document.activeElement)) {
                     // Focus is currently inside the in page reply section so don't move focus
                     // to another post.
@@ -206,7 +206,7 @@ define(
                 data.originalEvent.preventDefault();
             });
 
-            root.on(CustomEvents.events.next, Selectors.post.action, function (e, data) {
+            root.on(CustomEvents.events.next, Selectors.post.action, function(e, data) {
                 var currentAction = $(e.target);
                 var container = currentAction.closest(Selectors.post.actionsContainer);
                 var actions = container.find(Selectors.post.action);
@@ -224,7 +224,7 @@ define(
                 data.originalEvent.preventDefault();
             });
 
-            root.on(CustomEvents.events.previous, Selectors.post.action, function (e, data) {
+            root.on(CustomEvents.events.previous, Selectors.post.action, function(e, data) {
                 var currentAction = $(e.target);
                 var container = currentAction.closest(Selectors.post.actionsContainer);
                 var actions = container.find(Selectors.post.action);
@@ -242,7 +242,7 @@ define(
                 data.originalEvent.preventDefault();
             });
 
-            root.on(CustomEvents.events.home, Selectors.post.action, function (e, data) {
+            root.on(CustomEvents.events.home, Selectors.post.action, function(e, data) {
                 var currentAction = $(e.target);
                 var container = currentAction.closest(Selectors.post.actionsContainer);
                 var actions = container.find(Selectors.post.action);
@@ -256,7 +256,7 @@ define(
                 data.originalEvent.preventDefault();
             });
 
-            root.on(CustomEvents.events.end, Selectors.post.action, function (e, data) {
+            root.on(CustomEvents.events.end, Selectors.post.action, function(e, data) {
                 var currentAction = $(e.target);
                 var container = currentAction.closest(Selectors.post.actionsContainer);
                 var actions = container.find(Selectors.post.action);
@@ -270,11 +270,11 @@ define(
                 data.originalEvent.preventDefault();
             });
 
-            PubSub.subscribe(PeerForumEvents.SUBSCRIPTION_TOGGLED, function (data) {
+            PubSub.subscribe(PeerForumEvents.SUBSCRIPTION_TOGGLED, function(data) {
                 var subscribed = data.subscriptionState;
                 var updateMessage = subscribed ? 'discussionsubscribed' : 'discussionunsubscribed';
                 String.get_string(updateMessage, "peerforum")
-                    .then(function (s) {
+                    .then(function(s) {
                         return Notification.addNotification({
                             message: s,
                             type: "info"
@@ -285,7 +285,7 @@ define(
         };
 
         return {
-            init: function (root) {
+            init: function(root) {
                 initAccessibilityKeyboardNav(root);
             }
         };

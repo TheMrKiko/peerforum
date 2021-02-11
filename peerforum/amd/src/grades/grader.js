@@ -65,7 +65,7 @@ const getContentForUserIdFunction = (cmid, experimentalDisplayMode) => (userid) 
  * @param {Number} groupID
  * @return {Array} Array of users for a given context.
  */
-const getUsersForCmidFunction = (cmid, groupID) => async () => {
+const getUsersForCmidFunction = (cmid, groupID) => async() => {
     const context = await CourseRepository.getUsersFromCourseModuleID(cmid, groupID);
 
     return context.users;
@@ -114,7 +114,7 @@ const discussionPostMapper = (discussion) => {
  *
  * @param {HTMLElement} rootNode the root HTML element describing what is to be graded
  */
-const launchWholePeerForumGrading = async (rootNode, {
+const launchWholePeerForumGrading = async(rootNode, {
     focusOnClose = null,
 } = {}) => {
     const data = rootNode.dataset;
@@ -150,7 +150,7 @@ const launchWholePeerForumGrading = async (rootNode, {
  *
  * @param {HTMLElement} rootNode the root HTML element describing what is to be graded
  */
-const launchViewGrading = async (rootNode, {
+const launchViewGrading = async(rootNode, {
     focusOnClose = null,
 } = {}) => {
     const data = rootNode.dataset;
@@ -176,7 +176,7 @@ const launchViewGrading = async (rootNode, {
  * Register listeners to launch the grading panel.
  */
 export const registerLaunchListeners = () => {
-    document.addEventListener('click', async (e) => {
+    document.addEventListener('click', async(e) => {
         if (e.target.matches(Selectors.launch)) {
             const rootNode = findGradableNode(e.target);
 

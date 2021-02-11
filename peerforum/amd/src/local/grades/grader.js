@@ -84,7 +84,7 @@ const fetchContentFromRender = (html, js) => {
 const getUpdateUserContentFunction = (root, getContentForUser, getGradeForUser, saveGradeForUser) => {
     let firstLoad = true;
 
-    return async (user) => {
+    return async(user) => {
         const spinner = firstLoad ? null : addIconToContainerWithPromise(root);
         const [
             [html, js],
@@ -223,7 +223,7 @@ const searchForUsers = (userList, searchTerm) => {
  * @param {HTMLElement} searchResultsContainer The container element for search results
  * @param {Array} users The list of users to display
  */
-const renderSearchResults = async (searchResultsContainer, users) => {
+const renderSearchResults = async(searchResultsContainer, users) => {
     const {html, js} = await Templates.renderForPromise(templateNames.grader.searchResults, {users});
     Templates.replaceNodeContents(searchResultsContainer, html, js);
 };
@@ -339,7 +339,7 @@ const setContentContainerMargin = (graderContainer, rightMargin) => {
  * @return {Function}
  */
 const getSaveUserGradeFunction = (root, setGradeForUser) => {
-    return async (user) => {
+    return async(user) => {
         try {
             root.querySelector(Selectors.regions.gradingPanelErrors).innerHTML = '';
             const result = await setGradeForUser(
@@ -370,7 +370,7 @@ const getSaveUserGradeFunction = (root, setGradeForUser) => {
  * @param {Object} user The user who was errored
  * @param {Object} err The details of the error
  */
-const displayGradingError = async (root, user, err) => {
+const displayGradingError = async(root, user, err) => {
     const [
         {html, js},
         errorString
@@ -392,7 +392,7 @@ const displayGradingError = async (root, user, err) => {
  * @param {Function} setGradeForUser A function to set the grade for a specific user
  * @param {Object} Preferences for the launch function
  */
-export const launch = async (getListOfUsers, getContentForUser, getGradeForUser, setGradeForUser, {
+export const launch = async(getListOfUsers, getContentForUser, getGradeForUser, setGradeForUser, {
     initialUserId = null,
     moduleName,
     courseName,
@@ -445,7 +445,7 @@ export const launch = async (getListOfUsers, getContentForUser, getGradeForUser,
     // Fetch the userpicker for display.
     const userPicker = await getUserPicker(
         userList,
-        async (user) => {
+        async(user) => {
             const userGrade = await updateUserContent(user);
             const renderContext = {
                 status: userGrade.hasgrade,
@@ -477,7 +477,7 @@ export const launch = async (getListOfUsers, getContentForUser, getGradeForUser,
  * @param {Number} userid The ID of a specific user
  * @param {String} moduleName the name of the module
  */
-export const view = async (getGradeForUser, userid, moduleName, {
+export const view = async(getGradeForUser, userid, moduleName, {
     focusOnClose = null,
 } = {}) => {
 
@@ -496,7 +496,7 @@ export const view = async (getGradeForUser, userid, moduleName, {
     const spinner = addIconToContainerWithPromise(modal.getRoot());
 
     // Handle hidden event.
-    modal.getRoot().on(ModalEvents.hidden, function () {
+    modal.getRoot().on(ModalEvents.hidden, function() {
         // Destroy when hidden.
         modal.destroy();
         if (focusOnClose) {
@@ -521,7 +521,7 @@ export const view = async (getGradeForUser, userid, moduleName, {
     spinner.resolve();
 };
 
-const renderGradeTemplate = async (userGrade) => {
+const renderGradeTemplate = async(userGrade) => {
     const {html, js} = await Templates.renderForPromise(userGrade.templatename, userGrade.grade);
     return [html, js];
 };

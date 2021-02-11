@@ -21,7 +21,7 @@
  * @copyright  2019 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define([], function () {
+define([], function() {
     return {
         subscription: {
             toggle: "[data-type='subscription-toggle'][data-action='toggle']",

@@ -22,7 +22,7 @@
  * @copyright  2019 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define(['core/ajax'], function (Ajax) {
+define(['core/ajax'], function(Ajax) {
     /**
      * Set the subscription state for a discussion in a peerforum.
      *
@@ -31,7 +31,7 @@ define(['core/ajax'], function (Ajax) {
      * @param {boolean} targetState Set the subscribed state. True == subscribed; false == unsubscribed.
      * @return {object} jQuery promise
      */
-    var setDiscussionSubscriptionState = function (peerforumId, discussionId, targetState) {
+    var setDiscussionSubscriptionState = function(peerforumId, discussionId, targetState) {
         var request = {
             methodname: 'mod_peerforum_set_subscription_state',
             args: {
@@ -43,7 +43,7 @@ define(['core/ajax'], function (Ajax) {
         return Ajax.call([request])[0];
     };
 
-    var addDiscussionPost = function (postid, subject, message, messageformat, isprivatereply, topreferredformat) {
+    var addDiscussionPost = function(postid, subject, message, messageformat, isprivatereply, topreferredformat) {
         var request = {
             methodname: 'mod_peerforum_add_discussion_post',
             args: {
@@ -71,7 +71,7 @@ define(['core/ajax'], function (Ajax) {
      * @param {null|date} targetState Set the favourite state. True == favourited; false == unfavourited.
      * @return {object} jQuery promise
      */
-    var setFavouriteDiscussionState = function (peerforumId, discussionId, targetState) {
+    var setFavouriteDiscussionState = function(peerforumId, discussionId, targetState) {
         var request = {
             methodname: 'mod_peerforum_toggle_favourite_state',
             args: {
@@ -82,7 +82,7 @@ define(['core/ajax'], function (Ajax) {
         return Ajax.call([request])[0];
     };
 
-    var setDiscussionLockState = function (peerforumId, discussionId, targetState) {
+    var setDiscussionLockState = function(peerforumId, discussionId, targetState) {
         var request = {
             methodname: 'mod_peerforum_set_lock_state',
             args: {
@@ -102,7 +102,7 @@ define(['core/ajax'], function (Ajax) {
      * @param {boolean} targetstate
      * @return {*|Promise}
      */
-    var setPinDiscussionState = function (peerforumid, discussionid, targetstate) {
+    var setPinDiscussionState = function(peerforumid, discussionid, targetstate) {
         var request = {
             methodname: 'mod_peerforum_set_pin_state',
             args: {
@@ -122,7 +122,7 @@ define(['core/ajax'], function (Ajax) {
      * @param {string} sortdirection
      * @return {*|Promise}
      */
-    var getDiscussionByUserID = function (userid, cmid, sortby = 'modified', sortdirection = 'DESC') {
+    var getDiscussionByUserID = function(userid, cmid, sortby = 'modified', sortdirection = 'DESC') {
         var request = {
             methodname: 'mod_peerforum_get_discussion_posts_by_userid',
             args: {
@@ -143,7 +143,7 @@ define(['core/ajax'], function (Ajax) {
      * @param {String} sortdirection
      * @return {*|Promise}
      */
-    var getDiscussionPosts = function (discussionId, sortby = 'created', sortdirection = 'ASC') {
+    var getDiscussionPosts = function(discussionId, sortby = 'created', sortdirection = 'ASC') {
         var request = {
             methodname: 'mod_peerforum_get_discussion_posts',
             args: {

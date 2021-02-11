@@ -34,7 +34,7 @@ define([
     'mod_peerforum/repository',
     'mod_peerforum/selectors',
     'core/str',
-], function (
+], function(
     $,
     Ajax,
     Str,
@@ -52,19 +52,19 @@ define([
      * @param {boolean} preventDefault Should the default action of the event be prevented
      * @param {function} callback Success callback
      */
-    var registerEventListeners = function (root, preventDefault, callback) {
-        root.on('click', Selectors.pin.toggle, function (e) {
+    var registerEventListeners = function(root, preventDefault, callback) {
+        root.on('click', Selectors.pin.toggle, function(e) {
             var toggleElement = $(this);
             var peerforumid = toggleElement.data('peerforumid');
             var discussionid = toggleElement.data('discussionid');
             var pinstate = toggleElement.data('targetstate');
             Repository.setPinDiscussionState(peerforumid, discussionid, pinstate)
-                .then(function (context) {
+                .then(function(context) {
                     return callback(toggleElement, context);
                 })
-                .then(function () {
+                .then(function() {
                     return String.get_string("pinupdated", "peerforum")
-                        .done(function (s) {
+                        .done(function(s) {
                             return Notification.addNotification({
                                 message: s,
                                 type: "info"

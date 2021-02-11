@@ -27,7 +27,7 @@ define([
     'core/notification',
     'mod_peerforum/repository',
     'mod_peerforum/selectors',
-], function (
+], function(
     $,
     Templates,
     Notification,
@@ -59,7 +59,7 @@ define([
      *
      * @param {Object} button The submit button element
      */
-    var showSubmitButtonLoadingIcon = function (button) {
+    var showSubmitButtonLoadingIcon = function(button) {
         var textContainer = button.find(Selectors.post.inpageSubmitBtnText);
         var loadingIconContainer = button.find(Selectors.post.loadingIconContainer);
         var width = button.outerWidth();
@@ -74,7 +74,7 @@ define([
      *
      * @param {Object} button The submit button element
      */
-    var hideSubmitButtonLoadingIcon = function (button) {
+    var hideSubmitButtonLoadingIcon = function(button) {
         var textContainer = button.find(Selectors.post.inpageSubmitBtnText);
         var loadingIconContainer = button.find(Selectors.post.loadingIconContainer);
         // Reset the width back to it's default.
@@ -88,8 +88,8 @@ define([
      *
      * @param {Object} root The discussion container element.
      */
-    var registerEventListeners = function (root) {
-        root.on('click', Selectors.post.inpageSubmitBtn, function (e) {
+    var registerEventListeners = function(root) {
+        root.on('click', Selectors.post.inpageSubmitBtn, function(e) {
             e.preventDefault();
             var submitButton = $(e.currentTarget);
             var allButtons = submitButton.parent().find(Selectors.post.inpageReplyButton);
@@ -113,8 +113,8 @@ define([
                 allButtons.prop('disabled', true);
 
                 Repository.addDiscussionPost(postid, subject, message, messageformat, isprivatereply, topreferredformat)
-                    .then(function (context) {
-                        var message = context.messages.reduce(function (carry, message) {
+                    .then(function(context) {
+                        var message = context.messages.reduce(function(carry, message) {
                             if (message.type == 'success') {
                                 carry += '<p>' + message.message + '</p>';
                             }
@@ -127,7 +127,7 @@ define([
 
                         return context;
                     })
-                    .then(function (context) {
+                    .then(function(context) {
                         form.reset();
                         var post = context.post;
                         newid = post.id;
@@ -156,7 +156,7 @@ define([
                                 return Templates.render('mod_peerforum/peerforum_discussion_post', post);
                         }
                     })
-                    .then(function (html, js) {
+                    .then(function(html, js) {
                         var repliesnode = currentRoot.find(Selectors.post.repliesContainer).first();
 
                         if (mode == DISPLAYCONSTANTS.FLAT_NEWEST_FIRST) {
@@ -165,7 +165,7 @@ define([
                             return Templates.appendNodeContents(repliesnode, html, js);
                         }
                     })
-                    .then(function () {
+                    .then(function() {
                         submitButton.trigger(EVENTS.POST_CREATED, newid);
                         hideSubmitButtonLoadingIcon(submitButton);
                         allButtons.prop('disabled', false);
@@ -177,11 +177,11 @@ define([
 
                         return currentRoot.find(Selectors.post.inpageReplyContent).hide();
                     })
-                    .then(function () {
+                    .then(function() {
                         location.href = "#p" + newid;
                         return;
                     })
-                    .catch(function (error) {
+                    .catch(function(error) {
                         hideSubmitButtonLoadingIcon(submitButton);
                         allButtons.prop('disabled', false);
                         return Notification.exception(error);
@@ -191,7 +191,7 @@ define([
     };
 
     return {
-        init: function (root) {
+        init: function(root) {
             registerEventListeners(root);
         },
         CONTENT_FORMATS: CONTENT_FORMATS,

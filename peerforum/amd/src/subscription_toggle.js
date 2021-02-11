@@ -30,7 +30,7 @@ define([
     'mod_peerforum/selectors',
     'core/pubsub',
     'mod_peerforum/peerforum_events',
-], function (
+], function(
     $,
     Templates,
     Notification,
@@ -47,15 +47,15 @@ define([
      * @param {boolean} preventDefault Should the default action of the event be prevented
      * @param {function} callback Success callback
      */
-    var registerEventListeners = function (root, preventDefault, callback) {
-        root.on('click', Selectors.subscription.toggle, function (e) {
+    var registerEventListeners = function(root, preventDefault, callback) {
+        root.on('click', Selectors.subscription.toggle, function(e) {
             var toggleElement = $(this);
             var peerforumId = toggleElement.data('peerforumid');
             var discussionId = toggleElement.data('discussionid');
             var subscriptionState = toggleElement.data('targetstate');
 
             Repository.setDiscussionSubscriptionState(peerforumId, discussionId, subscriptionState)
-                .then(function (context) {
+                .then(function(context) {
                     PubSub.publish(PeerForumEvents.SUBSCRIPTION_TOGGLED, {
                         discussionId: discussionId,
                         subscriptionState: subscriptionState

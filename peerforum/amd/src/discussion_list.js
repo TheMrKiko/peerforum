@@ -31,7 +31,7 @@ define([
     'mod_peerforum/repository',
     'core/pubsub',
     'mod_peerforum/peerforum_events',
-], function (
+], function(
     $,
     Templates,
     Str,
@@ -42,8 +42,8 @@ define([
     PubSub,
     PeerForumEvents
 ) {
-    var registerEventListeners = function (root) {
-        PubSub.subscribe(PeerForumEvents.SUBSCRIPTION_TOGGLED, function (data) {
+    var registerEventListeners = function(root) {
+        PubSub.subscribe(PeerForumEvents.SUBSCRIPTION_TOGGLED, function(data) {
             var discussionId = data.discussionId;
             var subscribed = data.subscriptionState;
             var discussionListItem = root.find(Selectors.discussion.item + '[data-discussionid= ' + discussionId + ']');
@@ -57,39 +57,39 @@ define([
             }
         });
 
-        root.on('click', Selectors.favourite.toggle, function () {
+        root.on('click', Selectors.favourite.toggle, function() {
             var toggleElement = $(this);
             var peerforumId = toggleElement.data('peerforumid');
             var discussionId = toggleElement.data('discussionid');
             var subscriptionState = toggleElement.data('targetstate');
             Repository.setFavouriteDiscussionState(peerforumId, discussionId, subscriptionState)
-                .then(function () {
+                .then(function() {
                     return location.reload();
                 })
                 .catch(Notification.exception);
         });
 
-        root.on('click', Selectors.pin.toggle, function (e) {
+        root.on('click', Selectors.pin.toggle, function(e) {
             e.preventDefault();
             var toggleElement = $(this);
             var peerforumId = toggleElement.data('peerforumid');
             var discussionId = toggleElement.data('discussionid');
             var state = toggleElement.data('targetstate');
             Repository.setPinDiscussionState(peerforumId, discussionId, state)
-                .then(function () {
+                .then(function() {
                     return location.reload();
                 })
                 .catch(Notification.exception);
         });
 
-        root.on('click', Selectors.lock.toggle, function (e) {
+        root.on('click', Selectors.lock.toggle, function(e) {
             var toggleElement = $(this);
             var peerforumId = toggleElement.data('peerforumid');
             var discussionId = toggleElement.data('discussionid');
             var state = toggleElement.data('state');
 
             Repository.setDiscussionLockState(peerforumId, discussionId, state)
-                .then(function (context) {
+                .then(function(context) {
                     var icon = toggleElement.parents(Selectors.summary.actions).find(Selectors.lock.icon);
                     var lockedLabel = toggleElement.parents(Selectors.discussion.item).find(Selectors.discussion.lockedLabel);
                     if (context.locked) {
@@ -101,16 +101,16 @@ define([
                     }
                     return context;
                 })
-                .then(function (context) {
+                .then(function(context) {
                     context.peerforumid = peerforumId;
                     return Templates.render('mod_peerforum/discussion_lock_toggle', context);
                 })
-                .then(function (html, js) {
+                .then(function(html, js) {
                     return Templates.replaceNode(toggleElement, html, js);
                 })
-                .then(function () {
+                .then(function() {
                     return Str.get_string('lockupdated', 'peerforum')
-                        .done(function (s) {
+                        .done(function(s) {
                             return Notification.addNotification({
                                 message: s,
                                 type: "info"
@@ -124,15 +124,15 @@ define([
     };
 
     return {
-        init: function (root) {
-            SubscriptionToggle.init(root, false, function (toggleElement, context) {
+        init: function(root) {
+            SubscriptionToggle.init(root, false, function(toggleElement, context) {
                 var toggleId = toggleElement.attr('id');
                 var newTargetState = context.userstate.subscribed ? 0 : 1;
                 toggleElement.data('targetstate', newTargetState);
 
                 var stringKey = context.userstate.subscribed ? 'unsubscribediscussion' : 'subscribediscussion';
                 return Str.get_string(stringKey, 'mod_peerforum')
-                    .then(function (string) {
+                    .then(function(string) {
                         toggleElement.closest('td').find('label[for="' + toggleId + '"]').find('span').text(string);
                         return string;
                     });
