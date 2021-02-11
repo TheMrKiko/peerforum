@@ -207,8 +207,110 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         return $ratingpeerhtml;
     }
 
-    public function render_peergradeoption() {
+    /**
+     * Produces the html that represents this peergrade in the UI
+     *
+     * @param peergrade $peergrade the page object on which this ratingpeer will appear
+     * @return string
+     */
+    public function render_peergrade(peergrade $peergrade) {
+        global $CFG, $USER;
 
+        if ($peergrade->settings->aggregationmethod == PEERGRADE_AGGREGATE_NONE) {
+            return null;//peergrades are turned off
+        }
+
+        $peergrademanager = new peergrade_manager();
+        // Initialise the JavaScript so peergrades can be done by AJAX.
+        $peergrademanager->initialise_peergrade_javascript($this->page);
+
+        $strpeergrade = get_string("peergrade", "peergrade");
+        $peergradehtml = ''; //the string we'll return
+
+        // permissions check - can they view the aggregate?
+        if ($peergrade->user_can_view_aggregate()) {
+
+            $aggregatelabel = $peergrademanager->get_aggregate_label($peergrade->settings->aggregationmethod);
+            $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'peergrade-aggregate-label'));
+            $aggregatestr = $peergrade->get_aggregate_string();
+
+            $aggregatehtml = html_writer::tag('span', $aggregatestr,
+                array('id' => 'peergradeaggregate' . $peergrade->itemid, 'class' => 'peergradeaggregate')) . ' ';
+            if ($peergrade->count > 0) {
+                $countstr = "({$peergrade->count})";
+            } else {
+                $countstr = '-';
+            }
+            $aggregatehtml .= html_writer::tag('span', $countstr, array('id' => "peergradecount{$peergrade->itemid}", 'class' => 'peergradecount')).' ';
+
+            if ($peergrade->settings->permissions->viewall && $peergrade->settings->pluginpermissions->viewall) {
+
+                $nonpopuplink = $peergrade->get_view_peergrades_url();
+                $popuplink = $peergrade->get_view_peergrades_url(true);
+
+                $action = new popup_action('click', $popuplink, 'peergrades', array('height' => 400, 'width' => 600));
+                $aggregatehtml = $this->action_link($nonpopuplink, $aggregatehtml, $action);
+            }
+
+            $peergradehtml .= html_writer::tag('span', $aggregatelabel . $aggregatehtml, array('class' => 'peergrade-aggregate-container'));
+        }
+
+        $formstart = null;
+        // if the item doesn't belong to the current user, the user has permission to peergrade
+        // and we're within the assessable period
+        if ($peergrade->user_can_peergrade()) {
+
+            $peergradeurl = $peergrade->get_peergrade_url();
+            $inputs = $peergradeurl->params();
+
+            //start the peergrade form
+            $formattrs = array(
+                    'id' => "postpeergrade{$peergrade->itemid}",
+                    'class' => 'postpeergradeform',
+                    'method' => 'post',
+                    'action' => $peergradeurl->out_omit_querystring()
+            );
+            $formstart  = html_writer::start_tag('form', $formattrs);
+            $formstart .= html_writer::start_tag('div', array('class' => 'peergradeform'));
+
+            // add the hidden inputs
+            foreach ($inputs as $name => $value) {
+                $attributes =
+                        array('type' => 'hidden', 'class' => 'peergradeinput', 'name' => $name, 'value' => $value);
+                $formstart .= html_writer::empty_tag('input', $attributes);
+            }
+
+            if (empty($peergradehtml)) {
+                $peergradehtml .= $strpeergrade . ': ';
+            }
+            $peergradehtml = $formstart . $peergradehtml;
+
+            $scalearray = array(PEERGRADE_UNSET_PEERGRADE => $strpeergrade . '...') + $peergrade->settings->scale->scaleitems;
+            $scaleattrs = array('class' => 'postpeergrademenu peergradeinput','id' => 'menupeergrade'.$peergrade->itemid);
+            $peergradehtml .= html_writer::label($peergrade->peergrade, 'menupeergrade' . $peergrade->itemid, false, array('class' => 'accesshide'));
+            $peergradehtml .= html_writer::select($scalearray, 'peergrade', $peergrade->peergrade, false, $scaleattrs);
+
+            //output submit button
+            $peergradehtml .= html_writer::start_tag('span', array('class' => "peergradesubmit"));
+
+            $attributes = array('type' => 'submit', 'class' => 'postpeergrademenusubmit', 'id' => 'postpeergradesubmit'.$peergrade->itemid, 'value' => s(get_string('peergrade', 'peergrade')));
+            $peergradehtml .= html_writer::empty_tag('input', $attributes);
+
+            if (!$peergrade->settings->scale->isnumeric) {
+                // If a global scale, try to find current course ID from the context
+                if (empty($peergrade->settings->scale->courseid) and $coursecontext = $peergrade->context->get_course_context(false)) {
+                    $courseid = $coursecontext->instanceid;
+                } else {
+                    $courseid = $peergrade->settings->scale->courseid;
+                }
+                $peergradehtml .= $this->help_icon_scale($courseid, $peergrade->settings->scale);
+            }
+            $peergradehtml .= html_writer::end_tag('span');
+            $peergradehtml .= html_writer::end_tag('div');
+            $peergradehtml .= html_writer::end_tag('form');
+        }
+
+        return $peergradehtml;
     }
 
     /**
@@ -217,7 +319,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
      * @param peergrade $peergrade the page object on which this ratingpeer will appear
      * @return string
      */
-    public function render_peergrade(peergrade $peergrade) {
+    public function render_peergrade2(peergrade $peergrade) {
         global $CFG, $USER, $DB, $PAGE, $COURSE, $OUTPUT;
 
         $expired_post = true;
