@@ -122,8 +122,10 @@ if (isguestuser()) {
 
 $trainingpage->description = file_rewrite_pluginfile_urls($trainingpage->description, 'pluginfile.php',
         $modcontext->id, 'mod_peerforum', 'training', $trainingpage->id);
-foreach ($trainingpage->description_eg as $k => $d) {
-    $trainingpage->description_eg[$k] = file_rewrite_pluginfile_urls($d->description, 'pluginfile.php',
+
+$trainingpage->exercise['description'] = $trainingpage->exercise['description'] ?? array();
+foreach ($trainingpage->exercise['description'] as $k => $d) {
+    $trainingpage->exercise['description'][$k] = file_rewrite_pluginfile_urls($d->description, 'pluginfile.php',
             $modcontext->id, 'mod_peerforum', 'training', $trainingpage->id.$k);
 }
 
@@ -135,17 +137,14 @@ $mformpage = new mod_peerforum_training_form('training.php', [
 ]);
 
 // Load data into form NOW!
-$grades = !isset($trainingsubmission) ? null : array_map(
-        function($g) {
-            return $g->grade;
-        }, $trainingsubmission->grades);
+$grades = !isset($trainingsubmission) ? null : $trainingsubmission->grades;
 
 $mformpage->set_data(
         array(
                 'name' => $trainingpage->name,
                 'peerforum' => $peerforum->name,
                 'course' => $course->id,
-                'examples' => $trainingpage->examples,
+                'exercises' => $trainingpage->exercises,
                 'open' => time(),
                 'grades' => $grades,
         ) +

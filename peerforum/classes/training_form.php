@@ -69,26 +69,70 @@ class mod_peerforum_training_form extends moodleform {
         $rm = container::get_manager_factory()->get_rating_manager();
         $rating = $rm->get_ratings($ratingoptions)[0]->rating;
 
-        $examples = (int) $trainingpage->examples;
+        $exercises = (int) $trainingpage->exercises;
 
         $scalearray = array(RATING_UNSET_RATING => 'Rating...') + $rating->settings->scale->scaleitems;
 
-        foreach (range(0, $examples - 1) as $k) {
-            $exid = $trainingpage->id_eg[$k];
-            $mform->addElement('header', 'header' . $k, $trainingpage->name_eg[$k]);
-            $mform->addElement('html', $trainingpage->description_eg[$k]);
-            $mform->addElement('select', 'grades['.$exid.']', 'How would you grade this?', $scalearray);
-
-            if ($submitted) {
-                $grade = $trainingsubmission->grades[$exid]->grade;
-                $mform->addElement('html', '<p style="color: red;"><b>Wrong</b>: Look at the lights, lol. ('.$grade.') </p>');
+        /*--------------------------------------- EXERCISES ---------------------------------------*/
+        foreach (range(0, $exercises) as $k) {
+            if ($k == $exercises) {
+                break; // So the last element isn't run. $criteria-1 does not work.
             }
 
-            $mform->addRule('grades['.$exid.']', get_string('error'), 'required');
+            $exid = $trainingpage->exercise['id'][$k];
+            $n = $trainingpage->exercise['n'][$k];
+
+            /* Header */
+            $mform->addElement('header', 'header' . $k, $trainingpage->exercise['name'][$k]);
+
+            /* Description */
+            $mform->addElement('html', $trainingpage->exercise['description'][$k]);
+
+            /*-------- CRITERIAS --------*/
+            $criterias = (int) $trainingpage->ncriterias;
+            foreach (range(0, $criterias) as $c) {
+                if ($c == $criterias) {
+                    break; // So the last element isn't run. $criteria-1 does not work.
+                }
+
+                $critid = $trainingpage->criteria['id'][$c];
+
+                /* Grade */
+                $mform->addElement('select', 'grades[grade]['.$critid.']['.$exid.']', 'How would you grade this for ' .
+                        $trainingpage->criteria['name'][$c] . '?', $scalearray);
+                $mform->addRule('grades[grade]['.$critid.']['.$exid.']', get_string('error'), 'required');
+
+                /* Feedback */
+                if ($submitted) {
+                    $grade = $trainingsubmission->grades['grade'][$critid][$exid];
+                    $correctgrades = $trainingpage->correctgrades['grade'][$critid][$n];
+                    if ($grade == $correctgrades) {
+                        $mform->addElement('html', '<p style="color: #00ff00;"><b>Right</b>: Look at the lights, lol. (' .$grade.') </p>');
+                    } else {
+                        $mform->addElement('html', '<p style="color: #ff0000;"><b>Wrong</b>: Look at the lights, lol. (' .$grade.') </p>');
+                    }
+                }
+            }
+
+
+            /*-------- OVERALL EXERCISE --------*/
+            /* Grade */
+            $mform->addElement('select', 'grades[grade][-1]['.$exid.']', 'How would you grade this exercise?', $scalearray);
+            $mform->addRule('grades[grade][-1]['.$exid.']', get_string('error'), 'required');
+
+            /* Feedback */
+            if ($submitted) {
+                $grade = $trainingsubmission->grades['grade'][-1][$exid];
+                $correctgrades = $trainingpage->correctgrades['grade'][-1][$n];
+                if ($grade == $correctgrades) {
+                    $mform->addElement('html', '<p style="color: #00ff00;"><b>Right</b>: Look at the lights, lol. (' .$grade.') </p>');
+                } else {
+                    $mform->addElement('html', '<p style="color: #ff0000;"><b>Wrong</b>: Look at the lights, lol. (' .$grade.') </p>');
+                }
+            }
         }
 
-        $this->add_action_buttons();
-
+        /*--------------------------------------- HIDDEN VARS ---------------------------------------*/
         $mform->addElement('hidden', 'course');
         $mform->setType('course', PARAM_INT);
 
@@ -98,11 +142,13 @@ class mod_peerforum_training_form extends moodleform {
         $mform->addElement('hidden', 'page');
         $mform->setType('page', PARAM_INT);
 
-        $mform->addElement('hidden', 'examples');
-        $mform->setType('examples', PARAM_INT);
+        $mform->addElement('hidden', 'exercises');
+        $mform->setType('exercises', PARAM_INT);
 
         $mform->addElement('hidden', 'open');
         $mform->setType('open', PARAM_INT);
+
+        $this->add_action_buttons();
     }
 
     /**
@@ -116,7 +162,7 @@ class mod_peerforum_training_form extends moodleform {
         $errors = parent::validation($data, $files);
         foreach ($data['grades'] as $exid => $g) {
             if ($g == RATING_UNSET_RATING) {
-                $errors['grades['.$exid.']'] = get_string('erroremptysubject', 'peerforum');
+                $errors['grades[grade]['.$exid.']'] = get_string('erroremptysubject', 'peerforum');
             }
         }
         return $errors;

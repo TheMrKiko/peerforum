@@ -83,19 +83,20 @@ if (!empty($peerforum)) {
     $SESSION->fromurl = get_local_referer(false);
 
     // Load up the $trainingpage variable.
-
     $trainingpage = new stdClass();
     $trainingpage->course = $course->id;
     $trainingpage->peerforum = $peerforum->id;
-    $trainingpage->discussion = 0;           // Ie discussion # not defined yet.
+    $trainingpage->discussion = null;
     $trainingpage->name = null;
     $trainingpage->description = null;
     $trainingpage->descriptionformat = editors_get_preferred_format();
     $trainingpage->descriptiontrust = 0;
-    $trainingpage->examples = 0;
-    $trainingpage->id_eg = array();
-    $trainingpage->name_eg = array();
-    $trainingpage->description_eg = array();
+    $trainingpage->exercises = 0;
+    $trainingpage->ncriterias = 0;
+    $trainingpage->exercise = array('description' => array());
+    $trainingpage->criteria = array();
+    $trainingpage->feedback = array();
+    $trainingpage->correctgrades = array();
 
 
 } else if (!empty($edit)) {
@@ -135,11 +136,10 @@ if (!empty($peerforum)) {
 
     $trainingpage = trusttext_pre_edit($trainingpage, 'description', $modcontext);
 
-    $descriptionegs = array();
-    foreach ($trainingpage->description_eg as $key => $eg) {
-        $descriptionegs[$key] = trusttext_pre_edit($trainingpage->description_eg[$key], 'description', $modcontext);
-    }
-    $trainingpage->description_eg = $descriptionegs;
+    $trainingpage->exercise['description'] = $trainingpage->exercise['description'] ?? array();
+    $trainingpage->exercise['description'] = array_map(function ($ex) use ($modcontext) {
+        return trusttext_pre_edit($ex, 'description', $modcontext);
+    }, $trainingpage->exercise['description']);
 
 } else if (!empty($delete)) {
     // User is deleting a page.
@@ -318,24 +318,22 @@ $editoropts = mod_peerforum_build_training_form::editor_options();
 $currenttext = file_prepare_draft_area($draftideditor, $modcontext->id, 'mod_peerforum', 'training',
         $trainingpageid, $editoropts, $trainingpage->description);
 
-$descriptionegs = array();
-foreach ($trainingpage->description_eg as $key => $eg) {
-    $draftideditoreg = file_get_submitted_draft_itemid('description');
+foreach ($trainingpage->exercise['description'] as $key => $ex) {
+    $draftideditorex = file_get_submitted_draft_itemid('description');
     $editoropts = mod_peerforum_build_training_form::editor_options();
-    $currenttexteg = file_prepare_draft_area($draftideditoreg, $modcontext->id, 'mod_peerforum', 'training',
-            $trainingpageid.$key, $editoropts, $eg->description);
+    $currenttextex = file_prepare_draft_area($draftideditorex, $modcontext->id, 'mod_peerforum', 'training',
+            $trainingpageid.$key, $editoropts, $ex->description);
 
-    $descriptionegs[$key] = array(
-                'text' => $currenttexteg,
-                'format' => !isset($eg->descriptionformat) || !is_numeric($eg->descriptionformat) ?
-                        editors_get_preferred_format() : $eg->descriptionformat,
-                'itemid' => $draftideditoreg
+    $trainingpage->exercise['description'][$key] = array(
+                'text' => $currenttextex,
+                'format' => !isset($ex->descriptionformat) || !is_numeric($ex->descriptionformat) ?
+                        editors_get_preferred_format() : $ex->descriptionformat,
+                'itemid' => $draftideditorex
     );
 }
 
 $mformpage->set_data(
         array(
-                'general' => $heading, // TODO fill
                 'name' => $trainingpage->name,
                 'description' => array(
                         'text' => $currenttext,
@@ -343,20 +341,17 @@ $mformpage->set_data(
                                 editors_get_preferred_format() : $trainingpage->descriptionformat,
                         'itemid' => $draftideditor
                 ),
+                'discussion' => $trainingpage->discussion,
                 'course' => $course->id,
-                'examples' => $trainingpage->examples,
-                'id_eg' => $trainingpage->id_eg,
-                'name_eg' => $trainingpage->name_eg,
-                'description_eg' => $descriptionegs,
+                'exercises' => $trainingpage->exercises,
+                'ncriterias' => $trainingpage->ncriterias,
+                'criteria' => $trainingpage->criteria,
+                'exercise' => $trainingpage->exercise,
+                'feedback' => $trainingpage->feedback,
+                'correctgrades' => $trainingpage->correctgrades,
         ) +
 
-        $pageparams +
-
-        // (isset($discussion->timestart) ? array('timestart' => $discussion->timestart) : array()) +
-
-        // (isset($discussion->timeend) ? array('timeend' => $discussion->timeend) : array()) +
-
-        (isset($trainingpage->discussion) ? array('discussion' => $trainingpage->discussion) : array())
+        $pageparams
 );
 
 if ($mformpage->is_cancelled()) {
@@ -380,19 +375,24 @@ if ($mformpage->is_cancelled()) {
     // Clean description text.
     $fromform = trusttext_pre_edit($fromform, 'description', $modcontext);
 
-    $newdescriptioneg = array();
-    foreach ($fromform->description_eg as $key => $eg) {
-        $newdescriptioneg[$key] = new stdClass();
-        $newdescriptioneg[$key]->itemid = $eg['itemid'];
-        $newdescriptioneg[$key]->descriptionformat = $eg['format'];
-        $newdescriptioneg[$key]->description = $eg['text'];
+    $fromform->exercise['description'] = $fromform->exercise['description'] ?? array();
+    $newdescriptionex = array();
+    foreach ($fromform->exercise['description'] as $key => $ex) {
+        $newdescriptionitem = new stdClass();
+        $newdescriptionitem->itemid = $ex['itemid'];
+        $newdescriptionitem->descriptionformat = $ex['format'];
+        $newdescriptionitem->description = $ex['text'];
         // WARNING: the $fromform->description array has been overwritten, do not use it anymore!
-        $newdescriptioneg[$key]->descriptiontrust = trusttext_trusted($modcontext);
+        $newdescriptionitem->descriptiontrust = trusttext_trusted($modcontext);
 
         // Clean description text.
-        $newdescriptioneg[$key] = trusttext_pre_edit($newdescriptioneg[$key], 'description', $modcontext);
+        $newdescriptionex[$key] = trusttext_pre_edit($newdescriptionitem, 'description', $modcontext);
     }
-    $fromform->description_eg = $newdescriptioneg;
+    $fromform->exercise['description'] = $newdescriptionex;
+
+    $fromform->feedback = $fromform->feedback ?? array();
+    $fromform->correctgrades = $fromform->correctgrades ?? array();
+    $fromform->criteria = $fromform->criteria ?? array();
 
     if ($fromform->edit) {
         // Updating a post.

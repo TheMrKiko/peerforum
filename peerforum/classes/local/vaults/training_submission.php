@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Post vault class.
+ * Training submission vault classes.
  *
  * @package    mod_peerforum
  * @copyright  2019 Ryan Wyllie <ryan@moodle.com>
@@ -31,12 +31,9 @@ use moodle_database;
 use stdClass;
 
 /**
- * Post vault class.
+ * Training submission vault class.
  *
  * This should be the only place that accessed the database.
- *
- * This class should not return any objects other than post_entity objects. The class
- * may contain some utility count methods which return integers.
  *
  * This uses the repository pattern. See:
  * https://designpatternsphp.readthedocs.io/en/latest/More/Repository/README.html
@@ -49,7 +46,7 @@ class training_submission extends db_table_vault {
     private const TABLE = 'peerforum_training_submit';
 
     /**
-     * @var training_rating $tratingvault Examples
+     * @var training_rating $tratingvault Ratings
      */
     private $tratingvault;
 
@@ -100,41 +97,20 @@ class training_submission extends db_table_vault {
     }
 
     /**
-     * Convert the DB records into post entities.
+     * Convert the DB records into training submissions with more info.
      *
      * @param array $results The DB records
-     * @return post_entity[]
-     */
-    protected function from_db_records(array $results) {
-        $entityfactory = $this->get_entity_factory();
-
-        return array_map(function(array $result) use ($entityfactory) {
-            ['record' => $record] = $result;
-            return $entityfactory->get_post_from_stdclass($record);
-        }, $results);
-    }
-
-    /**
-     * Get the list of entities for the given ids.
-     *
-     * @param int[] $ids Identifiers
      * @return array
      */
-    public function get_from_ids(array $ids) {
-        $alias = $this->get_table_alias();
-        list($insql, $params) = $this->get_db()->get_in_or_equal($ids);
-        $wheresql = $alias . '.id ' . $insql;
-        $sql = $this->generate_get_records_sql($wheresql);
-        $records = $this->get_db()->get_records_sql($sql, $params);
+    protected function from_db_records(array $results) {
+        return array_map(function(array $result)  {
+            ['record' => $record] = $result;
+            $ratings = $this->tratingvault->get_from_submission_id($record->id);
 
-        $ratings = $this->tratingvault->get_from_submission_ids($ids);
-        foreach ($records as $record) {
-            $record->grades = $ratings;
-        }
-
-        return $records;
+            $record->grades = training_page::turn_inside_out($ratings, array('criteriaid', 'exid'));
+            return $record;
+        }, $results);
     }
-
 }
 
 class training_rating extends db_table_vault {
@@ -172,38 +148,25 @@ class training_rating extends db_table_vault {
     }
 
     /**
-     * Convert the DB records into post entities.
+     * Just sits here.
      *
      * @param array $results The DB records
-     * @return post_entity[]
      */
     protected function from_db_records(array $results) {
-        $entityfactory = $this->get_entity_factory();
-
-        return array_map(function(array $result) use ($entityfactory) {
-            ['record' => $record] = $result;
-            return $entityfactory->get_post_from_stdclass($record);
-        }, $results);
+        // Empty.
     }
 
     /**
-     * Get the list of entities for the given ids.
+     * Get the list of records for the given ids.
      *
-     * @param int[] $ids Identifiers
+     * @param int $id Identifier
      * @return array
      */
-    public function get_from_submission_ids(array $ids) {
+    public function get_from_submission_id(int $id) {
         $alias = $this->get_table_alias();
-        list($insql, $params) = $this->get_db()->get_in_or_equal($ids);
+        list($insql, $params) = $this->get_db()->get_in_or_equal($id);
         $wheresql = $alias . '.submissionid ' . $insql;
         $sql = $this->generate_get_records_sql($wheresql);
-        $records = $this->get_db()->get_records_sql($sql, $params);
-
-        $exidrecords = array();
-        foreach ($records as $record) {
-            $exidrecords[$record->exid] = $record;
-        }
-        return $exidrecords;
+        return $this->get_db()->get_records_sql($sql, $params);
     }
 }
-

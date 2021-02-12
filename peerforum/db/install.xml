@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/peerforum/db" VERSION="20210201" COMMENT="XMLDB file for Moodle mod/peerforum"
+<XMLDB PATH="mod/peerforum/db" VERSION="20210210" COMMENT="XMLDB file for Moodle mod/peerforum"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -461,7 +461,8 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <FIELD NAME="description" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="descriptionformat" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="descriptiontrust" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="examples" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="exercises" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="ncriterias" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -472,10 +473,22 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <INDEX NAME="course" UNIQUE="false" FIELDS="course"/>
             </INDEXES>
         </TABLE>
-        <TABLE NAME="peerforum_training_example" COMMENT="Examples from the training pages">
+        <TABLE NAME="peerforum_training_criteria" COMMENT="Each criteria info for each page">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="pageid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="pageid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="n" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="peerforum_training_page" REFFIELDS="id"/>
+            </KEYS>
+        </TABLE>
+        <TABLE NAME="peerforum_training_exercise" COMMENT="Exercises from the training pages">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="pageid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="n" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="description" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
@@ -490,6 +503,37 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <INDEX NAME="n-pageid" UNIQUE="false" FIELDS="pageid, n"/>
             </INDEXES>
         </TABLE>
+        <TABLE NAME="peerforum_training_feedback" COMMENT="The feedback strings for each grade given">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="pageid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="exid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="criteriaid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="If -1, is related to the whole exercise"/>
+                <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="feedback" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="peerforum_training_page" REFFIELDS="id"/>
+                <KEY NAME="exid" TYPE="foreign" FIELDS="exid" REFTABLE="peerforum_training_exercise" REFFIELDS="id"/>
+                <KEY NAME="criteriaid" TYPE="foreign" FIELDS="criteriaid" REFTABLE="peerforum_training_criteria" REFFIELDS="id"/>
+            </KEYS>
+        </TABLE>
+        <TABLE NAME="peerforum_training_rgh_grade" COMMENT="The correct grade for each criteria, according to the professor">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="pageid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="exid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="criteriaid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="If -1, is related to the whole exercise"/>
+                <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="peerforum_training_page" REFFIELDS="id"/>
+                <KEY NAME="exid" TYPE="foreign" FIELDS="exid" REFTABLE="peerforum_training_exercise" REFFIELDS="id"/>
+                <KEY NAME="criteriaid" TYPE="foreign" FIELDS="criteriaid" REFTABLE="peerforum_training_criteria" REFFIELDS="id"/>
+            </KEYS>
+        </TABLE>
         <TABLE NAME="peerforum_training_submit" COMMENT="Submissions in training pages">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
@@ -501,6 +545,7 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
                 <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="peerforum_training_page" REFFIELDS="id"/>
+                <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
             </KEYS>
         </TABLE>
         <TABLE NAME="peerforum_training_rating" COMMENT="Submissions in training pages">
@@ -508,12 +553,14 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
                 <FIELD NAME="submissionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="exid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="criteriaid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="If -1, is related to the whole exercise"/>
                 <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
                 <KEY NAME="submissionid" TYPE="foreign" FIELDS="submissionid" REFTABLE="peerforum_training_submit" REFFIELDS="id"/>
-                <KEY NAME="exid" TYPE="foreign" FIELDS="exid" REFTABLE="peerforum_training_example" REFFIELDS="id"/>
+                <KEY NAME="exid" TYPE="foreign" FIELDS="exid" REFTABLE="peerforum_training_exercise" REFFIELDS="id"/>
+                <KEY NAME="criteriaid" TYPE="foreign" FIELDS="criteriaid" REFTABLE="peerforum_training_criteria" REFFIELDS="id"/>
             </KEYS>
         </TABLE>
     </TABLES>
