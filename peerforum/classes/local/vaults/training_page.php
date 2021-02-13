@@ -115,6 +115,21 @@ class training_page extends db_table_vault {
     }
 
     /**
+     * Get the list of all records for a peerforum.
+     *
+     * @param int $id
+     * @return array
+     */
+    public function get_from_peerforum_id(int $id): array {
+        $alias = $this->get_table_alias();
+        list($insql, $params) = $this->get_db()->get_in_or_equal($id);
+        $wheresql = $alias . '.peerforum ' . $insql;
+        $sortsql = $alias . '.id DESC';
+        $sql = $this->generate_get_records_sql($wheresql, $sortsql);
+        return $this->get_db()->get_records_sql($sql, $params);
+    }
+
+    /**
      * Convert the DB records into training pages with more info.
      *
      * @param array $results The DB records

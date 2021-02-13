@@ -8510,7 +8510,7 @@ function peerforum_extend_settings_navigation(settings_navigation $settingsnav, 
         $url = new moodle_url('/mod/peerforum/export.php', ['id' => $peerforumobject->id]);
         $peerforumnode->add(get_string('export', 'mod_peerforum'), $url, navigation_node::TYPE_SETTING);
     }
-    $url = new moodle_url('/mod/peerforum/build_training.php', ['peerforum' => $peerforumobject->id]);
+    $url = new moodle_url('/mod/peerforum/trainingpages.php', ['pf' => $peerforumobject->id]);
     $peerforumnode->add("Training pages", $url, navigation_node::TYPE_SETTING);
 }
 
