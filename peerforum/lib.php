@@ -10895,34 +10895,54 @@ function peerforum_add_new_training_page($trainingpage, $mform) {
     $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
     $context = context_module::instance($cm->id);
 
-    //$trainingpage->created = $trainingpage->modified = time();
-    if (!isset($trainingpage->totalscore)) {
-        $trainingpage->totalscore = 0;
-    }
-
-    // \mod_peerforum\local\entities\post::add_message_counts($trainingpage);
     $id = $DB->insert_record("peerforum_training_page", $trainingpage);
     $trainingpage->id = $id;
     $trainingpage->description = file_save_draft_area_files($trainingpage->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id,
             mod_peerforum_build_training_form::editor_options(), $trainingpage->description);
     $DB->set_field('peerforum_training_page', 'description', $trainingpage->description, array('id' => $id));
 
-    // Update discussion modified date
-    // $DB->set_field("peerforum_discussions", "timemodified", $post->modified, array("id" => $post->discussion));
+    $exercises = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->exercise, array('n'));
+    $feedbacks = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->feedback, array('grade', 'criteriaid', 'n'));
+    $correctgrades = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->correctgrades, array('criteriaid', 'n'));
+    $criterias = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->criteria, array('n'));
 
-    foreach ($trainingpage->description_eg as $key => $desc) {
-        $trainingexample = $desc;
+    foreach ($exercises as $key => $trainingexercise) {
+        $exercise = $trainingexercise->description;
 
-        $trainingexample->n = $key;
-        $trainingexample->pageid = $trainingpage->id;
-        $trainingexample->name = $trainingpage->name_eg[$key];
+        $exercise->n = $key;
+        $exercise->pageid = $trainingpage->id;
+        $exercise->name = $trainingexercise->name;
 
-        $egid = $DB->insert_record("peerforum_training_example", $trainingexample);
+        $exid = $DB->insert_record("peerforum_training_exercise", $exercise);
+        $trainingexercise->id = $exid;
 
-        $trainingexample->description = file_save_draft_area_files($trainingexample->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id.$key,
-                mod_peerforum_build_training_form::editor_options(), $trainingexample->description);
+        $exercise->description = file_save_draft_area_files($exercise->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id.$key,
+                mod_peerforum_build_training_form::editor_options(), $exercise->description);
 
-        $DB->set_field('peerforum_training_example', 'description', $trainingexample->description, array('id' => $egid));
+        $DB->set_field('peerforum_training_exercise', 'description', $exercise->description, array('id' => $exid));
+    }
+
+    foreach ($criterias as $key => $criteria) {
+        $criteria->pageid = $trainingpage->id;
+        $criteria->n = $key;
+
+        $criteria->id = $DB->insert_record("peerforum_training_criteria", $criteria);
+    }
+
+    $DB->set_field('peerforum_training_page', 'ncriterias', count($criterias),  array('id' => $trainingpage->id));
+
+    foreach ($correctgrades as $correctgrade) {
+        $correctgrade->pageid = $trainingpage->id;
+        $correctgrade->exid = $exercises[$correctgrade->n]->id;
+
+        $correctgrade->id = $DB->insert_record("peerforum_training_rgh_grade", $correctgrade);
+    }
+
+    foreach ($feedbacks as $feedback) {
+        $feedback->pageid = $trainingpage->id;
+        $feedback->exid = $exercises[$feedback->n]->id;
+
+        $feedback->id = $DB->insert_record("peerforum_training_feedback", $feedback);
     }
 
     return $id;
@@ -10942,36 +10962,75 @@ function peerforum_update_training_page($trainingpage, $mform) {
     $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
     $context = context_module::instance($cm->id);
 
-    // $trainingpage->modified = time();
-
     $DB->update_record('peerforum_training_page', $trainingpage);
 
     $trainingpage->description = file_save_draft_area_files($trainingpage->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id,
             mod_peerforum_build_training_form::editor_options(), $trainingpage->description);
 
-    // \mod_peerforum\local\entities\post::add_message_counts($post);
     $DB->set_field('peerforum_training_page', 'description', $trainingpage->description, array('id' => $trainingpage->id));
 
-    foreach ($trainingpage->description_eg as $key => $desc) {
-        $trainingexample = $desc;
+    $exercises = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->exercise, array('n'));
+    $feedbacks = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->feedback, array('grade', 'criteriaid', 'n'));
+    $correctgrades = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->correctgrades, array('criteriaid', 'n'));
+    $criterias = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->criteria, array('n'));
 
-        $trainingexample->n = $key;
-        $trainingexample->id = $trainingpage->id_eg[$key];
-        $trainingexample->pageid = $trainingpage->id;
-        $trainingexample->name = $trainingpage->name_eg[$key];
+    foreach ($exercises as $key => $trainingexercise) {
+        $exid = $trainingexercise->id;
 
-        $egid = $trainingexample->id;
+        $exercise = $trainingexercise->description;
+        $exercise->pageid = $trainingpage->id;
+        $exercise->n = $key;
+        $exercise->name = $trainingexercise->name;
+        $exercise->id = $exid;
 
-        if ($egid == -1) { // Hack: should be a constant but ya
-            $egid = $DB->insert_record("peerforum_training_example", $trainingexample);
+        if ($exid == -1) { // Hack: should be a constant but ya
+            $trainingexercise->id = $DB->insert_record("peerforum_training_exercise", $exercise);
         } else {
-            $DB->update_record("peerforum_training_example", $trainingexample, array('id' => $egid));
+            $DB->update_record("peerforum_training_exercise", $exercise);
         }
 
-        $trainingexample->description = file_save_draft_area_files($trainingexample->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id.$key,
-                mod_peerforum_build_training_form::editor_options(), $trainingexample->description);
+        $exercise->description = file_save_draft_area_files($exercise->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id.$key,
+                mod_peerforum_build_training_form::editor_options(), $exercise->description);
 
-        $DB->set_field('peerforum_training_example', 'description', $trainingexample->description, array('id' => $egid));
+        $DB->set_field('peerforum_training_exercise', 'description', $exercise->description, array('id' => $trainingexercise->id));
+    }
+
+    foreach ($criterias as $key => $criteria) {
+        $criteria->pageid = $trainingpage->id;
+        $criteria->n = $key;
+        $criteriaid = $criteria->id;
+
+        if ($criteriaid == -1) { // Hack: should be a constant but ya
+            $criteria->id = $DB->insert_record("peerforum_training_criteria", $criteria);
+        } else {
+            $DB->update_record("peerforum_training_criteria", $criteria);
+        }
+    }
+
+    $DB->set_field('peerforum_training_page', 'ncriterias', count($criterias),  array('id' => $trainingpage->id));
+
+    foreach ($correctgrades as $correctgrade) {
+        $correctgrade->pageid = $trainingpage->id;
+        $correctgradeid = $correctgrade->id;
+        $correctgrade->exid = $exercises[$correctgrade->n]->id;
+
+        if ($correctgradeid == -1) { // Hack: should be a constant but ya
+            $correctgrade->id = $DB->insert_record("peerforum_training_rgh_grade", $correctgrade);
+        } else {
+            $DB->update_record("peerforum_training_rgh_grade", $correctgrade);
+        }
+    }
+
+    foreach ($feedbacks as $feedback) {
+        $feedback->pageid = $trainingpage->id;
+        $feedbackid = $feedback->id;
+        $feedback->exid = $exercises[$feedback->n]->id;
+
+        if ($feedbackid == -1) { // Hack: should be a constant but ya
+            $feedback->id = $DB->insert_record("peerforum_training_feedback", $feedback);
+        } else {
+            $DB->update_record("peerforum_training_feedback", $feedback);
+        }
     }
 
     return true;
@@ -10998,13 +11057,10 @@ function peerforum_submit_training_page($trainingpage, $mform) {
                 'submitted'=> time(),
         ]);
 
-    $grades = $trainingpage->grades;
-    foreach ($grades as $exid => $grade) {
-        $DB->insert_record('peerforum_training_rating', (object) [
-                'submissionid' => $submit,
-                'exid' => $exid,
-                'grade' => $grade,
-        ]);
+    $grades = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->grades, array('criteriaid', 'exid'));
+    foreach ($grades as $grade) {
+        $grade->submissionid = $submit;
+        $DB->insert_record('peerforum_training_rating', $grade);
     }
 
     return $submit;
