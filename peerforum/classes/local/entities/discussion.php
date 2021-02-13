@@ -63,6 +63,10 @@ class discussion {
     private $pinned;
     /** @var int $locked The timestamp of when the discussion was locked */
     private $timelocked;
+    /** @var bool $type type */
+    private $type;
+    /** @var int $idlink idlink */
+    private $idlink;
 
     /**
      * Constructor.
@@ -81,6 +85,8 @@ class discussion {
      * @param int $timeend End time for the discussion
      * @param bool $pinned Is the discussion pinned?
      * @param int $locked Time this discussion was locked
+     * @param int $type type
+     * @param int|null $idlink idlink
      */
     public function __construct(
             int $id,
@@ -96,7 +102,9 @@ class discussion {
             int $timestart,
             int $timeend,
             bool $pinned,
-            int $locked
+            int $locked,
+            int $type,
+            ?int $idlink
     ) {
         $this->id = $id;
         $this->courseid = $courseid;
@@ -112,6 +120,8 @@ class discussion {
         $this->timeend = $timeend;
         $this->pinned = $pinned;
         $this->timelocked = $locked;
+        $this->type = $type;
+        $this->idlink = $idlink;
     }
 
     /**
@@ -331,5 +341,19 @@ class discussion {
      */
     public function is_timed_discussion_visible(): bool {
         return !$this->is_timed_discussion() || ($this->has_started() && !$this->has_ended());
+    }
+
+    /**
+     * @return int
+     */
+    public function is_type(): int {
+        return $this->type;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_idlink(): ?int {
+        return $this->idlink;
     }
 }

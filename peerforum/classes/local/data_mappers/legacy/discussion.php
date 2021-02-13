@@ -39,7 +39,7 @@ class discussion {
     /**
      * Convert a list of discussion entities into stdClasses.
      *
-     * @param discussion_entity[] $authors The authors to convert.
+     * @param discussion_entity[] $discussions The discussions to convert.
      * @return stdClass[]
      */
     public function to_legacy_objects(array $discussions): array {
@@ -58,7 +58,9 @@ class discussion {
                     'timestart' => $discussion->get_time_start(),
                     'timeend' => $discussion->get_time_end(),
                     'pinned' => $discussion->is_pinned(),
-                    'timelocked' => $discussion->get_locked()
+                    'timelocked' => $discussion->get_locked(),
+                    'type' => $discussion->is_type(),
+                    'idlink' => $discussion->get_idlink(),
             ];
         }, $discussions);
     }

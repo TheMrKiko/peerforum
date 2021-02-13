@@ -129,7 +129,9 @@ class entity {
                 $record->timestart,
                 $record->timeend,
                 $record->pinned,
-                $record->timelocked
+                $record->timelocked,
+                $record->type,
+                $record->idlink
         );
     }
 
