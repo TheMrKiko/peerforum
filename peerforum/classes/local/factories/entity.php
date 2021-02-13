@@ -157,6 +157,7 @@ class entity {
                 $record->mailnow,
                 $record->deleted,
                 $record->privatereplyto,
+                $record->peergraders,
                 $record->wordcount,
                 $record->charcount
         );
