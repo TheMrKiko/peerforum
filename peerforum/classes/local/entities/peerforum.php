@@ -107,6 +107,96 @@ class peerforum {
     private $duedate;
     /** @var int $cutoffdate Timestamp after which peerforum posts will no longer be accepted */
     private $cutoffdate;
+    /** @var int $peergradescale peergradescale */
+    private $peergradescale;
+    /** @var int $peergradeassessed peergradeassessed */
+    private $peergradeassessed;
+    /** @var int $peergradeassesstimestart peergradeassesstimestart */
+    private $peergradeassesstimestart;
+    /** @var int $peergradeassesstimefinish peergradeassesstimefinish */
+    private $peergradeassesstimefinish;
+    /** @var string $peergradesvisibility peergradesvisibility */
+    private $peergradesvisibility;
+    /** @var string $whenpeergrades whenpeergrades */
+    private $whenpeergrades;
+    /** @var string $feedbackvisibility feedbackvisibility */
+    private $feedbackvisibility;
+    /** @var string $whenfeedback whenfeedback */
+    private $whenfeedback;
+    /** @var int $enablefeedback enablefeedback */
+    private $enablefeedback;
+    /** @var int $remainanonymous remainanonymous */
+    private $remainanonymous;
+    /** @var int $selectpeergraders selectpeergraders */
+    private $selectpeergraders;
+    /** @var int $minpeergraders minpeergraders */
+    private $minpeergraders;
+    /** @var int $finishpeergrade finishpeergrade */
+    private $finishpeergrade;
+    /** @var int $timetopeergrade timetopeergrade */
+    private $timetopeergrade;
+    /** @var int $finalgrademode finalgrademode */
+    private $finalgrademode;
+    /** @var int $studentpercentage studentpercentage */
+    private $studentpercentage;
+    /** @var int $professorpercentage professorpercentage */
+    private $professorpercentage;
+    /** @var int $allowpeergrade allowpeergrade */
+    private $allowpeergrade;
+    /** @var int $expirepeergrade expirepeergrade */
+    private $expirepeergrade;
+    /** @var int $gradeprofessorpost gradeprofessorpost */
+    private $gradeprofessorpost;
+    /** @var int $showpeergrades showpeergrades */
+    private $showpeergrades;
+    /** @var int $outdetectvalue outdetectvalue */
+    private $outdetectvalue;
+    /** @var int $blockoutliers blockoutliers */
+    private $blockoutliers;
+    /** @var int $seeoutliers seeoutliers */
+    private $seeoutliers;
+    /** @var string $outlierdetection outlierdetection */
+    private $outlierdetection;
+    /** @var int $warningoutliers warningoutliers */
+    private $warningoutliers;
+    /** @var int $showafterrating showafterrating */
+    private $showafterrating;
+    /** @var int $showratings showratings */
+    private $showratings;
+    /** @var int $showafterpeergrade showafterpeergrade */
+    private $showafterpeergrade;
+    /** @var string $peergradecriteria peergradecriteria */
+    private $peergradecriteria;
+    /** @var string $gradecriteria1 gradecriteria1 */
+    private $gradecriteria1;
+    /** @var string $gradecriteria2 gradecriteria2 */
+    private $gradecriteria2;
+    /** @var string $gradecriteria3 gradecriteria3 */
+    private $gradecriteria3;
+    /** @var int $showpostid showpostid */
+    private $showpostid;
+    /** @var int $showdetails showdetails */
+    private $showdetails;
+    /** @var int $autoassignreplies autoassignreplies */
+    private $autoassignreplies;
+    /** @var int $hidereplies hidereplies */
+    private $hidereplies;
+    /** @var int $peernominations peernominations */
+    private $peernominations;
+    /** @var int $peerrankings peerrankings */
+    private $peerrankings;
+    /** @var int $peernominationsfields peernominationsfields */
+    private $peernominationsfields;
+    /** @var int $peernominationsaddfields peernominationsaddfields */
+    private $peernominationsaddfields;
+    /** @var int $randomdistribution random_distribution */
+    private $randomdistribution;
+    /** @var int $training training */
+    private $training;
+    /** @var int $threadedgrading threaded_grading */
+    private $threadedgrading;
+    /** @var int $advpeergrading adv_peergrading */
+    private $advpeergrading;
 
     /**
      * Constructor
@@ -144,6 +234,51 @@ class peerforum {
      * @param int $lockdiscussionafter Timestamp after which discussions should be locked
      * @param int $duedate Timestamp that represents the due date for peerforum posts
      * @param int $cutoffdate Timestamp after which peerforum posts will no longer be accepted
+     * @param int $peergradescale
+     * @param int $peergradeassessed
+     * @param int $peergradeassesstimestart
+     * @param int $peergradeassesstimefinish
+     * @param string $peergradesvisibility
+     * @param string $whenpeergrades
+     * @param string $feedbackvisibility
+     * @param string $whenfeedback
+     * @param int $enablefeedback
+     * @param int $remainanonymous
+     * @param int $selectpeergraders
+     * @param int $minpeergraders
+     * @param int $finishpeergrade
+     * @param int $timetopeergrade
+     * @param int $finalgrademode
+     * @param int $studentpercentage
+     * @param int $professorpercentage
+     * @param int $allowpeergrade
+     * @param int $expirepeergrade
+     * @param int $gradeprofessorpost
+     * @param int $showpeergrades
+     * @param int $outdetectvalue
+     * @param int $blockoutliers
+     * @param int $seeoutliers
+     * @param string $outlierdetection
+     * @param int $warningoutliers
+     * @param int $showafterrating
+     * @param int $showratings
+     * @param int $showafterpeergrade
+     * @param string $peergradecriteria
+     * @param string $gradecriteria1
+     * @param string $gradecriteria2
+     * @param string $gradecriteria3
+     * @param int $showpostid
+     * @param int $showdetails
+     * @param int $autoassignreplies
+     * @param int $hidereplies
+     * @param int $peernominations
+     * @param int $peerrankings
+     * @param int $peernominationsfields
+     * @param int $peernominationsaddfields
+     * @param int $randomdistribution
+     * @param int $training
+     * @param int $threadedgrading
+     * @param int $advpeergrading
      */
     public function __construct(
             context $context,
@@ -178,7 +313,52 @@ class peerforum {
             bool $displaywordcount,
             int $lockdiscussionafter,
             int $duedate,
-            int $cutoffdate
+            int $cutoffdate,
+            int $peergradescale,
+            int $peergradeassessed,
+            int $peergradeassesstimestart,
+            int $peergradeassesstimefinish,
+            string $peergradesvisibility,
+            string $whenpeergrades,
+            string $feedbackvisibility,
+            string $whenfeedback,
+            int $enablefeedback,
+            int $remainanonymous,
+            int $selectpeergraders,
+            int $minpeergraders,
+            int $finishpeergrade,
+            int $timetopeergrade,
+            int $finalgrademode,
+            int $studentpercentage,
+            int $professorpercentage,
+            int $allowpeergrade,
+            int $expirepeergrade,
+            int $gradeprofessorpost,
+            int $showpeergrades,
+            int $outdetectvalue,
+            int $blockoutliers,
+            int $seeoutliers,
+            string $outlierdetection,
+            int $warningoutliers,
+            int $showafterrating,
+            int $showratings,
+            int $showafterpeergrade,
+            string $peergradecriteria,
+            string $gradecriteria1,
+            string $gradecriteria2,
+            string $gradecriteria3,
+            int $showpostid,
+            int $showdetails,
+            int $autoassignreplies,
+            int $hidereplies,
+            int $peernominations,
+            int $peerrankings,
+            int $peernominationsfields,
+            int $peernominationsaddfields,
+            int $randomdistribution,
+            int $training,
+            int $threadedgrading,
+            int $advpeergrading
     ) {
         $this->context = $context;
         $this->coursemodule = $coursemodule;
@@ -213,6 +393,51 @@ class peerforum {
         $this->lockdiscussionafter = $lockdiscussionafter;
         $this->duedate = $duedate;
         $this->cutoffdate = $cutoffdate;
+        $this->peergradescale = $peergradescale;
+        $this->peergradeassessed = $peergradeassessed;
+        $this->peergradeassesstimestart = $peergradeassesstimestart;
+        $this->peergradeassesstimefinish = $peergradeassesstimefinish;
+        $this->peergradesvisibility = $peergradesvisibility;
+        $this->whenpeergrades = $whenpeergrades;
+        $this->feedbackvisibility = $feedbackvisibility;
+        $this->whenfeedback = $whenfeedback;
+        $this->enablefeedback = $enablefeedback;
+        $this->remainanonymous = $remainanonymous;
+        $this->selectpeergraders = $selectpeergraders;
+        $this->minpeergraders = $minpeergraders;
+        $this->finishpeergrade = $finishpeergrade;
+        $this->timetopeergrade = $timetopeergrade;
+        $this->finalgrademode = $finalgrademode;
+        $this->studentpercentage = $studentpercentage;
+        $this->professorpercentage = $professorpercentage;
+        $this->allowpeergrade = $allowpeergrade;
+        $this->expirepeergrade = $expirepeergrade;
+        $this->gradeprofessorpost = $gradeprofessorpost;
+        $this->showpeergrades = $showpeergrades;
+        $this->outdetectvalue = $outdetectvalue;
+        $this->blockoutliers = $blockoutliers;
+        $this->seeoutliers = $seeoutliers;
+        $this->outlierdetection = $outlierdetection;
+        $this->warningoutliers = $warningoutliers;
+        $this->showafterrating = $showafterrating;
+        $this->showratings = $showratings;
+        $this->showafterpeergrade = $showafterpeergrade;
+        $this->peergradecriteria = $peergradecriteria;
+        $this->gradecriteria1 = $gradecriteria1;
+        $this->gradecriteria2 = $gradecriteria2;
+        $this->gradecriteria3 = $gradecriteria3;
+        $this->showpostid = $showpostid;
+        $this->showdetails = $showdetails;
+        $this->autoassignreplies = $autoassignreplies;
+        $this->hidereplies = $hidereplies;
+        $this->peernominations = $peernominations;
+        $this->peerrankings = $peerrankings;
+        $this->peernominationsfields = $peernominationsfields;
+        $this->peernominationsaddfields = $peernominationsaddfields;
+        $this->randomdistribution = $randomdistribution;
+        $this->training = $training;
+        $this->threadedgrading = $threadedgrading;
+        $this->advpeergrading = $advpeergrading;
     }
 
     /**
@@ -668,5 +893,329 @@ class peerforum {
         }
 
         return $this->is_discussion_time_locked($discussion);
+    }
+
+    /**
+     * @return int
+     */
+    public function get_peergradescale(): int {
+        return $this->peergradescale;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_peergrade_aggregate(): int {
+        return $this->peergradeassessed;
+    }
+    /**
+     *
+     * Does the peerforum have a peergrade aggregate?
+     *
+     * @return int
+     */
+    public function has_peergrade_aggregate(): int {
+        return $this->get_peergrade_aggregate() != PEERGRADE_AGGREGATE_NONE;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_peergradeassesstimestart(): int {
+        return $this->peergradeassesstimestart;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_peergradeassesstimefinish(): int {
+        return $this->peergradeassesstimefinish;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_peergradesvisibility(): string {
+        return $this->peergradesvisibility;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_whenpeergrades(): string {
+        return $this->whenpeergrades;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_feedbackvisibility(): string {
+        return $this->feedbackvisibility;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_whenfeedback(): string {
+        return $this->whenfeedback;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_enablefeedback(): int {
+        return $this->enablefeedback;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_remainanonymous(): int {
+        return $this->remainanonymous;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_selectpeergraders(): int {
+        return $this->selectpeergraders;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_minpeergraders(): int {
+        return $this->minpeergraders;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_finishpeergrade(): int {
+        return $this->finishpeergrade;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_timetopeergrade(): int {
+        return $this->timetopeergrade;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_finalgrademode(): int {
+        return $this->finalgrademode;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_studentpercentage(): int {
+        return $this->studentpercentage;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_professorpercentage(): int {
+        return $this->professorpercentage;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_allowpeergrade(): int {
+        return $this->allowpeergrade;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_expirepeergrade(): int {
+        return $this->expirepeergrade;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_gradeprofessorpost(): int {
+        return $this->gradeprofessorpost;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_showpeergrades(): int {
+        return $this->showpeergrades;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_outdetectvalue(): int {
+        return $this->outdetectvalue;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_blockoutliers(): int {
+        return $this->blockoutliers;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_seeoutliers(): int {
+        return $this->seeoutliers;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_outlierdetection(): string {
+        return $this->outlierdetection;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_warningoutliers(): int {
+        return $this->warningoutliers;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_showafterrating(): int {
+        return $this->showafterrating;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_showratings(): int {
+        return $this->showratings;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_showafterpeergrade(): int {
+        return $this->showafterpeergrade;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_peergradecriteria(): string {
+        return $this->peergradecriteria;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_gradecriteria_1(): string {
+        return $this->gradecriteria1;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_gradecriteria_2(): string {
+        return $this->gradecriteria2;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_gradecriteria_3(): string {
+        return $this->gradecriteria3;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_showpostid(): int {
+        return $this->showpostid;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_showdetails(): int {
+        return $this->showdetails;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_autoassignreplies(): int {
+        return $this->autoassignreplies;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_hidereplies(): int {
+        return $this->hidereplies;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_peernominations(): int {
+        return $this->peernominations;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_peerrankings(): int {
+        return $this->peerrankings;
+    }
+
+    /**
+     * @return int
+     */
+    public function get_peernominationsfields(): int {
+        return $this->peernominationsfields;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_peernominationsaddfields(): int {
+        return $this->peernominationsaddfields;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_random_distribution(): int {
+        return $this->randomdistribution;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_training(): int {
+        return $this->training;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_threaded_grading(): int {
+        return $this->threadedgrading;
+    }
+
+    /**
+     * @return int
+     */
+    public function is_adv_peergrading(): int {
+        return $this->advpeergrading;
     }
 }
