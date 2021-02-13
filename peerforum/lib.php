@@ -5702,6 +5702,7 @@ function peerforum_get_file_areas($course, $cm, $context) {
     return array(
             'attachment' => get_string('areaattachment', 'mod_peerforum'),
             'post' => get_string('areapost', 'mod_peerforum'),
+            'training' => get_string('areatraining', 'mod_peerforum'),
     );
 }
 
@@ -5835,17 +5836,19 @@ function peerforum_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
         return false;
     }
 
+    $istraining = $filearea == 'training'; // hack para passar as verificações abaixo.
+
     $postid = (int) array_shift($args);
 
-    if (!$post = $DB->get_record('peerforum_posts', array('id' => $postid))) {
+    if (!$istraining && !$post = $DB->get_record('peerforum_posts', array('id' => $postid))) {
         return false;
     }
 
-    if (!$discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion))) {
+    if (!$istraining && !$discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion))) {
         return false;
     }
 
-    if (!$peerforum = $DB->get_record('peerforum', array('id' => $cm->instance))) {
+    if (!$istraining && !$peerforum = $DB->get_record('peerforum', array('id' => $cm->instance))) {
         return false;
     }
 
@@ -5857,7 +5860,7 @@ function peerforum_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
     }
 
     // Make sure groups allow this user to see this file
-    if ($discussion->groupid > 0) {
+    if (!$istraining && $discussion->groupid > 0) {
         $groupmode = groups_get_activity_groupmode($cm, $course);
         if ($groupmode == SEPARATEGROUPS) {
             if (!groups_is_member($discussion->groupid) and !has_capability('moodle/site:accessallgroups', $context)) {
@@ -5867,7 +5870,7 @@ function peerforum_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
     }
 
     // Make sure we're allowed to see it...
-    if (!peerforum_user_can_see_post($peerforum, $discussion, $post, null, $cm)) {
+    if (!$istraining && !peerforum_user_can_see_post($peerforum, $discussion, $post, null, $cm)) {
         return false;
     }
 
