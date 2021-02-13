@@ -1030,17 +1030,6 @@ $string['showratings_help'] = "Select 'no' if you want the final rating to be hi
 $string['showafterpeergrade'] = "Show after peer grade ends";
 $string['showafterpeergrade_help'] =
         "Select 'yes' if you want to show final rating only after peer grade ends (the peer grade assessed type must be set to yes)";
-$string['peergradecriteria'] = "Peer grade criteria";
-$string['peergradecriteria_help'] = "Select the grade criteria you want the posts to be evaluated by the students";
-$string['numericscale'] = "Single numeric scale";
-$string['other'] = "Other";
-$string['gradecriteria1'] = "Grade criteria #1";
-$string['gradecriteria1_help'] = "Type a grade criteria to be evaluated by the students";
-$string['gradecriteria2'] = "Grade criteria #2";
-$string['gradecriteria2_help'] = "Type a grade criteria to be evaluated by the students";
-$string['gradecriteria3'] = "Grade criteria #3";
-$string['gradecriteria3_help'] = "Type a grade criteria to be evaluated by the students";
-$string['error:nopeergradecriteria'] = 'Warning: You must select a grade for {$a}. Please try again.';
 $string['showpostid'] = 'Show post id';
 $string['showpostid_help'] =
         "Select 'yes' if you want the posts' id to be displayed in the Peer Forum. This can be usefull for the Peer Grade panel.";

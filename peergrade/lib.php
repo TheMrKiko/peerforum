@@ -1133,7 +1133,7 @@ class peergrade implements renderable {
      * @param moodle_url|string $returnurl The URL to return to.
      * @return moodle_url can be used to peergrade the associated item.
      */
-    public function get_peergrade_url($peergrade = null, $feedback = null, $returnurl = null, $iscriteria = null) {
+    public function get_peergrade_url($peergrade = null, $feedback = null, $returnurl = null) {
         if (empty($returnurl)) {
             if (!empty($this->settings->returnurl)) {
                 $returnurl = $this->settings->returnurl;
@@ -1165,12 +1165,7 @@ class peergrade implements renderable {
             $args['feedback'] = $feedback;
         }
 
-        if (!$iscriteria) {
-            $url = new moodle_url('/peergrade/peergrade.php', $args);
-        } else if ($iscriteria) {
-            $url = new moodle_url('/peergradecriteria/peergradecriteria.php', $args);
-        }
-        return $url;
+        return new moodle_url('/peergrade/peergrade.php', $args);
     }
 
     /**
@@ -2389,25 +2384,6 @@ class peergrade_manager {
                 'requires' => array('node', 'event', 'overlay', 'io-base', 'json'));
 
         $page->requires->js_init_call('M.core_peergrade.init', null, false, $module);
-        $done = true;
-
-        return true;
-    }
-
-    public function initialise_peergradecriteria_javascript(moodle_page $page) {
-        global $CFG;
-
-        // Only needs to be initialized once.
-        static $done = false;
-        if ($done) {
-            return true;
-        }
-
-        $module = array('name' => 'core_peergradecriteria',
-                'fullpath' => '/peergradecriteria/module.js',
-                'requires' => array('node', 'event', 'overlay', 'io-base', 'json'));
-
-        $page->requires->js_init_call('M.core_peergradecriteria.init', null, false, $module);
         $done = true;
 
         return true;

@@ -165,14 +165,6 @@ class peerforum {
     private $showratings;
     /** @var int $showafterpeergrade showafterpeergrade */
     private $showafterpeergrade;
-    /** @var string $peergradecriteria peergradecriteria */
-    private $peergradecriteria;
-    /** @var string $gradecriteria1 gradecriteria1 */
-    private $gradecriteria1;
-    /** @var string $gradecriteria2 gradecriteria2 */
-    private $gradecriteria2;
-    /** @var string $gradecriteria3 gradecriteria3 */
-    private $gradecriteria3;
     /** @var int $showpostid showpostid */
     private $showpostid;
     /** @var int $showdetails showdetails */
@@ -263,10 +255,6 @@ class peerforum {
      * @param int $showafterrating
      * @param int $showratings
      * @param int $showafterpeergrade
-     * @param string $peergradecriteria
-     * @param string $gradecriteria1
-     * @param string $gradecriteria2
-     * @param string $gradecriteria3
      * @param int $showpostid
      * @param int $showdetails
      * @param int $autoassignreplies
@@ -343,10 +331,6 @@ class peerforum {
             int $showafterrating,
             int $showratings,
             int $showafterpeergrade,
-            string $peergradecriteria,
-            string $gradecriteria1,
-            string $gradecriteria2,
-            string $gradecriteria3,
             int $showpostid,
             int $showdetails,
             int $autoassignreplies,
@@ -422,10 +406,6 @@ class peerforum {
         $this->showafterrating = $showafterrating;
         $this->showratings = $showratings;
         $this->showafterpeergrade = $showafterpeergrade;
-        $this->peergradecriteria = $peergradecriteria;
-        $this->gradecriteria1 = $gradecriteria1;
-        $this->gradecriteria2 = $gradecriteria2;
-        $this->gradecriteria3 = $gradecriteria3;
         $this->showpostid = $showpostid;
         $this->showdetails = $showdetails;
         $this->autoassignreplies = $autoassignreplies;
@@ -1105,34 +1085,6 @@ class peerforum {
      */
     public function is_showafterpeergrade(): int {
         return $this->showafterpeergrade;
-    }
-
-    /**
-     * @return string
-     */
-    public function get_peergradecriteria(): string {
-        return $this->peergradecriteria;
-    }
-
-    /**
-     * @return string
-     */
-    public function get_gradecriteria_1(): string {
-        return $this->gradecriteria1;
-    }
-
-    /**
-     * @return string
-     */
-    public function get_gradecriteria_2(): string {
-        return $this->gradecriteria2;
-    }
-
-    /**
-     * @return string
-     */
-    public function get_gradecriteria_3(): string {
-        return $this->gradecriteria3;
     }
 
     /**

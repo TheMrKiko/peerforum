@@ -17,7 +17,7 @@
 
 /**
  * Custom functions that allow peergrading in PeerForum's
- * 
+ *
  * @package   mod_peerforum
  * @copyright Jamie Pratt <me@jamiep.org>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -345,17 +345,6 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->addHelpButton('studentpercentage', 'studentpercentage', 'peerforum');
         $mform->disabledIf('studentpercentage', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
 
-        // Peergrade grade criteria
-        $criteria = array(
-                'numeric scale' => get_string('numericscale', 'peerforum'),
-                'other' => get_string('other', 'peerforum'),
-        );
-
-        $mform->addElement('select', 'peergradecriteria', get_string('peergradecriteria', 'peerforum'), $criteria);
-        $mform->addHelpButton('peergradecriteria', 'peergradecriteria', 'peerforum');
-        $mform->setDefault('peergradecriteria', 'Numeric scale');
-        $mform->disabledIf('peergradecriteria', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-
         // Numeric scale (only points)
         $opt = array(
                 1 => '1',
@@ -373,34 +362,6 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->setDefault('peergradescale', 4);
         $mform->addHelpButton('peergradescale', 'peergradescale', 'peerforum');
         $mform->disabledIf('peergradescale', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-        $mform->disabledIf('peergradescale', 'peergradecriteria', 'eq', 'other');
-
-        //Other grade criteria #1
-        $mform->addElement('text', 'gradecriteria1', get_string('gradecriteria1', 'peerforum'));
-        $mform->setType('gradecriteria1', PARAM_TEXT);
-        $mform->setDefault('gradecriteria1', 'Aesthetics');
-        $mform->addRule('gradecriteria1', null, 'lettersonly', null, 'client');
-        $mform->addHelpButton('gradecriteria1', 'gradecriteria1', 'peerforum');
-        $mform->disabledIf('gradecriteria1', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-        $mform->disabledIf('gradecriteria1', 'peergradecriteria', 'eq', 'numeric scale');
-
-        //Other grade criteria #2
-        $mform->addElement('text', 'gradecriteria2', get_string('gradecriteria2', 'peerforum'));
-        $mform->setType('gradecriteria2', PARAM_TEXT);
-        $mform->setDefault('gradecriteria2', 'Completeness');
-        $mform->addRule('gradecriteria2', null, 'lettersonly', null, 'client');
-        $mform->addHelpButton('gradecriteria2', 'gradecriteria1', 'peerforum');
-        $mform->disabledIf('gradecriteria2', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-        $mform->disabledIf('gradecriteria2', 'peergradecriteria', 'eq', 'numeric scale');
-
-        //Other grade criteria #3
-        $mform->addElement('text', 'gradecriteria3', get_string('gradecriteria3', 'peerforum'));
-        $mform->setType('gradecriteria3', PARAM_TEXT);
-        $mform->setDefault('gradecriteria3', 'Creativity');
-        $mform->addRule('gradecriteria3', null, 'lettersonly', null, 'client');
-        $mform->addHelpButton('gradecriteria3', 'gradecriteria1', 'peerforum');
-        $mform->disabledIf('gradecriteria3', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-        $mform->disabledIf('gradecriteria3', 'peergradecriteria', 'eq', 'numeric scale');
 
         // Peergrade visibility configurations
         $visibility = array(
