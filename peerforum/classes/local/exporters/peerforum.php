@@ -66,6 +66,7 @@ class peerforum extends exporter {
                         'type' => [
                                 'groupmode' => ['type' => PARAM_INT],
                                 'gradingenabled' => ['type' => PARAM_BOOL],
+                                'training' => ['type' => PARAM_BOOL],
                         ],
                 ],
                 'userstate' => [
@@ -122,7 +123,8 @@ class peerforum extends exporter {
                 'name' => $this->peerforum->get_name(),
                 'state' => [
                         'groupmode' => $this->peerforum->get_effective_group_mode(),
-                        'gradingenabled' => $this->peerforum->is_grading_enabled()
+                        'gradingenabled' => $this->peerforum->is_grading_enabled(),
+                        'training' => $this->peerforum->is_training()
                 ],
                 'userstate' => [
                         'tracked' => peerforum_tp_is_tracked($this->get_peerforum_record(), $this->related['user']),

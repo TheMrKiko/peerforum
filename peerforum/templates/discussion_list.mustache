@@ -117,6 +117,9 @@
                                 {{/state.sortorder.isdiscussionasc}}
                             {{/state.sortorder.isdiscussiondesc}}
                         </th>
+                        {{#peerforum.state.training}}
+                            <th scope="col" class="text-center trainingpages px-2">{{#str}} managetraining, block_peerblock {{/str}}</th>
+                        {{/peerforum.state.training}}
                         {{#peerforum.state.groupmode}}
                             <th scope="col" class="group px-3">
                                 {{#state.sortorder.isgroupdesc}}
@@ -245,6 +248,17 @@
                                     </div>
                                 </div>
                             </th>
+                            {{#peerforum.state.training}}
+                                <td class="align-middle fit-content text-center limit-width discussiontraining px-2">
+                                    <a class="w-100 h-100 d-block" title="{{discussion.urls.training.title}}" aria-label="{{discussion.urls.training.title}}"
+                                        {{#discussion.urls.training.url}}
+                                       href="{{discussion.urls.training.url}}"
+                                        {{/discussion.urls.training.url}}
+                                    >
+                                        {{#shortentext}}100, {{{discussion.urls.training.title}}}{{/shortentext}}
+                                    </a>
+                                </td>
+                            {{/peerforum.state.training}}
                             {{#peerforum.state.groupmode}}
                                 <td class="group align-middle fit-content limit-width px-3">
                                     {{#discussion.group}}

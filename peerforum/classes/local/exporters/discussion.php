@@ -127,6 +127,13 @@ class discussion extends exporter {
                                         'optional' => true,
                                         'type' => PARAM_URL,
                                 ],
+                                'training' => [
+                                        'optional' => true,
+                                        'type' => [
+                                                'url' => ['type' => PARAM_URL],
+                                                'title' => ['type' => PARAM_TEXT],
+                                        ],
+                                ],
                         ],
                 ],
                 'timed' => [
@@ -247,6 +254,12 @@ class discussion extends exporter {
             $data['urls']['pin'] = $urlfactory->get_pin_discussion_url_from_discussion($discussion)->out(false);
         }
 
+        if ($peerforum->is_training()) {
+            $trainingpage = $this->related['trainingpage'];
+            $data['urls']['training']['title'] = $trainingpage->name ?? '-';
+            $data['urls']['training']['url'] = !empty($trainingpage) ? $urlfactory->get_training_url($trainingpage) : null;
+        }
+
         if ($groupdata) {
             $data['group'] = $groupdata;
         }
@@ -284,7 +297,8 @@ class discussion extends exporter {
                 'user' => 'stdClass',
                 'groupsbyid' => 'stdClass[]',
                 'latestpostid' => 'int?',
-                'favouriteids' => 'int[]?'
+                'favouriteids' => 'int[]?',
+                'trainingpage' => 'stdClass?'
         ];
     }
 }

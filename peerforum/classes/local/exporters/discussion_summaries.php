@@ -120,6 +120,7 @@ class discussion_summaries extends exporter {
         $exporteddiscussions = [];
         $related = $this->related;
         $latestauthors = $this->related['latestauthors'];
+        $trainingpagesbydiscussionid = $this->related['trainingpagesbydiscussionid'];
 
         foreach ($this->discussions as $discussion) {
             $discussionid = $discussion->get_discussion()->get_id();
@@ -128,6 +129,7 @@ class discussion_summaries extends exporter {
             $latestpostid = isset($this->latestpostids[$discussionid]) ? $this->latestpostids[$discussionid] : 0;
             $latestauthor = $latestauthors[$discussionid] ?? null;
             $related['latestauthor'] = $latestauthor;
+            $related['trainingpage'] = $trainingpagesbydiscussionid[$discussionid] ?? null;
             $exporter = new discussion_summary(
                     $discussion,
                     $this->groupsbyid,
@@ -164,7 +166,8 @@ class discussion_summaries extends exporter {
                 'urlfactory' => 'mod_peerforum\local\factories\url',
                 'user' => 'stdClass',
                 'favouriteids' => 'int[]?',
-                'latestauthors' => 'mod_peerforum\local\entities\author[]?'
+                'latestauthors' => 'mod_peerforum\local\entities\author[]?',
+                'trainingpagesbydiscussionid' => 'stdClass[]?'
         ];
     }
 }

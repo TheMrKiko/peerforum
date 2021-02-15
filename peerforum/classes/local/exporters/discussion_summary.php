@@ -192,7 +192,8 @@ class discussion_summary extends exporter {
                 'urlfactory' => 'mod_peerforum\local\factories\url',
                 'user' => 'stdClass',
                 'favouriteids' => 'int[]?',
-                'latestauthor' => 'mod_peerforum\local\entities\author?'
+                'latestauthor' => 'mod_peerforum\local\entities\author?',
+                'trainingpage' => 'stdClass?'
         ];
     }
 }

@@ -152,6 +152,8 @@ class exported_discussion_summaries {
             $unreadcounts = $postvault->get_unread_count_for_discussion_ids($user, $discussionids, $canseeanyprivatereply);
         }
 
+        $trainingpagesbydiscussionid = $this->get_training_pages($peerforum);
+
         $summaryexporter = $this->exporterfactory->get_discussion_summaries_exporter(
                 $user,
                 $peerforum,
@@ -163,7 +165,8 @@ class exported_discussion_summaries {
                 $latestpostsids,
                 $postauthorcontextids,
                 $favourites,
-                $latestauthors
+                $latestauthors,
+                $trainingpagesbydiscussionid
         );
 
         $exportedposts = (array) $summaryexporter->export($this->renderer);
@@ -301,5 +304,24 @@ class exported_discussion_summaries {
     private function get_author_context_ids(array $authorids): array {
         $authorvault = $this->vaultfactory->get_author_vault();
         return $authorvault->get_context_ids_for_author_ids($authorids);
+    }
+
+    /**
+     * Get the training pages for the peerforum.
+     *
+     * @param peerforum_entity $peerforum The peerforum entity
+     * @return stdClass[]
+     */
+    private function get_training_pages(peerforum_entity $peerforum) : array {
+        $trainingvault = $this->vaultfactory->get_training_page_vault();
+        $trainingpages = $trainingvault->get_from_peerforum_id($peerforum->get_id());
+        $trainingpagesbydid = array();
+        foreach ($trainingpages as $trainingpage) {
+            if (empty($did = $trainingpage->discussion)) {
+                continue;
+            }
+            $trainingpagesbydid[$did] = $trainingpage;
+        }
+        return $trainingpagesbydid;
     }
 }

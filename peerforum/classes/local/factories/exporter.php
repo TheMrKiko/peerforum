@@ -178,7 +178,8 @@ class exporter {
             array $latestpostids = [],
             array $postauthorcontextids = [],
             array $favourites = [],
-            array $latestauthors = []
+            array $latestauthors = [],
+            array $trainingpagesbydiscussionid = []
     ): discussion_summaries_exporter {
         return new discussion_summaries_exporter(
                 $discussions,
@@ -196,7 +197,8 @@ class exporter {
                         'urlfactory' => $this->urlfactory,
                         'user' => $user,
                         'favouriteids' => $favourites,
-                        'latestauthors' => $latestauthors
+                        'latestauthors' => $latestauthors,
+                        'trainingpagesbydiscussionid' => $trainingpagesbydiscussionid
                 ]
         );
     }

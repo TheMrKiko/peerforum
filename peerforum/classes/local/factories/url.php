@@ -506,4 +506,17 @@ class url {
                 'pin' => $discussion->is_pinned() ? PEERFORUM_DISCUSSION_UNPINNED : PEERFORUM_DISCUSSION_PINNED
         ]);
     }
+
+    /**
+     * Generate the training link.
+     *
+     * @param \stdClass $trainingpage
+     * @return moodle_url
+     * @throws \moodle_exception
+     */
+    public function get_training_url(\stdClass $trainingpage): moodle_url {
+        return new moodle_url('training.php', [
+                'page' => $trainingpage->id
+        ]);
+    }
 }
