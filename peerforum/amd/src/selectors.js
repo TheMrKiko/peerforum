@@ -48,6 +48,8 @@ define([], function() {
             inpageSubmitBtnText: "[data-region='submit-text']",
             peergradeListLink: "[data-action='peergrade-collapsible-link']",
             peergradeListContent: "[data-content='peergrade-list-content']",
+            peergradeConfigLink: "[data-action='peergrade-collapsible-config-link']",
+            peergradeConfigContent: "[data-content='peergrade-config-content']",
             loadingIconContainer: "[data-region='loading-icon-container']",
             repliesContainer: "[data-region='replies-container']",
             replyCount: '[data-region="reply-count"]',
