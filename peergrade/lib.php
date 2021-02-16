@@ -229,6 +229,117 @@ function get_discussions_name($course, $peerforum) {
     }
     return $topics;
 }
+/**
+ * The peergrade assignment class represents a peergrade assignment to a single user
+ *
+ * @package   core_peergrade
+ * @category  peergrade
+ * @copyright 2010 Andrew Davis
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @since     Moodle 2.0
+ */
+class peergrade_assignment {
+
+    /**
+     * @var stdClass The context in which this peergrade exists
+     */
+    public $context;
+
+    /**
+     * @var string The component using peergrades. For example "mod_peerforum"
+     */
+    public $component;
+
+    /**
+     * @var string The peergrade area to associate this peergrade assignment with
+     *             This allows a plugin to peergrade more than one thing by specifying different peergrade areas
+     */
+    public $peergradearea = null;
+
+    /**
+     * @var int The id of the item (forum post, glossary item etc) being peergraded
+     */
+    public $itemid;
+
+    /**
+     * @var int The id of this peergrade within the peergrade assignment table
+     */
+    public $id;
+
+    /**
+     * @var int The id of the user who submitted the peergrade
+     */
+    public $userid;
+
+    /**
+     * @var stdClass The detailed information of the user to whom the peergrade was assigned to
+     */
+    public $userinfo;
+
+    /**
+     * @var int The time the peer grade was assigned
+     */
+    public $timeassigned;
+
+    /**
+     * @var int The time the peer grade
+     */
+    public $timemodified = null;
+
+    /**
+     * @var stdclass The peergrade options with more details
+     */
+    public $peergradeoptions;
+
+    /**
+     * @var int If the assignment was already peergraded and the id of the peergrade (if yes)
+     */
+    public $peergraded;
+
+    /**
+     * @var bool If the user is blocked from peer grading the item
+     */
+    public $blocked;
+
+    /**
+     * @var bool If the user let the peer grade expire
+     */
+    public $expired;
+
+    /**
+     * Constructor.
+     *
+     * @param stdClass $options {
+     *            peergradeoptions => The peergrade options with more details [required]
+     *            id => The id of this peergrade assignment [required]
+     *            userid  => int The id of the user who this was assigned [required]
+     *            userinfo  => stdClass The detailed information of the user to whom the peergrade was assigned to [required]
+     *            itemid  => int the id of the associated item (forum post, glossary item etc) [required]
+     *            timeassigned  => int The time the peer grade was assigned [required]
+     *            blocked => If the user is blocked from peer grading this item [required]
+     *            peergraded => If the assignment was already peergraded and the id of the peergrade (if yes) [required]
+     *            expired => If the user let the peer grade expire [required]
+     *            timemodified  => int The time the peer grade [optional]
+     * }
+     */
+    public function __construct($options) {
+        $this->peergradeoptions = $options->peergradeoptions;
+        $this->context = $this->peergradeoptions->context;
+        $this->component = $this->peergradeoptions->component;
+        $this->peergradearea = $this->peergradeoptions->peergradearea;
+        $this->itemid = $options->itemid;
+        $this->userid = $options->userid;
+        $this->userinfo = $options->userinfo;
+        $this->timeassigned = $options->timeassigned;
+        $this->blocked = $options->blocked;
+        $this->peergraded = $options->peergraded;
+        $this->expired = $options->expired;
+
+        if (isset($options->timemodified)) {
+            $this->timemodified = $options->timemodified;
+        }
+    }
+} // End peergrade assignment class definition.
 
 /**
  * The peergrade class represents a single peergrade by a single user
@@ -318,29 +429,14 @@ class peergrade implements renderable {
     public $feedback = PEERGRADE_UNSET_FEEDBACK;
 
     /**
-     * @var array The peergraders
+     * @var peergrade_assignment[] The list of assignments related to this item
      */
-    public $peergraders = null;
+    public $usersassigned = array();
 
     /**
-     * @var stdClass When the item was assigned to the user
-     */
-    public $assigned = null;
-
-    /**
-     * @var int The number of still active assignes, not expired nor graded
-     */
-    public $countnotexpired = 0;
-
-    /**
-     * @var bool If the user is blocked from peer grading
+     * @var bool If the user is blocked from peer grading at all
      */
     public $userblocked = false;
-
-    /**
-     * @var bool If the user is blocked from peer grading this item
-     */
-    public $postblocked = false;
 
     /**
      * Constructor.
@@ -359,11 +455,8 @@ class peergrade implements renderable {
      *            count => The number of peergrades [optional]
      *            peergrade => The peergrade given by the user [optional]
      *            feedback => The feedback given by the user [optional]
-     *            peergraders => The peergraders [optional]
-     *            assigned => When the item was assigned to the user [optional]
-     *            countnotexpired => The number of not expired assigns [optional]
+     *            usersassigned => The list of assignments related to this item [optional]
      *            userblocked => If the user is blocked from peer grading [optional]
-     *            postblocked => If the user is blocked from peer grading this item [optional]
      * }
      */
     public function __construct($options) {
@@ -393,20 +486,11 @@ class peergrade implements renderable {
         if (isset($options->feedback)) {
             $this->feedback = $options->feedback;
         }
-        if (isset($options->peergraders)) {
-            $this->peergraders = $options->peergraders;
-        }
-        if (isset($options->assigned)) {
-            $this->assigned = $options->assigned;
-        }
-        if (isset($options->countnotexpired)) {
-            $this->countnotexpired = $options->countnotexpired;
+        if (isset($options->usersassigned)) {
+            $this->usersassigned = $options->usersassigned;
         }
         if (isset($options->userblocked)) {
             $this->userblocked = $options->userblocked;
-        }
-        if (isset($options->postblocked)) {
-            $this->postblocked = $options->postblocked;
         }
     }
 
@@ -555,16 +639,36 @@ class peergrade implements renderable {
      * @return string
      */
     public function get_time_to_expire() {
-        if (empty($this->assigned)) {
+        if ($this->get_self_assignment() === null) {
             return null;
         }
 
         $time = time();
-        $timeassigned = $this->assigned->timeassigned;
+        $timeassigned = $this->get_self_assignment()->timeassigned;
         $timetilexpire = $this->settings->timetoexpire * 60 * 60 * 24;
         $timewhenexpires = $timeassigned + $timetilexpire;
 
         return get_time_interval_string($time, $timewhenexpires);
+    }
+
+    /**
+     * Returns the peer grade assignment to this user, if was assigned.
+     *
+     * @return peergrade_assignment|null
+     */
+    public function get_self_assignment(): ?peergrade_assignment {
+        return $this->usersassigned[$this->userid] ?? null;
+    }
+
+    /**
+     * The number of assignments waiting grade
+     *
+     * @return int
+     */
+    public function get_waiting_grade(): int {
+        return count(array_filter($this->usersassigned, static function ($assign) {
+            return !$assign->expired || !$assign->peergraded;
+        }));
     }
 
     /**
@@ -573,7 +677,7 @@ class peergrade implements renderable {
      * @return bool
      */
     public function can_edit() {
-        if (empty($this->assigned) || empty($this->timecreated)) {
+        if ($this->get_self_assignment() === null || empty($this->timecreated)) {
             return false;
         }
 
@@ -1017,7 +1121,7 @@ class peergrade implements renderable {
         }
 
         // You can't peergrade if it was not assigned to you.
-        if (empty($this->assigned)) {
+        if ($this->get_self_assignment() === null) {
             return false;
         }
 
@@ -1027,7 +1131,7 @@ class peergrade implements renderable {
         }
 
         // You can't peergrade if you are blocked.
-        if ($this->userblocked || $this->postblocked) {
+        if ($this->userblocked || $this->get_self_assignment()->blocked) {
             return false;
         } // TODO exlusive and finalgrademode!
         return true;
@@ -1054,7 +1158,7 @@ class peergrade implements renderable {
         }
 
         // If there are no active assigns waiting for grade or expiration.
-        if (!$this->countnotexpired) {
+        if (!$this->get_waiting_grade()) {
             return true;
         }
 
@@ -1067,7 +1171,7 @@ class peergrade implements renderable {
      * @return bool true if the user did not let the item expire.
      */
     public function is_expired_for_user() {
-        return $this->assigned->expired ?? false;
+        return $this->get_self_assignment()->expired ?? false;
     }
 
     /**
@@ -1674,24 +1778,18 @@ class peergrade_manager {
               ORDER BY r.itemid";
         $aggregatepeergrades = $DB->get_records_sql($sql, $params);
 
-        $sql = "SELECT r.id, r.postid, r.userid, r.expired, r.timeassigned, r.timemodified
-                  FROM {peerforum_time_assigned} r
-                 WHERE r.userid = :userid AND
-                       r.postid {$itemidtest}
-              ORDER BY r.postid";
-        $userassigned = $DB->get_records_sql($sql, $params);
 
-        $sql = "SELECT r.postid, COUNT(r.expired) AS numnotexpired
+        $userfields = user_picture::fields('u', ['deleted'], 'userid');
+        $sql = "SELECT r.id, r.userid, r.peergraded, r.expired,  r.blocked, r.timeassigned, r.timemodified, $userfields
                   FROM {peerforum_time_assigned} r
-                 WHERE r.postid {$itemidtest} AND
-                       r.expired = 0 AND
-                       r.peergraded = 0
-              GROUP BY r.postid
-              ORDER BY r.postid";
-        $aggregateassigned = $DB->get_records_sql($sql, $params);
+             LEFT JOIN {user} u ON r.userid = u.id
+                 WHERE r.contextid = :contextid AND
+                       r.postid {$itemidtest} AND
+                       r.component = :component AND
+                       r.peergradearea = :peergradearea"; // TODO change postid to itemid!
+        $usersassigned = $DB->get_records_sql($sql, $params);
 
         $userinfo = $DB->get_record('peerforum_peergrade_users', array('iduser' => $userid));
-        $postsblocked = $userinfo ? explode(';', $userinfo->postsblocked) : array();
         // TODO WARNING! Cuidado porque é preciso meter courseid supostamente!
         $peergradeoptions = new stdClass;
         $peergradeoptions->context = $options->context;
@@ -1737,18 +1835,25 @@ class peergrade_manager {
                 $peergradeoptions->count = 0;
             }
 
-            if (array_key_exists($item->{$itemidcol}, $userassigned)) {
-                $rec = $userassigned[$item->{$itemidcol}];
-                $peergradeoptions->assigned = $rec;
-            }
+            if (!empty($usersassigned)) {
+                $usersopts = array();
+                foreach ($usersassigned as $userassign) {
+                    $assignoptions = new stdClass();
+                    $assignoptions->id = $userassign->id;
+                    $assignoptions->userid = $userassign->userid;
+                    $assignoptions->userinfo = user_picture::unalias($userassign, ['deleted'], 'userid');
+                    $assignoptions->itemid = $item->{$itemidcol};
+                    $assignoptions->expired = $userassign->expired;
+                    $assignoptions->blocked = $userassign->blocked;
+                    $assignoptions->peergraded = $userassign->peergraded;
+                    $assignoptions->timeassigned = $userassign->timeassigned;
+                    $assignoptions->timemodified = $userassign->timemodified;
+                    $assignoptions->peergradeoptions = $peergradeoptions;
+                    $assign = new peergrade_assignment($assignoptions);
 
-            if (array_key_exists($item->{$itemidcol}, $aggregateassigned)) {
-                $rec = $aggregateassigned[$item->{$itemidcol}];
-                $peergradeoptions->countnotexpired = $rec->numnotexpired;
-            }
-
-            if (in_array($item->{$itemidcol}, $postsblocked)) {
-                $peergradeoptions->postblocked = true;
+                    $usersopts[$userassign->userid] = $assign;
+                }
+                $peergradeoptions->usersassigned = $usersopts;
             }
 
             if ($userinfo && $userinfo->userblocked) {

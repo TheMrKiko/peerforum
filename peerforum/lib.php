@@ -2152,33 +2152,6 @@ function get_assigned_users($postid) {
 }
 
 /**
- * Returns an array of students not assigned to a post
- *
- * @param int $postid
- * @return array of student's not assigned.
- * @global object
- */
-function get_not_assigned_users($postid) {
-    global $DB;
-
-    $info = $DB->get_record('peerforum_users_assigned', array('postid' => $postid));
-
-    $not_assigned = array();
-
-    if (!empty($info)) {
-        $users_not_assigned = $info->not_assigned_users;
-        $users_not_assigned = explode(';', $users_not_assigned);
-        $users_not_assigned = array_filter($users_not_assigned);
-
-        foreach ($users_not_assigned as $key => $value) {
-            $id = $users_not_assigned[$key];
-            $not_assigned[$id] = $users_not_assigned[$key];
-        }
-    }
-    return $not_assigned;
-}
-
-/**
  * Returns an array of students assigned to a post in a given course
  *
  * @param int $courseid
