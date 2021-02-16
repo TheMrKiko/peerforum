@@ -56,17 +56,14 @@ class mod_peerforum_build_training_form extends moodleform {
      * @return void
      */
     function definition() {
-        global $CFG;
-
         $mform = $this->_form; // Don't forget the underscore!
 
-        $course = $this->_customdata['course'];
-        $cm = $this->_customdata['cm'];
-        $coursecontext = $this->_customdata['coursecontext'];
-        $modcontext = $this->_customdata['modcontext'];
         $peerforum = $this->_customdata['peerforum'];
+        $ratingscaleitems = $this->_customdata['ratingscaleitems'];
         $trainingpage = $this->_customdata['trainingpage'];
         $edit = $this->_customdata['edit'];
+
+        $scalearray = array(RATING_UNSET_RATING => 'Rating...') + $ratingscaleitems;
 
         /*--------------------------------------- HEADER ---------------------------------------*/
         /* Name */
@@ -121,8 +118,6 @@ class mod_peerforum_build_training_form extends moodleform {
 
         /*-------- CRITERIAS --------*/
         $criterias = (int) $trainingpage->ncriterias;
-        $ratingscale = array(1 => 'Rating 1', 2 => 'Rating 2');
-        $scalearray = array(RATING_UNSET_RATING => 'Rating...') + $ratingscale;
 
         foreach (range(0, $criterias) as $k) {
             if ($k == $criterias) {
@@ -132,6 +127,8 @@ class mod_peerforum_build_training_form extends moodleform {
             /*-- Correct grade --*/
             $critid = $trainingpage->criteria['id'][$k];
 
+            $repeatarray[] = $mform->createElement('html', '<h3><b>Criteria:</b> '. $trainingpage->criteria['name'][$k] .'</h3>');
+
             /* Select */
             $repeatarray[] = $mform->createElement('select', 'correctgrades[grade]['.$critid.']',
                     'What is the correct grade for '. $trainingpage->criteria['name'][$k] .'?', $scalearray);
@@ -140,11 +137,13 @@ class mod_peerforum_build_training_form extends moodleform {
             $repeatarray[] = $mform->createElement('hidden', 'correctgrades[id]['.$critid.']', -1);
             $mform->setType('correctgrades[id]['.$critid.']', PARAM_INT);
 
+            $repeatarray[] = $mform->createElement('html', '<h4>What to show if student grades as:</h4>');
+
             /*-- Feedback strings --*/
-            foreach ($ratingscale as $rid => $str) {
+            foreach ($ratingscaleitems as $rid => $str) {
                 /* Text */
                 $repeatarray[] = $mform->createElement('text', 'feedback[feedback]['.$rid.']['.$critid.']',
-                        'What to show if student grades this as a ' . $str . '? ({'.$rid.'})');
+                        '... a ' . $str . '? (use {'.$rid.'} for repetition)');
                 $mform->setType('feedback[feedback]['.$rid.']['.$critid.']', PARAM_NOTAGS);
 
                 /* Id */
@@ -155,6 +154,8 @@ class mod_peerforum_build_training_form extends moodleform {
 
         /*-------- OVERALL EXERCISE --------*/
         /*-- Correct grade --*/
+        $repeatarray[] = $mform->createElement('html', '<h3><b>Whole exercise</b></h3>');
+
         /* Select */
         $repeatarray[] = $mform->createElement('select', 'correctgrades[grade][-1]',
                 'What is the correct grade for this exercise?', $scalearray);
@@ -163,11 +164,13 @@ class mod_peerforum_build_training_form extends moodleform {
         $repeatarray[] = $mform->createElement('hidden', 'correctgrades[id][-1]', -1);
         $mform->setType('correctgrades[id][-1]', PARAM_INT);
 
+        $repeatarray[] = $mform->createElement('html', '<h4>What to show if student grades as:</h4>');
+
         /*-- Feedback strings --*/
-        foreach ($ratingscale as $rid => $str) {
+        foreach ($ratingscaleitems as $rid => $str) {
             /* Text */
             $repeatarray[] = $mform->createElement('text', 'feedback[feedback]['.$rid.'][-1]',
-                    'What to show if student grades this exercise as a ' . $str . '? ({'.$rid.'})');
+                    'a ' . $str . '? (use {'.$rid.'} for repetition)');
             $mform->setType('feedback[feedback]['.$rid.'][-1]', PARAM_NOTAGS);
 
             /* Id */

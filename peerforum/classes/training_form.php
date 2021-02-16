@@ -46,32 +46,15 @@ class mod_peerforum_training_form extends moodleform {
     function definition() {
         $mform = $this->_form; // Don't forget the underscore!
 
-        $modcontext = $this->_customdata['modcontext'];
         $peerforum = $this->_customdata['peerforum'];
+        $ratingscaleitems = $this->_customdata['ratingscaleitems'];
         $trainingpage = $this->_customdata['trainingpage'];
         $trainingsubmission = $this->_customdata['submission'];
         $submitted = isset($trainingsubmission) && !empty($trainingsubmission);
 
-        $ratingoptions = (object) [
-                'context' => $modcontext,
-                'component' => 'mod_peerforum',
-                'ratingarea' => 'post',
-                'items' => array((object) [
-                        'id' => 0,
-                        'userid' => 0
-                ]),
-                'aggregate' => $peerforum->peergradeassessed,
-                'scaleid' => $peerforum->peergradescale,
-                'userid' => 0,
-                'peerforum' => $peerforum,
-        ];
-
-        $rm = container::get_manager_factory()->get_rating_manager();
-        $rating = $rm->get_ratings($ratingoptions)[0]->rating;
-
         $exercises = (int) $trainingpage->exercises;
 
-        $scalearray = array(RATING_UNSET_RATING => 'Rating...') + $rating->settings->scale->scaleitems;
+        $scalearray = array(RATING_UNSET_RATING => 'Rating...') + $ratingscaleitems;
 
         /*--------------------------------------- EXERCISES ---------------------------------------*/
         foreach (range(0, $exercises) as $k) {
@@ -106,10 +89,11 @@ class mod_peerforum_training_form extends moodleform {
                 if ($submitted) {
                     $grade = $trainingsubmission->grades['grade'][$critid][$exid];
                     $correctgrades = $trainingpage->correctgrades['grade'][$critid][$n];
+                    $feedback = $trainingpage->feedback['feedback'][$grade][$critid][$n];
                     if ($grade == $correctgrades) {
-                        $mform->addElement('html', '<p style="color: #00ff00;"><b>Right</b>: Look at the lights, lol. (' .$grade.') </p>');
+                        $mform->addElement('html', '<p style="color: #00ff00;"><b>Right</b>: '.$feedback.'</p>');
                     } else {
-                        $mform->addElement('html', '<p style="color: #ff0000;"><b>Wrong</b>: Look at the lights, lol. (' .$grade.') </p>');
+                        $mform->addElement('html', '<p style="color: #ff0000;"><b>Wrong</b>: '.$feedback.'</p>');
                     }
                 }
             }
@@ -124,10 +108,11 @@ class mod_peerforum_training_form extends moodleform {
             if ($submitted) {
                 $grade = $trainingsubmission->grades['grade'][-1][$exid];
                 $correctgrades = $trainingpage->correctgrades['grade'][-1][$n];
+                $feedback = $trainingpage->feedback['feedback'][$grade][-1][$n];
                 if ($grade == $correctgrades) {
-                    $mform->addElement('html', '<p style="color: #00ff00;"><b>Right</b>: Look at the lights, lol. (' .$grade.') </p>');
+                    $mform->addElement('html', '<p style="color: #00ff00;"><b>Right</b>: '.$feedback.'</p>');
                 } else {
-                    $mform->addElement('html', '<p style="color: #ff0000;"><b>Wrong</b>: Look at the lights, lol. (' .$grade.') </p>');
+                    $mform->addElement('html', '<p style="color: #ff0000;"><b>Wrong</b>: '.$feedback.'</p>');
                 }
             }
         }

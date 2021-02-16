@@ -297,12 +297,27 @@ if (isguestuser()) {
     print_error('noguest');
 }
 
-$mformpage = new mod_peerforum_build_training_form('build_training.php', [
-        'course' => $course,
-        'cm' => $cm,
-        'coursecontext' => $coursecontext,
-        'modcontext' => $modcontext,
+$ratingoptions = (object) [
+        'context' => $modcontext,
+        'component' => 'mod_peerforum',
+        'ratingarea' => 'post',
+        'items' => array((object) [
+                'id' => 0,
+                'userid' => 0
+        ]),
+        'aggregate' => $peerforum->peergradeassessed,
+        'scaleid' => $peerforum->peergradescale,
+        'userid' => 0,
         'peerforum' => $peerforum,
+];
+
+$rm = \mod_peerforum\local\container::get_manager_factory()->get_rating_manager();
+$rating = $rm->get_ratings($ratingoptions)[0]->rating;
+$ratingscaleitems = $rating->settings->scale->scaleitems;
+
+$mformpage = new mod_peerforum_build_training_form('build_training.php', [
+        'peerforum' => $peerforum,
+        'ratingscaleitems' => $ratingscaleitems,
         'trainingpage' => $trainingpage,
         'edit' => $edit,
 ]);
