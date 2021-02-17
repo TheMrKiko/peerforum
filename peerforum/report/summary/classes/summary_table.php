@@ -48,7 +48,7 @@ class summary_table extends table_sql {
     const FILTER_DATES = 3;
 
     /** Table to store summary data extracted from the log table */
-    const LOG_SUMMARY_TEMP_TABLE = 'peerforum_report_summary_counts';
+    const LOG_SUMMARY_TEMP_TABLE = 'peerforum_report_summary_cts';
 
     /** Default number of rows to display per page */
     const DEFAULT_PER_PAGE = 50;
