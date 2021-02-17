@@ -179,15 +179,15 @@ if (!$posts = peerforum_search_posts($searchterms, $course->id, $page * $perpage
 }
 
 //including this here to prevent it being included if there are no search results
-require_once($CFG->dirroot . '/ratingpeer/lib.php');
+require_once($CFG->dirroot . '/rating/lib.php');
 
-//set up the ratingpeers information that will be the same for all posts
-$ratingpeeroptions = new stdClass();
-$ratingpeeroptions->component = 'mod_peerforum';
-$ratingpeeroptions->ratingpeerarea = 'post';
-$ratingpeeroptions->userid = $USER->id;
-$ratingpeeroptions->returnurl = $PAGE->url->out(false);
-$rm = new ratingpeer_manager();
+//set up the ratings information that will be the same for all posts
+$ratingoptions = new stdClass();
+$ratingoptions->component = 'mod_peerforum';
+$ratingoptions->ratingarea = 'post';
+$ratingoptions->userid = $USER->id;
+$ratingoptions->returnurl = $PAGE->url->out(false);
+$rm = new rating_manager();
 
 $PAGE->set_title($strsearchresults);
 $PAGE->set_heading($course->fullname);

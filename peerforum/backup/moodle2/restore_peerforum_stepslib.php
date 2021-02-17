@@ -43,8 +43,8 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
             $paths[] = new restore_path_element('peerforum_tag', '/activity/peerforum/poststags/tag');
             $paths[] = new restore_path_element('peerforum_discussion_sub',
                     '/activity/peerforum/discussions/discussion/discussion_subs/discussion_sub');
-            $paths[] = new restore_path_element('peerforum_ratingpeer',
-                    '/activity/peerforum/discussions/discussion/posts/post/ratingpeers/ratingpeer');
+            $paths[] = new restore_path_element('peerforum_rating',
+                    '/activity/peerforum/discussions/discussion/posts/post/ratings/rating');
             $paths[] = new restore_path_element('peerforum_subscription', '/activity/peerforum/subscriptions/subscription');
             $paths[] = new restore_path_element('peerforum_digest', '/activity/peerforum/digests/digest');
             $paths[] = new restore_path_element('peerforum_read', '/activity/peerforum/readposts/read');
@@ -152,29 +152,29 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
         core_tag_tag::add_item_tag('mod_peerforum', 'peerforum_posts', $itemid, $context, $tag);
     }
 
-    protected function process_peerforum_ratingpeer($data) {
+    protected function process_peerforum_rating($data) {
         global $DB;
 
         $data = (object) $data;
 
-        // Cannot use ratingpeers API, cause, it's missing the ability to specify times (modified/created)
+        // Cannot use ratings API, cause, it's missing the ability to specify times (modified/created)
         $data->contextid = $this->task->get_contextid();
         $data->itemid = $this->get_new_parentid('peerforum_post');
         if ($data->scaleid < 0) { // scale found, get mapping
             $data->scaleid = -($this->get_mappingid('scale', abs($data->scaleid)));
         }
-        $data->ratingpeer = $data->value;
+        $data->rating = $data->value;
         $data->userid = $this->get_mappingid('user', $data->userid);
 
-        // We need to check that component and ratingpeerarea are both set here.
+        // We need to check that component and ratingarea are both set here.
         if (empty($data->component)) {
             $data->component = 'mod_peerforum';
         }
-        if (empty($data->ratingpeerarea)) {
-            $data->ratingpeerarea = 'post';
+        if (empty($data->ratingarea)) {
+            $data->ratingarea = 'post';
         }
 
-        $newitemid = $DB->insert_record('ratingpeer', $data);
+        $newitemid = $DB->insert_record('rating', $data);
     }
 
     protected function process_peerforum_peergrade($data) {
@@ -199,32 +199,7 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
             $data->peergradearea = 'post';
         }
 
-        $newitemid = $DB->insert_record('peergrade', $data);
-    }
-
-    protected function process_peerforum_peergrade($data) {
-        global $DB;
-
-        $data = (object) $data;
-
-        // Cannot use peergrade API, cause, it's missing the ability to specify times (modified/created)
-        $data->contextid = $this->task->get_contextid();
-        $data->itemid = $this->get_new_parentid('peerforum_post');
-        if ($data->scaleid < 0) { // scale found, get mapping
-            $data->scaleid = -($this->get_mappingid('scale', abs($data->scaleid)));
-        }
-        $data->peergrade = $data->value;
-        $data->userid = $this->get_mappingid('user', $data->userid);
-
-        // We need to check that component and peergradearea are both set here.
-        if (empty($data->component)) {
-            $data->component = 'mod_peerforum';
-        }
-        if (empty($data->peergradearea)) {
-            $data->peergradearea = 'post';
-        }
-
-        $newitemid = $DB->insert_record('peergrade', $data);
+        $newitemid = $DB->insert_record('peerforum_peergrade', $data);
     }
 
     protected function process_peerforum_subscription($data) {

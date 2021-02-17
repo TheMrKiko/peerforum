@@ -24,7 +24,7 @@
  */
 
 /**
- * Custom renderer classes (render_peergrade and render_ratingpeer) that extends the plugin_renderer_base and
+ * Custom renderer classes (render_peergrade and render_rating) that extends the plugin_renderer_base and
  * is used by the peerforum module.
  *
  * @package   mod_peerforum
@@ -38,30 +38,30 @@ class mod_peerforum_renderer extends plugin_renderer_base {
     //----------- New renders of PeerForum --------------//
 
     /**
-     * Produces the html that represents this ratingpeer in the UI
+     * Produces the html that represents this rating in the UI
      *
-     * @param ratingpeer $ratingpeer the page object on which this ratingpeer will appear
+     * @param rating $rating the page object on which this rating will appear
      * @return string
      */
-    public function render_ratingpeer(ratingpeer $ratingpeer) {
+    public function render_rating(rating $rating) {
         // Disclaimer: this is an adaptation of the render_rating() from moodle outputrenderer.php ...
         global $CFG, $USER, $PAGE, $DB, $COURSE;
         // TODO Tirar $PAGE e chamadas à $DB daqui. Só usar o obj que nos dão (CFG e USEER tambem pode)
 
-        if ($ratingpeer->settings->aggregationmethod == RATINGPEER_AGGREGATE_NONE) {
-            return null;//ratingpeers are turned off
+        if ($rating->settings->aggregationmethod == RATING_AGGREGATE_NONE) {
+            return null;//ratings are turned off
         }
 
-        $ratingpeermanager = new ratingpeer_manager();
-        // Initialise the JavaScript so ratingpeers can be done by AJAX.
-        $ratingpeermanager->initialise_ratingpeer_javascript($PAGE);
+        $ratingmanager = new rating_manager();
+        // Initialise the JavaScript so ratings can be done by AJAX.
+        $ratingmanager->initialise_rating_javascript($PAGE);
 
-        $strratepeer = get_string("ratepeer", "peerforum");
-        $ratingpeerhtml = ''; //the string we'll return
+        $strrate = get_string("rate", "peerforum");
+        $ratinghtml = ''; //the string we'll return
 
         // variables
-        $post_topeergrade = $ratingpeer->itemid;
-        $peerforum_id = $ratingpeer->peerforum;
+        $post_topeergrade = $rating->itemid;
+        $peerforum_id = $rating->peerforum;
         $user_login = $USER->id;
 
         // Get info from database
@@ -76,7 +76,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             return null;
         }
 
-        if (has_capability('mod/peerforum:viewallratingpeer', $PAGE->context)) {
+        if (has_capability('mod/peerforum:viewallratings', $PAGE->context)) {
             $isstudent = false;
         } else {
             $isstudent = true;
@@ -120,98 +120,98 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
         // permissions check - can they view the aggregate?
         if ($isstudent && $peerforum->showratings && ($canseerating || $posthasexpired) || !$isstudent) {
-        // if ($ratingpeer->user_can_view_aggregate()) { SHOULD BE TODO
+        // if ($rating->user_can_view_aggregate()) { SHOULD BE TODO
 
-            $aggregatelabel = $ratingpeermanager->get_aggregate_label($ratingpeer->settings->aggregationmethod);
-            $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'ratingpeer-aggregate-label'));
-            $aggregatestr = $ratingpeer->get_aggregate_string();
+            $aggregatelabel = $ratingmanager->get_aggregate_label($rating->settings->aggregationmethod);
+            $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'rating-aggregate-label'));
+            $aggregatestr = $rating->get_aggregate_string();
 
             $aggregatehtml = html_writer::tag('span', $aggregatestr,
-                            array('id' => 'ratingpeeraggregate' . $ratingpeer->itemid, 'class' => 'ratingpeeraggregate')) . ' ';
-            if ($ratingpeer->count > 0) {
-                $countstr = "({$ratingpeer->count})";
+                            array('id' => 'ratingaggregate' . $rating->itemid, 'class' => 'ratingaggregate')) . ' ';
+            if ($rating->count > 0) {
+                $countstr = "({$rating->count})";
             } else {
                 $countstr = '-';
             }
             $aggregatehtml .= html_writer::tag('span', $countstr,
-                            array('id' => "ratingpeercount{$ratingpeer->itemid}", 'class' => 'ratingpeercount')) . ' ';
+                            array('id' => "ratingcount{$rating->itemid}", 'class' => 'ratingcount')) . ' ';
 
-            if ($ratingpeer->settings->permissions->viewall && $ratingpeer->settings->pluginpermissions->viewall) {
+            if ($rating->settings->permissions->viewall && $rating->settings->pluginpermissions->viewall) {
 
-                $nonpopuplink = $ratingpeer->get_view_ratingpeers_url();
-                $popuplink = $ratingpeer->get_view_ratingpeers_url(true);
+                $nonpopuplink = $rating->get_view_ratings_url();
+                $popuplink = $rating->get_view_ratings_url(true);
 
-                $action = new popup_action('click', $popuplink, 'ratingpeers', array('height' => 400, 'width' => 600));
+                $action = new popup_action('click', $popuplink, 'ratings', array('height' => 400, 'width' => 600));
                 $aggregatehtml = $this->action_link($nonpopuplink, $aggregatehtml, $action);
             }
 
-            $ratingpeerhtml .= html_writer::tag('span', $aggregatelabel . $aggregatehtml, array('class' => 'ratingpeer-aggregate-container'));
+            $ratinghtml .= html_writer::tag('span', $aggregatelabel . $aggregatehtml, array('class' => 'rating-aggregate-container'));
         }
 
         $formstart = null;
-        // if the item doesn't belong to the current user, the user has permission to ratepeer
+        // if the item doesn't belong to the current user, the user has permission to rate
         // and we're within the assessable period
-        if ($ratingpeer->user_can_ratepeer()) {
+        if ($rating->user_can_rate()) {
 
-            $ratepeerurl = $ratingpeer->get_ratepeer_url();
-            $inputs = $ratepeerurl->params();
+            $rateurl = $rating->get_rate_url();
+            $inputs = $rateurl->params();
 
-            //start the ratingpeer form
+            //start the rating form
             $formattrs = array(
-                    'id' => "postratingpeer{$ratingpeer->itemid}",
-                    'class' => 'postratingpeerform',
+                    'id' => "postrating{$rating->itemid}",
+                    'class' => 'postratingform',
                     'method' => 'post',
-                    'action' => $ratepeerurl->out_omit_querystring()
+                    'action' => $rateurl->out_omit_querystring()
             );
             $formstart = html_writer::start_tag('form', $formattrs);
-            $formstart .= html_writer::start_tag('div', array('class' => 'ratingpeerform'));
+            $formstart .= html_writer::start_tag('div', array('class' => 'ratingform'));
 
             // add the hidden inputs
             foreach ($inputs as $name => $value) {
-                $attributes = array('type' => 'hidden', 'class' => 'ratingpeerinput', 'name' => $name, 'value' => $value);
+                $attributes = array('type' => 'hidden', 'class' => 'ratinginput', 'name' => $name, 'value' => $value);
                 $formstart .= html_writer::empty_tag('input', $attributes);
             }
 
-            if (empty($ratingpeerhtml)) {
-                $ratingpeerhtml .= $strratepeer . ': ';
+            if (empty($ratinghtml)) {
+                $ratinghtml .= $strrate . ': ';
             }
-            $ratingpeerhtml = $formstart . $ratingpeerhtml;
+            $ratinghtml = $formstart . $ratinghtml;
 
-            $scalearray = array(RATINGPEER_UNSET_RATINGPEER => $strratepeer . '...') + $ratingpeer->settings->scale->scaleitems;
-            $scaleattrs = array('class' => 'postratingpeermenu ratingpeerinput', 'id' => 'menuratingpeer' . $ratingpeer->itemid);
-            $ratingpeerhtml .= html_writer::label($ratingpeer->ratingpeer, 'menuratingpeer' . $ratingpeer->itemid, false,
+            $scalearray = array(RATING_UNSET_RATING => $strrate . '...') + $rating->settings->scale->scaleitems;
+            $scaleattrs = array('class' => 'postratingmenu ratinginput', 'id' => 'menurating' . $rating->itemid);
+            $ratinghtml .= html_writer::label($rating->rating, 'menurating' . $rating->itemid, false,
                     array('class' => 'accesshide'));
-            $ratingpeerhtml .= html_writer::select($scalearray, 'ratingpeer', $ratingpeer->ratingpeer, false, $scaleattrs);
+            $ratinghtml .= html_writer::select($scalearray, 'rating', $rating->rating, false, $scaleattrs);
 
             //output submit button
-            $ratingpeerhtml .= html_writer::start_tag('span', array('class' => "ratingpeersubmit"));
+            $ratinghtml .= html_writer::start_tag('span', array('class' => "ratingsubmit"));
 
-            $attributes = array('type' => 'submit', 'class' => 'postratingpeermenusubmit',
-                    'id' => 'postratingpeersubmit' . $ratingpeer->itemid, 'value' => s(get_string('ratepeer', 'peerforum')));
-            $ratingpeerhtml .= html_writer::empty_tag('input', $attributes);
+            $attributes = array('type' => 'submit', 'class' => 'postratingmenusubmit',
+                    'id' => 'postratingsubmit' . $rating->itemid, 'value' => s(get_string('rate', 'peerforum')));
+            $ratinghtml .= html_writer::empty_tag('input', $attributes);
 
-            if (!$ratingpeer->settings->scale->isnumeric) {
+            if (!$rating->settings->scale->isnumeric) {
                 // If a global scale, try to find current course ID from the context
-                if (empty($ratingpeer->settings->scale->courseid) and
-                        $coursecontext = $ratingpeer->context->get_course_context(false)) {
+                if (empty($rating->settings->scale->courseid) and
+                        $coursecontext = $rating->context->get_course_context(false)) {
                     $courseid = $coursecontext->instanceid;
                 } else {
-                    $courseid = $ratingpeer->settings->scale->courseid;
+                    $courseid = $rating->settings->scale->courseid;
                 }
-                $ratingpeerhtml .= $this->help_icon_scale($courseid, $ratingpeer->settings->scale);
+                $ratinghtml .= $this->help_icon_scale($courseid, $rating->settings->scale);
             }
-            $ratingpeerhtml .= html_writer::end_tag('span');
-            $ratingpeerhtml .= html_writer::end_tag('div');
-            $ratingpeerhtml .= html_writer::end_tag('form');
+            $ratinghtml .= html_writer::end_tag('span');
+            $ratinghtml .= html_writer::end_tag('div');
+            $ratinghtml .= html_writer::end_tag('form');
         }
 
-        return $ratingpeerhtml;
+        return $ratinghtml;
     }
 
     /**
      * Produces the html that represents this peergrade in the UI
      *
-     * @param peergrade $peergrade the page object on which this ratingpeer will appear
+     * @param peergrade $peergrade the page object on which this rating will appear
      * @return string
      */
     public function render_peergrade(peergrade $peergrade) {

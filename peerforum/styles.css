@@ -20,7 +20,7 @@
  *         div.options
  *             div.commands
  *             div.post-word-count
- *             div.peerforum-post-ratingpeer
+ *             div.peerforum-post-rating
  *             div.link
  *             div.footer
  */
@@ -78,7 +78,7 @@
     text-align: right;
 }
 
-.peerforumpost .options .peerforum-post-ratingpeer {
+.peerforumpost .options .peerforum-post-rating {
     float: left;
 }
 
@@ -149,7 +149,7 @@
     text-align: right;
 }
 
-.peerforumpostfeedback .options .peerforum-post-ratingpeer {
+.peerforumpostfeedback .options .peerforum-post-rating {
     float: left;
 }
 
@@ -220,7 +220,7 @@
     text-align: right;
 }
 
-.peerforumpostseefeedback .options .peerforum-post-ratingpeer {
+.peerforumpostseefeedback .options .peerforum-post-rating {
     float: left;
 }
 

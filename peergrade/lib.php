@@ -1032,7 +1032,7 @@ class peergrade implements renderable {
      * Returns true if the user is able to peergrade this peergrade object
      *
      * @param int $userid Current user assumed if left empty
-     * @return bool true if the user is able to ratepeer this peergrade object
+     * @return bool true if the user is able to rate this peergrade object
      */
     public function can_peergrade_this_post($userid, $postid, $courseid) {
         global $DB;

@@ -103,7 +103,7 @@ class core_peergrade_external extends external_api {
                 'peergradescaleid' => $peergradescaleid);
         if (!has_capability('mod/peerforum:view', $context) ||
                 !component_callback($component, 'peergrade_can_see_item_peergrades', array($callbackparams), true)) {
-            throw new moodle_exception('noviewratingpeer', 'peergrade');
+            throw new moodle_exception('noviewrating', 'peergrade');
         }
 
         list($context, $course, $cm) = get_context_info_array($context->id);

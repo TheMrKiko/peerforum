@@ -29,7 +29,7 @@ if (!defined('MOODLE_INTERNAL')) {
 
 require_once($CFG->dirroot . '/course/moodleform_mod.php');
 require_once($CFG->dirroot . '/peergrade/lib.php');
-require_once($CFG->dirroot . '/ratingpeer/lib.php');
+require_once($CFG->dirroot . '/rating/lib.php');
 require_once('locallib.php');
 
 use core_grades\component_gradeitems;
@@ -218,16 +218,14 @@ class mod_peerforum_mod_form extends moodleform_mod {
         // To be removed (deprecated) with MDL-67526.
         plagiarism_get_form_elements_module($mform, $coursecontext, 'mod_peerforum');
 
-        //-------------------------------------------------------------------------------
-
         // Add the whole peerforum grading options.
         $this->add_peerforum_grade_settings($mform, 'peerforum');
 
         $this->add_peerforum_peergrade_settings($mform, 'peerforum');
-        // $this->_features->rating = false;
 
+        $this->_features->rating = false; // Hack to had a few more rating settings.
         $this->standard_coursemodule_elements();
-        //-------------------------------------------------------------------------------
+
         // buttons
         $this->add_action_buttons();
     }
@@ -238,64 +236,27 @@ class mod_peerforum_mod_form extends moodleform_mod {
      * @param \mform $mform
      */
     private function add_peerforum_peergrade_settings($mform) {
-        global $COURSE;
+        global $COURSE, $CFG, $DB;
 
         //---------- New configurations of PeerForum ----------//
 
-        //---------< RATINGPEER local configurations >----------//
-        $rm = new ratingpeer_manager();
-        $mform->addElement('header', 'modstandardratingpeers', get_string('ratingpeers', 'peerforum'));
+        //---------< RATING local configurations >----------//
 
-        $permission = CAP_ALLOW;
-        $rolenamestring = null;
-        if (!empty($this->_cm)) {
-            $context = context_module::instance($this->_cm->id);
+        $this->add_rating_settings($mform, 0);
 
-            $rolenames = get_role_names_with_caps_in_context($context,
-                    array('mod/peerforum:ratepeer', 'mod/' . $this->_cm->modname . ':ratingpeer'));
-            $rolenamestring = implode(', ', $rolenames);
-        } else {
-            $rolenamestring = get_string('capabilitychecknotavailable', 'peerforum');
-        }
-        $mform->addElement('static', 'rolewarning', get_string('rolewarningrate', 'peerforum'), $rolenamestring);
-        $mform->addHelpButton('rolewarning', 'rolewarningrate', 'peerforum');
-
-        $mform->addElement('select', 'assessed', get_string('aggregatetyperate', 'peerforum'), $rm->get_aggregate_types());
-        $mform->setDefault('assessed', 0);
-        $mform->addHelpButton('assessed', 'aggregatetyperate', 'peerforum');
-
-        $mform->addElement('modgrade', 'scale', get_string('scale'), false);
-        $mform->disabledIf('scale', 'assessed', 'eq', 0);
-        $mform->addHelpButton('scale', 'modgrade', 'grades');
-        $mform->setDefault('scale', $CFG->gradepointdefault);
-
-        $yesno = array(0 => get_string('no'),
-                1 => get_string('yes'));
-
-        // Select if ratingpeers results must be shown or hidden from students
+        // Select if ratings results must be shown or hidden from students
         $mform->addElement('selectyesno', 'showratings', get_string('showratings', 'peerforum'));
         $mform->setDefault('showratings', 1);
         $mform->addHelpButton('showratings', 'showratings', 'peerforum');
-        $mform->disabledIf('showratings', 'assessed', 'eq', RATINGPEER_AGGREGATE_NONE);
+        $mform->disabledIf('showratings', 'assessed', 'eq', RATING_AGGREGATE_NONE);
 
         // Select if ratings results must be shown only after peer grades are done
         $mform->addElement('selectyesno', 'showafterpeergrade', get_string('showafterpeergrade', 'peerforum'));
         $mform->setDefault('showafterpeergrade', 0);
         $mform->addHelpButton('showafterpeergrade', 'showafterpeergrade', 'peerforum');
-        $mform->disabledIf('showafterpeergrade', 'assessed', 'eq', RATINGPEER_AGGREGATE_NONE);
+        $mform->disabledIf('showafterpeergrade', 'assessed', 'eq', RATING_AGGREGATE_NONE);
         $mform->disabledIf('showafterpeergrade', 'showratings', 'eq', 0);
         $mform->disabledIf('showafterpeergrade', 'assessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-
-        $mform->addElement('checkbox', 'ratingtime', get_string('ratingpeertime', 'peerforum'));
-        $mform->disabledIf('ratingpeertime', 'assessed', 'eq', 0);
-
-        $mform->addElement('date_time_selector', 'assesstimestart', get_string('from'));
-        $mform->disabledIf('assesstimestart', 'assessed', 'eq', 0);
-        $mform->disabledIf('assesstimestart', 'ratingpeertime');
-
-        $mform->addElement('date_time_selector', 'assesstimefinish', get_string('to'));
-        $mform->disabledIf('assesstimefinish', 'assessed', 'eq', 0);
-        $mform->disabledIf('assesstimefinish', 'ratingpeertime');
 
         //-----------------------------------------------------//
 
@@ -335,7 +296,7 @@ class mod_peerforum_mod_form extends moodleform_mod {
 
         $grades = peerforum::available_maxgrades_list();
 
-        $mform->addElement('select', 'professorpercentage', get_string('graderatepeers', 'peerforum'), $grades);
+        $mform->addElement('select', 'professorpercentage', get_string('graderates', 'peerforum'), $grades);
         $mform->setDefault('professorpercentage', 100);
         $mform->addHelpButton('professorpercentage', 'professorpercentage', 'peerforum');
         $mform->disabledIf('professorpercentage', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
@@ -491,7 +452,7 @@ class mod_peerforum_mod_form extends moodleform_mod {
         // Select if peer grading ends when min of peer grades are done
         $mform->addElement('selectyesno', 'finishpeergrade', get_string('finishpeergrade', 'peerforum'));
         $mform->addHelpButton('finishpeergrade', 'finishpeergrade', 'peerforum');
-        $mform->setDefault('gradeprofessorpost', 0);
+        $mform->setDefault('finishpeergrade', 0);
         $mform->disabledIf('finishpeergrade', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
 
         //Time period to peergrade (in days)
@@ -544,7 +505,7 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->addHelpButton('showafterrating', 'showafterrating', 'peerforum');
         $mform->disabledIf('showafterrating', 'showpeergrades', 'eq', 0);
         $mform->disabledIf('showafterrating', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-        $mform->disabledIf('showafterrating', 'assessed', 'eq', RATINGPEER_AGGREGATE_NONE);
+        $mform->disabledIf('showafterrating', 'assessed', 'eq', RATING_AGGREGATE_NONE);
         $mform->setAdvanced('showafterrating');
 
         $mform->addElement('checkbox', 'peergradetime', get_string('peergradetime', 'peerforum'));
@@ -671,8 +632,6 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->setDefault('training', 1);
         $mform->addHelpButton('training', 'training', 'peerforum');
         //-----------------------------------------------------//
-
-        
 
     }
 

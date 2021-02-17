@@ -93,9 +93,9 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $timeassigned = new backup_nested_element('timeassigned', array('id'), array(
                 'courseid', 'postid', 'userid', 'timeassigned', 'timemodified'));
 
-        $ratingpeers = new backup_nested_element('ratingpeers');
-        $ratingpeer = new backup_nested_element('ratingpeer', array('id'), array(
-                'component', 'ratingpeerarea', 'scaleid', 'value', 'userid', 'timecreated', 'timemodified'));
+        $ratings = new backup_nested_element('ratings');
+        $rating = new backup_nested_element('rating', array('id'), array(
+                'component', 'ratingarea', 'scaleid', 'value', 'userid', 'timecreated', 'timemodified'));
 
         $peergrades = new backup_nested_element('peergrades');
         $peergrade = new backup_nested_element('peergrade', array('id'), array(
@@ -185,8 +185,8 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $discussion->add_child($posts);
         $posts->add_child($post);
 
-        $post->add_child($ratingpeers);
-        $ratingpeers->add_child($ratingpeer);
+        $post->add_child($ratings);
+        $ratings->add_child($rating);
 
         $post->add_child($peergrades);
         $peergrades->add_child($peergrade);
@@ -217,9 +217,9 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
 
             $track->set_source_table('peerforum_track_prefs', array('peerforumid' => backup::VAR_PARENTID));
 
-            $ratingpeer->set_source_table('ratingpeer', array('contextid' => backup::VAR_CONTEXTID,
+            $rating->set_source_table('rating', array('contextid' => backup::VAR_CONTEXTID,
                     'component' => backup_helper::is_sqlparam('mod_peerforum'),
-                    'ratingpeerarea' => backup_helper::is_sqlparam('post'),
+                    'ratingarea' => backup_helper::is_sqlparam('post'),
                     'itemid' => backup::VAR_PARENTID));
             $rating->set_source_alias('rating', 'value');
 
@@ -237,7 +237,7 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
             }
 
             $grade->set_source_table('peerforum_grades', array('peerforum' => backup::VAR_PARENTID));
-            $ratingpeer->set_source_alias('ratingpeer', 'value');
+            $rating->set_source_alias('rating', 'value');
 
             $peergrade->set_source_table('peergrade', array('contextid' => backup::VAR_CONTEXTID,
                     'component' => backup_helper::is_sqlparam('mod_peerforum'),
@@ -266,9 +266,9 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
 
         $discussionsub->annotate_ids('user', 'userid');
 
-        $ratingpeer->annotate_ids('scale', 'scaleid');
+        $rating->annotate_ids('scale', 'scaleid');
 
-        $ratingpeer->annotate_ids('user', 'userid');
+        $rating->annotate_ids('user', 'userid');
 
         $peergrade->annotate_ids('scale', 'scaleid');
 

@@ -339,7 +339,7 @@ $string['peerforum:postwithoutthrottling'] = 'Exempt from post threshold';
 $string['peerforumname'] = 'PeerForum name';
 $string['peerforumposts'] = 'PeerForum posts';
 $string['peerforum:replynews'] = 'Reply to announcements';
-$string['peerforum:ratepeer'] = 'Rate posts';
+$string['peerforum:rate'] = 'Rate posts';
 $string['peerforum:replypost'] = 'Reply to posts';
 $string['peerforum:postprivatereply'] = 'Reply privately to posts';
 $string['peerforum:readprivatereplies'] = 'View private replies';
@@ -357,12 +357,12 @@ $string['peerforumtype_help'] = 'There are 5 peerforum types:
 * Q and A peerforum - Students must first post their perspectives before viewing other students\' posts
 * Standard peerforum displayed in a blog-like format - An open peerforum where anyone can start a new discussion at any time, and in which discussion topics are displayed on one page with "Discuss this topic" links
 * Standard peerforum for general use - An open peerforum where anyone can start a new discussion at any time';
-$string['peerforum:viewallratingpeers'] = 'View all raw ratings given by individuals';
-$string['peerforum:viewanyratingpeer'] = 'View total ratings that anyone received';
+$string['peerforum:viewallratings'] = 'View all raw ratings given by individuals';
+$string['peerforum:viewanyrating'] = 'View total ratings that anyone received';
 $string['peerforum:viewdiscussion'] = 'View discussions';
 $string['peerforum:viewhiddentimedposts'] = 'View hidden timed posts';
 $string['peerforum:viewqandawithoutposting'] = 'Always see Q and A posts';
-$string['peerforum:viewratingpeer'] = 'View the total rating you received';
+$string['peerforum:viewrating'] = 'View the total rating you received';
 $string['peerforum:viewsubscribers'] = 'View subscribers';
 $string['generalpeerforum'] = 'Standard peerforum for general use';
 $string['generalpeerforums'] = 'General peerforums';
@@ -562,9 +562,9 @@ $string['postmailinfolink'] = 'This is a copy of a message posted in {$a->course
 To reply click on this link: {$a->replylink}';
 $string['postmailnow'] = '<p>This post will be mailed out immediately to all peerforum subscribers.</p>';
 $string['postmailsubject'] = '{$a->courseshortname}: {$a->subject}';
-$string['postratingpeer1'] = 'Mostly separate knowing';
-$string['postratingpeer2'] = 'Separate and connected';
-$string['postratingpeer3'] = 'Mostly connected knowing';
+$string['postrating1'] = 'Mostly separate knowing';
+$string['postrating2'] = 'Separate and connected';
+$string['postrating3'] = 'Mostly connected knowing';
 $string['posts'] = 'Posts';
 $string['postsfrom'] = 'Posts from';
 $string['postsmadebyuser'] = 'Posts made by {$a}';
@@ -864,7 +864,7 @@ $string['configpeergradesettings'] = 'Peer grade settings';
 $string['peergrading'] = 'Peer grade';
 $string['finalgrademode'] = 'Final grade mode';
 $string['finalgrademode_help'] = 'Select the mode to final grade';
-$string['graderatepeers'] = 'Percentage for [professor] peer grading';
+$string['graderates'] = 'Percentage for [professor] peer grading';
 $string['gradepeergrades'] = 'Percentage for [student] peer grading';
 $string['professorpercentage_help'] = 'Default maximum grade for peergrades assigned by professors in PeerForums';
 $string['studentpercentage_help'] = 'Default maximum grade for peer grades in peerforums';
@@ -941,7 +941,7 @@ $string['submited:peergradeupdated'] = 'Your peer grade was updated with success
 $string['givefeedback'] = 'Give feedback';
 $string['editpeergrade'] = 'Edit peergrade';
 $string['allpeergradesforitem'] = 'All submitted peer grades';
-$string['gradeitemratepeer'] = '{$a->peerforumname} (ratepeer)';
+$string['gradeitemrate'] = '{$a->peerforumname} (rate)';
 $string['gradeitemstudentpeergrade'] = '{$a->peerforumname} (students peer grade)';
 $string['gradeitemprofessorpeergrade'] = '{$a->peerforumname} (professors peer grade)';
 $string['capabilitychecknotavailable'] = 'Capability check not available until activity is saved';
@@ -976,22 +976,22 @@ $string['aggregatetyperate_help'] = 'The aggregate type defines how ratings are 
 * Sum - All ratings are added together. Note that the total cannot exceed the maximum grade for the activity.
 
 If "No ratings" is selected, then the activity will not appear in the gradebook.';
-$string['allowratingpeers'] = 'Allow items to be rated?';
-$string['allratingpeersforitem'] = 'All submitted ratings';
-$string['couldnotdeleteratingpeers'] = 'Sorry, that cannot be deleted as people have already rated it';
-$string['noratepeer'] = 'Rating of items not allowed!';
-$string['noratingpeers'] = 'No ratings submitted';
-$string['noviewanyratepeer'] = 'You can only look at results for items that you made';
-$string['noviewratepeer'] = 'You do not have the capability to view item ratings';
-$string['ratepeer'] = 'Rate';
-$string['ratepeerpermissiondenied'] = 'You do not have permission to rate this item';
-$string['ratingpeer'] = 'Rating';
-$string['ratingpeerinvalid'] = 'Rating is invalid';
-$string['ratingpeertime'] = 'Restrict ratings to items with dates in this range:';
-$string['ratingpeers'] = 'Ratings';
+$string['allowratings'] = 'Allow items to be rated?';
+$string['allratingsforitem'] = 'All submitted ratings';
+$string['couldnotdeleteratings'] = 'Sorry, that cannot be deleted as people have already rated it';
+$string['norate'] = 'Rating of items not allowed!';
+$string['noratings'] = 'No ratings submitted';
+$string['noviewanyrate'] = 'You can only look at results for items that you made';
+$string['noviewrate'] = 'You do not have the capability to view item ratings';
+$string['rate'] = 'Rate';
+$string['ratepermissiondenied'] = 'You do not have permission to rate this item';
+$string['rating'] = 'Rating';
+$string['ratinginvalid'] = 'Rating is invalid';
+$string['ratingtime'] = 'Restrict ratings to items with dates in this range:';
+$string['ratings'] = 'Ratings';
 $string['rolewarningrate'] = 'Roles with permission to rate';
 $string['rolewarningrate_help'] =
-        'To submit ratings users require the mod/peerforum:ratepeer capability and any module specific capabilities. Users assigned the following roles should be able to rate items. The list of roles may be amended via the permissions link in the administration block.';
+        'To submit ratings users require the mod/peerforum:rate capability and any module specific capabilities. Users assigned the following roles should be able to rate items. The list of roles may be amended via the permissions link in the administration block.';
 $string['scaleselectionrequiredrate'] =
         'When selecting a ratings aggregate type you must also select to use either a scale or set a maximum points.';
 $string['assignpeergradersparent'] = 'Assign peer graders from previous post';
@@ -1039,16 +1039,16 @@ $string['enable_attribution_advanced_help'] =
 $string['showdetails'] = 'Show option of remove/assign students on post';
 $string['showdetails_help'] =
         "Select 'yes' if you want to show, in a PeerForum post, two select options about assigning and removing students to peer grade the post.";
-$string['peerforum:rateratingpeer'] = "Add ratings to items";
+$string['peerforum:raterating'] = "Add ratings to items";
 $string['mod/peerforum:grade'] = "Add peer grades to items";
 $string['mod/peerforum:peergradepost'] = "Peer grade posts";
 $string['mod/peerforum:viewallpeergrades'] = "View all raw peer grades given by individuals";
-$string['mod/peerforum:viewallratingpeer'] = "View all raw ratings given by individuals";
+$string['mod/peerforum:viewallratings'] = "View all raw ratings given by individuals";
 $string['mod/peerforum:viewpanelpeergrades'] = "View Peer Grade panel";
 $string['peerforum:grade'] = "Peer grade an item";
 $string['peerforum:peergradepost'] = "Peer grade post";
 $string['peerforum:viewallpeergrades'] = "View all raw peer grades given by individuals";
-$string['peerforum:viewallratingpeer'] = "View all raw ratings given by individuals";
+$string['peerforum:viewallrating'] = "View all raw ratings given by individuals";
 $string['peerforum:viewpanelpeergrades'] = "View Peer Grade panel";
 $string['attribution_advanced'] = 'Enable advanced topic attribution';
 $string['attribution_advanced_help'] = "Select 'yes' if you want peer grading to have different student attribution rules.";

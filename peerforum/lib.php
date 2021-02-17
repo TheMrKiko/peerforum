@@ -29,7 +29,7 @@ require_once(__DIR__ . '/deprecatedlib.php');
 require_once($CFG->libdir . '/filelib.php');
 // require_once($CFG->libdir . '/eventslib.php');
 /*require_once($CFG->dirroot . '/peergrade/lib.php');
-require_once($CFG->dirroot . '/ratingpeer/lib.php');*/
+require_once($CFG->dirroot . '/rating/lib.php');*/
 
 /// CONSTANTS ///////////////////////////////////////////////////////////
 
@@ -1952,7 +1952,7 @@ function peerforum_grading_permissions($contextid, $component, $gradingarea) {
 
     $context = context::instance_by_id($contextid, MUST_EXIST);
     if ($component != 'mod_peerforum' || $gradingarea != 'post') {
-        // We don't know about this component/ratingpeerarea so just return null to get the
+        // We don't know about this component/ratingarea so just return null to get the
         // default restrictive permissions.
         return null;
     }
@@ -2281,8 +2281,8 @@ function get_time_left($time_interval) {
  *            peergradearea => object the context in which the peergraded items exists [required]
  *            itemid => int the ID of the object being peergraded [required]
  *            scaleid => int the scale from which the user can select a peergrade. Used for bounds checking. [required]
- *            ratingpeer => int the submitted peergrade [required]
- *            ratedpeeruserid => int the id of the user whose items have been peergraded. NOT the user who submitted the
+ *            rating => int the submitted peergrade [required]
+ *            rateduserid => int the id of the user whose items have been peergraded. NOT the user who submitted the
  *         peergrading. 0 to update all. [required] aggregation => int the aggregation method to apply when calculating grades ie
  *         PEERGRADE_AGGREGATE_AVERAGE [required]
  * @return boolean true if the peergrade is valid. Will throw peergrade_exception if not
@@ -2295,12 +2295,12 @@ function peerforum_peergrade_validate($params) {
         throw new peergrade_exception('invalidcomponent');
     }
 
-    // Check the peergradearea is post (the only ratingpeer area in peerforum)
+    // Check the peergradearea is post (the only rating area in peerforum)
     if ($params['peergradearea'] != 'post') {
         throw new peergrade_exception('invalidpeergradearea');
     }
 
-    // Check the ratedpeeruserid is not the current user .. you can't ratepeer your own posts
+    // Check the rateduserid is not the current user .. you can't rate your own posts
     if ($params['peergradeduserid'] == $USER->id) {
         throw new peergrade_exception('nopermissiontopeergrade');
     }
@@ -2324,14 +2324,14 @@ function peerforum_peergrade_validate($params) {
         throw new peergrade_exception('invalidscaleid');
     }
 
-    // check the item we're ratingpeer was created in the assessable time window
+    // check the item we're rating was created in the assessable time window
     if (!empty($peerforum->assesstimestart) && !empty($peerforum->assesstimefinish)) {
         if ($post->created < $peerforum->assesstimestart || $post->created > $peerforum->assesstimefinish) {
             throw new peergrade_exception('notavailable');
         }
     }
 
-    //check that the submitted ratingpeer is valid for the scale
+    //check that the submitted rating is valid for the scale
 
     // lower limit
     if ($params['peergrade'] < 0 && $params['peergrade'] != PEERGRADE_UNSET_PEERGRADE) {
@@ -2357,21 +2357,21 @@ function peerforum_peergrade_validate($params) {
         throw new peergrade_exception('invalidnum8');
     }
 
-    // Make sure groups allow this user to see the item they're ratingpeer
+    // Make sure groups allow this user to see the item they're rating
     if ($discussion->groupid > 0 and $groupmode = groups_get_activity_groupmode($cm, $course)) {   // Groups are being used
         if (!groups_group_exists($discussion->groupid)) { // Can't find group
             throw new peergrade_exception('cannotfindgroup');//something is wrong
         }
 
         if (!groups_is_member($discussion->groupid) and !has_capability('moodle/site:accessallgroups', $context)) {
-            // do not allow ratingpeer of posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS
+            // do not allow rating of posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS
             throw new peergrade_exception('notmemberofgroup');
         }
     }
 
     // perform some final capability checks
     if (!peerforum_user_can_see_post($peerforum, $discussion, $post, $USER, $cm)) {
-        throw new peergrade_exception('nopermissiontoratepeer');
+        throw new peergrade_exception('nopermissiontorate');
     }
 
     return true;
@@ -2415,15 +2415,14 @@ function get_students_can_be_removed($courseid, $postid, $postauthor, $peerforum
  */
 function peerforum_get_user__grades($peerforum, $userid = 0) {
     global $CFG;
-    // OLD require_once($CFG->dirroot . '/rating/lib.php');
-    require_once($CFG->dirroot . '/ratingpeer/lib.php');
+    require_once($CFG->dirroot . '/rating/lib.php');
 
     $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
 
     $rm = new rating_manager();
     return $rm->get_user_grades((object) [
             'component' => 'mod_peerforum',
-            'ratingpeerarea' => 'post',
+            'ratingarea' => 'post',
             'contextid' => \context_module::instance($cm->id)->id,
 
             'modulename' => 'peerforum',
@@ -2450,8 +2449,8 @@ function peerforum_get_user_students_peergrades($peerforum, $userid = 0) {
 
     $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
 
-    $rm = new rating_manager();
-    return $rm->get_user_grades((object) [
+    $rm = new peergrade_manager();
+    return $rm->get_user_students_peergrades((object) [
             'component' => 'mod_peerforum',
             'peergradearea' => 'post',
             'contextid' => \context_module::instance($cm->id)->id,
@@ -2471,7 +2470,7 @@ function peerforum_get_user_students_peergrades($peerforum, $userid = 0) {
  *
  * @param stdClass $peerforum
  * @param int $userid
- * @return stdClass grade
+ * @return array grade
  * @global object
  */
 function peerforum_get_user_professors_peergrades($peerforum, $userid = 0) {
@@ -2480,8 +2479,8 @@ function peerforum_get_user_professors_peergrades($peerforum, $userid = 0) {
 
     $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
 
-    $rm = new rating_manager();
-    return $rm->get_user_grades((object) [
+    $rm = new peergrade_manager();
+    return $rm->get_user_professors_peergrades((object) [
             'component' => 'mod_peerforum',
             'peergradearea' => 'post',
             'contextid' => \context_module::instance($cm->id)->id,
@@ -2625,7 +2624,7 @@ function peerforum_add_instance($peerforum, $mform = null) {
         $peerforum->assessed = 0;
     }
 
-    if (empty($peerforum->ratingpeertime) or empty($peerforum->assessed)) {
+    if (empty($peerforum->ratingtime) or empty($peerforum->assessed)) {
         $peerforum->assesstimestart = 0;
         $peerforum->assesstimefinish = 0;
     }
@@ -2710,7 +2709,7 @@ function peerforum_update_instance($peerforum, $mform) {
         $peerforum->assessed = 0;
     }
 
-    if (empty($peerforum->ratingpeertime) or empty($peerforum->assessed)) {
+    if (empty($peerforum->ratingtime) or empty($peerforum->assessed)) {
         $peerforum->assesstimestart = 0;
         $peerforum->assesstimefinish = 0;
     }
@@ -2723,7 +2722,7 @@ function peerforum_update_instance($peerforum, $mform) {
     $oldpeerforum = $DB->get_record('peerforum', array('id' => $peerforum->id));
 
     // MDL-3942 - if the aggregation type or scale (i.e. max grade) changes then recalculate the grades for the entire peerforum
-    // if  scale changes - do we need to recheck the ratingpeers, if ratingpeers higher than scale how do we want to respond?
+    // if  scale changes - do we need to recheck the ratings, if ratings higher than scale how do we want to respond?
     // for count and sum aggregation types the grade we check to make sure they do not exceed the scale (i.e. max score) when calculating the grade
     $updategrades = false;
 
@@ -3565,10 +3564,10 @@ function peerforum_update_grades($peerforum, $userid = 0): void {
     global $CFG, $DB;
     require_once($CFG->libdir . '/gradelib.php');
 
-    $ratepeergrades = null; $peergradesstudents = null; $peergradesprofessors = null;
+    $rategrades = null; $peergradesstudents = null; $peergradesprofessors = null;
     if ($peerforum->peergradeassessed && $peerforum->assessed) {
 
-        $ratepeergrades = peerforum_get_user__grades($peerforum, $userid);
+        $rategrades = peerforum_get_user__grades($peerforum, $userid);
 
         $peergradesstudents = peerforum_get_user_students_peergrades($peerforum, $userid);
 
@@ -3608,7 +3607,7 @@ EOF;
         }
     }
 
-    peerforum_grade_item_update($peerforum, $ratepeergrades, $peerforumgrades, $peergradesprofessors, $peergradesstudents);
+    peerforum_grade_item_update($peerforum, $rategrades, $peerforumgrades, $peergradesprofessors, $peergradesstudents);
 }
 
 /**
@@ -3617,8 +3616,8 @@ EOF;
  * @param stdClass $peerforum PeerForum object with extra cmidnumber
  * @param mixed $grades Optional array/object of grade(s); 'reset' means reset grades in gradebook
  */
-function peerforum_grade_item_update($peerforum, $ratepeergrades = null, $peerforumgrades = null, $peergradesprofessors = null, $peergradesstudents = null) {
-    //function peerforum_grade_item_update($peerforum, $peergradesprofessors = null, $peerforumgrades = null, $peergradesstudents = null, $ratepeergrades = null) {
+function peerforum_grade_item_update($peerforum, $rategrades = null, $peerforumgrades = null, $peergradesprofessors = null, $peergradesstudents = null) {
+    //function peerforum_grade_item_update($peerforum, $peergradesprofessors = null, $peerforumgrades = null, $peergradesstudents = null, $rategrades = null) {
     global $CFG;
     require_once("{$CFG->libdir}/gradelib.php");
 
@@ -3678,10 +3677,10 @@ function peerforum_grade_item_update($peerforum, $ratepeergrades = null, $peerfo
 
     // Itemnumber 2 is the student peer grade.
     grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 2, $peergradesstudents, $item2);
-    
+
     // Update the rating.
     $item = [
-            'itemname' => get_string('gradeitemratepeer', 'peerforum', $a),
+            'itemname' => get_string('gradeitemrate', 'peerforum', $a),
             'idnumber' => $peerforum->cmidnumber,
     ];
 
@@ -3696,12 +3695,12 @@ function peerforum_grade_item_update($peerforum, $ratepeergrades = null, $peerfo
         $item['scaleid'] = -$peerforum->scale;
     }
 
-    if ($ratepeergrades === 'reset') {
+    if ($rategrades === 'reset') {
         $item['reset'] = true;
-        $ratepeergrades = null;
+        $rategrades = null;
     }
     // Itemnumber 0 is the rating.
-    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 0, $ratepeergrades, $item);
+    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 0, $rategrades, $item);
 
     // Whole peerforum grade.
     $item = [
@@ -5001,61 +5000,61 @@ function peerforum_get_course_peerforum($courseid, $type) {
 }
 
 /**
- * Return ratingpeer related permissions
+ * Return rating related permissions
  *
  * @param string $options the context id
- * @return array an associative array of the user's ratingpeer permissions
+ * @return array an associative array of the user's rating permissions
  */
-function peerforum_ratingpeer_permissions($contextid, $component, $ratingpeerarea) {
+function peerforum_rating_permissions($contextid, $component, $ratingarea) {
     $context = context::instance_by_id($contextid, MUST_EXIST);
-    if ($component != 'mod_peerforum' || $ratingpeerarea != 'post') {
-        // We don't know about this component/ratingpeerarea so just return null to get the
+    if ($component != 'mod_peerforum' || $ratingarea != 'post') {
+        // We don't know about this component/ratingarea so just return null to get the
         // default restrictive permissions.
         return null;
     }
     return array(
-            'view' => has_capability('mod/peerforum:viewratingpeer', $context),
-            'viewany' => has_capability('mod/peerforum:viewanyratingpeer', $context),
-            'viewall' => has_capability('mod/peerforum:viewallratingpeer', $context),
-            'ratepeer' => has_capability('mod/peerforum:ratepeer', $context)
+            'view' => has_capability('mod/peerforum:viewrating', $context),
+            'viewany' => has_capability('mod/peerforum:viewanyrating', $context),
+            'viewall' => has_capability('mod/peerforum:viewallratings', $context),
+            'rate' => has_capability('mod/peerforum:rate', $context)
     );
 }
 
 /**
- * Validates a submitted ratingpeer
+ * Validates a submitted rating
  *
  * @param array $params submitted data
  *            context => object the context in which the rated items exists [required]
  *            component => The component for this module - should always be mod_peerforum [required]
- *            ratingpeerarea => object the context in which the rated items exists [required]
+ *            ratingarea => object the context in which the rated items exists [required]
  *            itemid => int the ID of the object being rated [required]
- *            scaleid => int the scale from which the user can select a ratingpeer. Used for bounds checking. [required]
- *            ratingpeer => int the submitted ratingpeer [required]
- *            rateduserid => int the id of the user whose items have been rated. NOT the user who submitted the ratingpeers. 0 to
+ *            scaleid => int the scale from which the user can select a rating. Used for bounds checking. [required]
+ *            rating => int the submitted rating [required]
+ *            rateduserid => int the id of the user whose items have been rated. NOT the user who submitted the ratings. 0 to
  *         update all. [required] aggregation => int the aggregation method to apply when calculating grades ie
  *         RATING_AGGREGATE_AVERAGE [required]
- * @return boolean true if the ratingpeer is valid. Will throw ratingpeer_exception if not
+ * @return boolean true if the rating is valid. Will throw rating_exception if not
  */
-function peerforum_ratingpeer_validate($params) {
+function peerforum_rating_validate($params) {
     global $DB, $USER;
 
     // Check the component is mod_peerforum
     if ($params['component'] != 'mod_peerforum') {
-        throw new ratingpeer_exception('invalidcomponent');
+        throw new rating_exception('invalidcomponent');
     }
 
-    // Check the ratingpeerarea is post (the only ratingpeer area in peerforum)
-    if ($params['ratingpeerarea'] != 'post') {
-        throw new ratingpeer_exception('invalidratingpeerarea');
+    // Check the ratingarea is post (the only rating area in peerforum)
+    if ($params['ratingarea'] != 'post') {
+        throw new rating_exception('invalidratingarea');
     }
 
-    // Check the ratedpeeruserid is not the current user .. you can't ratepeer your own posts
-    if ($params['ratedpeeruserid'] == $USER->id) {
-        throw new ratingpeer_exception('nopermissiontoratepeer');
+    // Check the rateduserid is not the current user .. you can't rate your own posts
+    if ($params['rateduserid'] == $USER->id) {
+        throw new rating_exception('nopermissiontorate');
     }
 
     // Fetch all the related records ... we need to do this anyway to call peerforum_user_can_see_post
-    $post = $DB->get_record('peerforum_posts', array('id' => $params['itemid'], 'userid' => $params['ratedpeeruserid']), '*',
+    $post = $DB->get_record('peerforum_posts', array('id' => $params['itemid'], 'userid' => $params['rateduserid']), '*',
             MUST_EXIST);
     $discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion), '*', MUST_EXIST);
     $peerforum = $DB->get_record('peerforum', array('id' => $discussion->peerforum), '*', MUST_EXIST);
@@ -5065,26 +5064,26 @@ function peerforum_ratingpeer_validate($params) {
 
     // Make sure the context provided is the context of the peerforum
     if ($context->id != $params['context']->id) {
-        throw new ratingpeer_exception('invalidcontext');
+        throw new rating_exception('invalidcontext');
     }
 
     if ($peerforum->scale != $params['scaleid']) {
         //the scale being submitted doesnt match the one in the database
-        throw new ratingpeer_exception('invalidscaleid');
+        throw new rating_exception('invalidscaleid');
     }
 
-    // check the item we're ratingpeer was created in the assessable time window
+    // check the item we're rating was created in the assessable time window
     if (!empty($peerforum->assesstimestart) && !empty($peerforum->assesstimefinish)) {
         if ($post->created < $peerforum->assesstimestart || $post->created > $peerforum->assesstimefinish) {
-            throw new ratingpeer_exception('notavailable');
+            throw new rating_exception('notavailable');
         }
     }
 
-    //check that the submitted ratingpeer is valid for the scale
+    //check that the submitted rating is valid for the scale
 
     // lower limit
-    if ($params['ratingpeer'] < 0 && $params['ratingpeer'] != RATINGPEER_UNSET_RATINGPEER) {
-        throw new ratingpeer_exception('invalidnum');
+    if ($params['rating'] < 0 && $params['rating'] != RATING_UNSET_RATING) {
+        throw new rating_exception('invalidnum');
     }
 
     // upper limit
@@ -5093,65 +5092,65 @@ function peerforum_ratingpeer_validate($params) {
         $scalerecord = $DB->get_record('scale', array('id' => -$peerforum->scale));
         if ($scalerecord) {
             $scalearray = explode(',', $scalerecord->scale);
-            if ($params['ratingpeer'] > count($scalearray)) {
-                throw new ratingpeer_exception('invalidnum');
+            if ($params['rating'] > count($scalearray)) {
+                throw new rating_exception('invalidnum');
             }
         } else {
-            throw new ratingpeer_exception('invalidscaleid');
+            throw new rating_exception('invalidscaleid');
         }
-    } else if ($params['ratingpeer'] > $peerforum->scale) {
-        //if its numeric and submitted ratingpeer is above maximum
-        throw new ratingpeer_exception('invalidnum');
+    } else if ($params['rating'] > $peerforum->scale) {
+        //if its numeric and submitted rating is above maximum
+        throw new rating_exception('invalidnum');
     }
 
-    // Make sure groups allow this user to see the item they're ratingpeer
+    // Make sure groups allow this user to see the item they're rating
     if ($discussion->groupid > 0 and $groupmode = groups_get_activity_groupmode($cm, $course)) {   // Groups are being used
         if (!groups_group_exists($discussion->groupid)) { // Can't find group
-            throw new ratingpeer_exception('cannotfindgroup');//something is wrong
+            throw new rating_exception('cannotfindgroup');//something is wrong
         }
 
         if (!groups_is_member($discussion->groupid) and !has_capability('moodle/site:accessallgroups', $context)) {
-            // do not allow ratingpeer of posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS
-            throw new ratingpeer_exception('notmemberofgroup');
+            // do not allow rating of posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS
+            throw new rating_exception('notmemberofgroup');
         }
     }
 
     // perform some final capability checks
     if (!peerforum_user_can_see_post($peerforum, $discussion, $post, $USER, $cm)) {
-        throw new ratingpeer_exception('nopermissiontoratepeer');
+        throw new rating_exception('nopermissiontorate');
     }
 
     return true;
 }
 
 /**
- * Can the current user see ratingpeers for a given itemid?
+ * Can the current user see ratings for a given itemid?
  *
  * @param array $params submitted data
  *            contextid => int contextid [required]
  *            component => The component for this module - should always be mod_peerforum [required]
- *            ratingpeerarea => object the context in which the rated items exists [required]
+ *            ratingarea => object the context in which the rated items exists [required]
  *            itemid => int the ID of the object being rated [required]
  *            scaleid => int scale id [optional]
  * @return bool
  * @throws coding_exception
- * @throws ratingpeer_exception
+ * @throws rating_exception
  */
-function mod_peerforum_ratingpeer_can_see_item_ratingpeers($params) {
+function mod_peerforum_rating_can_see_item_ratings($params) {
     global $DB, $USER;
 
     // Check the component is mod_peerforum.
     if (!isset($params['component']) || $params['component'] != 'mod_peerforum') {
-        throw new ratingpeer_exception('invalidcomponent');
+        throw new rating_exception('invalidcomponent');
     }
 
-    // Check the ratingpeerarea is post (the only ratingpeer area in peerforum).
-    if (!isset($params['ratingpeerarea']) || $params['ratingpeerarea'] != 'post') {
-        throw new ratingpeer_exception('invalidratingpeerarea');
+    // Check the ratingarea is post (the only rating area in peerforum).
+    if (!isset($params['ratingarea']) || $params['ratingarea'] != 'post') {
+        throw new rating_exception('invalidratingarea');
     }
 
     if (!isset($params['itemid'])) {
-        throw new ratingpeer_exception('invaliditemid');
+        throw new rating_exception('invaliditemid');
     }
 
     $post = $DB->get_record('peerforum_posts', array('id' => $params['itemid']), '*', MUST_EXIST);
@@ -6225,15 +6224,15 @@ function peerforum_delete_post($post, $children, $course, $cm, $peerforum, $skip
         }
     }
 
-    // Delete ratingpeers.
-    require_once($CFG->dirroot . '/ratingpeer/lib.php');
+    // Delete ratings.
+    require_once($CFG->dirroot . '/rating/lib.php');
     $delopt = new stdClass;
     $delopt->contextid = $context->id;
     $delopt->component = 'mod_peerforum';
-    $delopt->ratingpeerarea = 'post';
+    $delopt->ratingarea = 'post';
     $delopt->itemid = $post->id;
-    $rm = new ratingpeer_manager();
-    $rm->delete_ratingpeers($delopt);
+    $rm = new rating_manager();
+    $rm->delete_ratings($delopt);
 
     //Delete peergrades.
     $pm = new peergrade_manager();
@@ -7990,7 +7989,7 @@ function peerforum_reset_gradebook($courseid, $type = '') {
  */
 function peerforum_reset_userdata($data) {
     global $CFG, $DB;
-    require_once($CFG->dirroot . '/ratingpeer/lib.php');
+    require_once($CFG->dirroot . '/rating/lib.php');
 
     $componentstr = get_string('modulenameplural', 'peerforum');
     $status = array();
@@ -8037,12 +8036,12 @@ function peerforum_reset_userdata($data) {
     $peerforumssql = $peerforums = $rm = null;
 
     // Check if we need to get additional data.
-    if ($removeposts || !empty($data->reset_peerforum_ratingpeers) || !empty($data->reset_peerforum_tags)) {
+    if ($removeposts || !empty($data->reset_peerforum_ratings) || !empty($data->reset_peerforum_tags)) {
         // Set this up if we have to remove ratings.
-        $rm = new ratingpeer_manager();
-        $ratingpeerdeloptions = new stdClass;
-        $ratingpeerdeloptions->component = 'mod_peerforum';
-        $ratingpeerdeloptions->ratingpeerarea = 'post';
+        $rm = new rating_manager();
+        $ratingdeloptions = new stdClass;
+        $ratingdeloptions->component = 'mod_peerforum';
+        $ratingdeloptions->ratingarea = 'post';
 
         // Get the peerforums for actions that require it.
         $peerforumssql = "$allpeerforumssql $typesql";
@@ -8064,9 +8063,9 @@ function peerforum_reset_userdata($data) {
                 $fs->delete_area_files($context->id, 'mod_peerforum', 'attachment');
                 $fs->delete_area_files($context->id, 'mod_peerforum', 'post');
 
-                //remove ratingpeers
-                $ratingpeerdeloptions->contextid = $context->id;
-                $rm->delete_ratingpeers($ratingpeerdeloptions);
+                //remove ratings
+                $ratingdeloptions->contextid = $context->id;
+                $rm->delete_ratings($ratingdeloptions);
 
                 //remove peergrades
                 $peergradepeerdeloptions->contextid = $context->id;
@@ -8108,8 +8107,8 @@ function peerforum_reset_userdata($data) {
         $status[] = array('component' => $componentstr, 'item' => $typesstr, 'error' => false);
     }
 
-    // remove all ratingpeers in this course's peerforums
-    if (!empty($data->reset_peerforum_ratingpeers)) {
+    // remove all ratings in this course's peerforums
+    if (!empty($data->reset_peerforum_ratings)) {
         if ($peerforums) {
             foreach ($peerforums as $peerforumid => $unused) {
                 if (!$cm = get_coursemodule_from_instance('peerforum', $peerforumid)) {
@@ -8117,9 +8116,9 @@ function peerforum_reset_userdata($data) {
                 }
                 $context = context_module::instance($cm->id);
 
-                //remove ratingpeers
-                $ratingpeerdeloptions->contextid = $context->id;
-                $rm->delete_ratingpeers($ratingpeerdeloptions);
+                //remove ratings
+                $ratingdeloptions->contextid = $context->id;
+                $rm->delete_ratings($ratingdeloptions);
             }
         }
 
@@ -8222,8 +8221,8 @@ function peerforum_reset_course_form_definition(&$mform) {
     $mform->setAdvanced('reset_peerforum_track_prefs');
     $mform->disabledIf('reset_peerforum_track_prefs', 'reset_peerforum_all', 'checked');
 
-    $mform->addElement('checkbox', 'reset_peerforum_ratingpeers', get_string('deleteallratingpeers'));
-    $mform->disabledIf('reset_peerforum_ratingpeers', 'reset_peerforum_all', 'checked');
+    $mform->addElement('checkbox', 'reset_peerforum_ratings', get_string('deleteallratings'));
+    $mform->disabledIf('reset_peerforum_ratings', 'reset_peerforum_all', 'checked');
 
     $mform->addElement('checkbox', 'reset_peerforum_peergrades', get_string('deleteallpeergrades'));
     $mform->disabledIf('reset_peerforum_peergrades', 'reset_peerforum_all', 'checked');
@@ -8239,7 +8238,7 @@ function peerforum_reset_course_form_definition(&$mform) {
  */
 function peerforum_reset_course_form_defaults($course) {
     return array('reset_peerforum_all' => 1, 'reset_peerforum_digests' => 0, 'reset_peerforum_subscriptions' => 0,
-            'reset_peerforum_track_prefs' => 0, 'reset_peerforum_ratingpeers' => 1);
+            'reset_peerforum_track_prefs' => 0, 'reset_peerforum_ratings' => 1);
 }
 
 /**
