@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 $capabilities = array(
 
     //---- New capabilities of PeerForum ----//
-        'mod/peerforum:viewpanelpeergrades' => array(
+        'mod/peerforum:viewpanelpeergrades' => array( // Aka view peergrade panel.
 
                 'captype' => 'read',
                 'contextlevel' => CONTEXT_MODULE,
@@ -50,45 +50,7 @@ $capabilities = array(
                 )
         ),
 
-        'mod/peerforum:view' => array(
-
-                'captype' => 'read',
-                'contextlevel' => CONTEXT_COURSE,
-                'archetypes' => array(
-                        'user' => CAP_ALLOW,
-                        'teacher' => CAP_ALLOW,
-                        'editingteacher' => CAP_ALLOW,
-                        'manager' => CAP_ALLOW
-                )
-        ),
-
-        'mod/peerforum:viewany' => array(
-
-                'riskbitmask' => RISK_PERSONAL,
-                'captype' => 'read',
-                'contextlevel' => CONTEXT_COURSE,
-                'archetypes' => array(
-                        'user' => CAP_ALLOW,
-                        'teacher' => CAP_ALLOW,
-                        'editingteacher' => CAP_ALLOW,
-                        'manager' => CAP_ALLOW
-                )
-        ),
-
-        'mod/peerforum:viewall' => array(
-
-                'riskbitmask' => RISK_PERSONAL,
-                'captype' => 'read',
-                'contextlevel' => CONTEXT_COURSE,
-                'archetypes' => array(
-                        'user' => CAP_ALLOW,
-                        'teacher' => CAP_ALLOW,
-                        'editingteacher' => CAP_ALLOW,
-                        'manager' => CAP_ALLOW
-                )
-        ),
-
-        'mod/peerforum:peergrade' => array(
+        'mod/peerforum:peergrade' => array( // TODO deprecate
 
                 'captype' => 'write',
                 'contextlevel' => CONTEXT_COURSE,
@@ -101,7 +63,66 @@ $capabilities = array(
                 )
         ),
 
-        'mod/peerforum:viewallratingpeer' => array(
+        'mod/peerforum:professorpeergrade' => array(
+
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:studentpeergrade' => array(
+
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'student' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:view' => array( // Remove when removing ratingpeer.
+
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_COURSE,
+                'archetypes' => array(
+                        'user' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewany' => array( // Remove when removing ratingpeer.
+
+                'riskbitmask' => RISK_PERSONAL,
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_COURSE,
+                'archetypes' => array(
+                        'user' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewall' => array( // Remove when removing ratingpeer.
+
+                'riskbitmask' => RISK_PERSONAL,
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_COURSE,
+                'archetypes' => array(
+                        'user' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewallratingpeer' => array( // Remove when removing ratingpeer.
 
                 'riskbitmask' => RISK_PERSONAL,
                 'captype' => 'read',
@@ -114,7 +135,7 @@ $capabilities = array(
                 'clonepermissionsfrom' => 'mod/peerforum:viewanyratingpeer'
         ),
 
-        'mod/peerforum:ratepeer' => array(
+        'mod/peerforum:ratepeer' => array( // Remove when removing ratingpeer.
 
                 'captype' => 'write',
                 'contextlevel' => CONTEXT_MODULE,
@@ -126,7 +147,7 @@ $capabilities = array(
         ),
 
 
-        'mod/peerforum:viewratingpeer' => array(
+        'mod/peerforum:viewratingpeer' => array( // Remove when removing ratingpeer.
 
                 'captype' => 'read',
                 'contextlevel' => CONTEXT_COURSE,
@@ -139,7 +160,7 @@ $capabilities = array(
                 )
         ),
 
-        'mod/peerforum:viewanyratingpeer' => array(
+        'mod/peerforum:viewanyratingpeer' => array( // Remove when removing ratingpeer.
 
                 'riskbitmask' => RISK_PERSONAL,
                 'captype' => 'read',
@@ -153,7 +174,7 @@ $capabilities = array(
                 )
         ),
 
-        'mod/peerforum:rateratingpeer' => array(
+        'mod/peerforum:rateratingpeer' => array( // Remove when removing ratingpeer. Beware, some are with this name.
 
                 'captype' => 'write',
                 'contextlevel' => CONTEXT_COURSE,
@@ -167,6 +188,28 @@ $capabilities = array(
         ),
 
     //---------------------------------------//
+
+        /* ---------- START/TRAINING ---------- */
+        'mod/peerforum:submittraining' => array(
+
+                'captype' => 'view',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'student' => CAP_ALLOW,
+                )
+        ),
+
+        'mod/peerforum:edittraining' => array(
+
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+        /* ---------- END/TRAINING ---------- */
 
         'mod/peerforum:addinstance' => array(
                 'riskbitmask' => RISK_XSS,
@@ -570,7 +613,7 @@ $capabilities = array(
                 'captype' => 'write',
                 'contextlevel' => CONTEXT_MODULE,
                 'archetypes' => [
-                        'student' => CAP_ALLOW,
+                        'student' => CAP_ALLOW, // Added by jessica.
                         'teacher' => CAP_ALLOW,
                         'editingteacher' => CAP_ALLOW,
                         'manager' => CAP_ALLOW,

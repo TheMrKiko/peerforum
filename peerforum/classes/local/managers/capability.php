@@ -746,4 +746,24 @@ class capability {
 
         return true;
     }
+
+    /**
+     * Can the user edit training pages?
+     *
+     * @param stdClass $user The user to check
+     * @return bool
+     */
+    public function can_edit_training_pages(stdClass $user) {
+        return has_capability('mod/peerforum:edittraining', $this->get_context(), $user);
+    }
+
+    /**
+     * Can the user submit training pages data to count?
+     *
+     * @param stdClass $user The user to check
+     * @return bool
+     */
+    public function can_submit_training_pages(stdClass $user) {
+        return has_capability('mod/peerforum:submittraining', $this->get_context(), $user);
+    }
 }
