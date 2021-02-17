@@ -35,7 +35,7 @@ export const init = (root) => {
 
     // Hide loading spinner and show report once page is ready.
     // This ensures filters can be applied when sorting by columns.
-    $(document).ready(function () {
+    $(document).ready(function() {
         $('.loading-icon').hide();
         $('#summaryreport').removeClass('hidden');
     });
@@ -58,13 +58,13 @@ export const init = (root) => {
                 paramvalues = [];
 
             // Separate out the existing action GET param string.
-            currentstring.split('&').forEach(function (param) {
+            currentstring.split('&').forEach(function(param) {
                 let splitparam = param.split('=');
                 paramkeys.push(splitparam[0]);
                 paramvalues.push(splitparam[1]);
             });
 
-            newparamsarray.forEach(function (paramstring) {
+            newparamsarray.forEach(function(paramstring) {
                 let newparam = paramstring.split('='),
                     existingkey = paramkeys.indexOf(newparam[0]);
 
@@ -78,7 +78,7 @@ export const init = (root) => {
             });
 
             // Build URL.
-            paramkeys.forEach(function (name, key) {
+            paramkeys.forEach(function(name, key) {
                 paramsstring += `&${name}=${paramvalues[key]}`;
             });
 
@@ -92,17 +92,17 @@ export const init = (root) => {
     };
 
     // Override 'reset table preferences' so it generates with filters.
-    $('.resettable').on("click", "a", function (event) {
+    $('.resettable').on("click", "a", function(event) {
         generateWithFilters(event, event.target.search.substr(1));
     });
 
     // Override table heading sort links so they generate with filters.
-    $('thead').on("click", "a", function (event) {
+    $('thead').on("click", "a", function(event) {
         generateWithFilters(event, event.target.search.substr(1));
     });
 
     // Override pagination page links so they generate with filters.
-    $('.pagination').on("click", "a", function (event) {
+    $('.pagination').on("click", "a", function(event) {
         generateWithFilters(event, event.target.search.substr(1));
     });
 
@@ -132,7 +132,7 @@ export const init = (root) => {
     // Submit report via filter
     const submitWithFilter = (containerelement) => {
         // Disable the dates filter mform checker to prevent any changes triggering a warning to the user.
-        Y.use('moodle-core-formchangechecker', function () {
+        Y.use('moodle-core-formchangechecker', function() {
             M.core_formchangechecker.reset_form_dirty_state();
         });
 
@@ -165,24 +165,24 @@ export const init = (root) => {
     // Groups filter specific handlers.
 
     // Event handler for clicking select all groups.
-    jqRoot.on(CustomEvents.events.activate, Selectors.filters.group.selectall, function () {
+    jqRoot.on(CustomEvents.events.activate, Selectors.filters.group.selectall, function() {
         let deselected = root.querySelectorAll(Selectors.filters.group.checkbox + ':not(:checked)');
-        deselected.forEach(function (checkbox) {
+        deselected.forEach(function(checkbox) {
             checkbox.checked = true;
         });
     });
 
     // Event handler for clearing filter by clicking option.
-    jqRoot.on(CustomEvents.events.activate, Selectors.filters.group.clear, function () {
+    jqRoot.on(CustomEvents.events.activate, Selectors.filters.group.clear, function() {
         // Clear checkboxes.
         let selected = root.querySelectorAll(Selectors.filters.group.checkbox + ':checked');
-        selected.forEach(function (checkbox) {
+        selected.forEach(function(checkbox) {
             checkbox.checked = false;
         });
     });
 
     // Event handler for showing groups filter popover.
-    jqRoot.on(CustomEvents.events.activate, Selectors.filters.group.trigger, function () {
+    jqRoot.on(CustomEvents.events.activate, Selectors.filters.group.trigger, function() {
         // Create popover.
         let referenceElement = root.querySelector(Selectors.filters.group.trigger),
             popperContent = root.querySelector(Selectors.filters.group.popover);
@@ -226,11 +226,11 @@ export const init = (root) => {
     });
 
     // Event handler to click save groups filter.
-    jqRoot.on(CustomEvents.events.activate, Selectors.filters.group.save, function () {
+    jqRoot.on(CustomEvents.events.activate, Selectors.filters.group.save, function() {
         // Copy the saved values into the form before submitting.
         let popcheckboxes = root.querySelectorAll(Selectors.filters.group.checkbox);
 
-        popcheckboxes.forEach(function (popcheckbox) {
+        popcheckboxes.forEach(function(popcheckbox) {
             let filtersform = document.forms.filtersform,
                 saveid = popcheckbox.getAttribute('data-saveid');
 
@@ -244,8 +244,8 @@ export const init = (root) => {
     // These allow fetching of the relevant export URL, before submitting the request with
     // any POST data that is common to all of the export links. This allows filters to be
     // applied that contain potentially a lot of data (eg discussion IDs for groups filtering).
-    document.querySelectorAll(Selectors.filters.exportlink.link).forEach(function (exportbutton) {
-        exportbutton.addEventListener('click', function (event) {
+    document.querySelectorAll(Selectors.filters.exportlink.link).forEach(function(exportbutton) {
+        exportbutton.addEventListener('click', function(event) {
             document.forms.exportlinkform.action = event.target.dataset.url;
             document.forms.exportlinkform.submit();
         });
@@ -254,7 +254,7 @@ export const init = (root) => {
     // Dates filter specific handlers.
 
     // Event handler for showing dates filter popover.
-    jqRoot.on(CustomEvents.events.activate, Selectors.filters.date.trigger, function () {
+    jqRoot.on(CustomEvents.events.activate, Selectors.filters.date.trigger, function() {
 
         // Create popover.
         let referenceElement = root.querySelector(Selectors.filters.date.trigger),
@@ -300,7 +300,7 @@ export const init = (root) => {
     });
 
     // Event handler to save dates filter.
-    jqRoot.on(CustomEvents.events.activate, Selectors.filters.date.save, function () {
+    jqRoot.on(CustomEvents.events.activate, Selectors.filters.date.save, function() {
         // Populate the hidden form inputs to submit the data.
         let filtersForm = document.forms.filtersform;
         const datesPopover = root.querySelector(Selectors.filters.date.popover);
@@ -346,11 +346,11 @@ export const init = (root) => {
                 args: args
             };
 
-            Ajax.call([request])[0].done(function (result) {
+            Ajax.call([request])[0].done(function(result) {
                 let fromTimestamp = 0,
                     toTimestamp = 0;
 
-                result['timestamps'].forEach(function (data) {
+                result.timestamps.forEach(function(data) {
                     if (data.key === 'from') {
                         fromTimestamp = data.timestamp;
                     } else if (data.key === 'to') {
@@ -376,11 +376,11 @@ export const init = (root) => {
         }
     });
 
-    jqRoot.on(CustomEvents.events.activate, Selectors.filters.date.calendariconfrom, function () {
+    jqRoot.on(CustomEvents.events.activate, Selectors.filters.date.calendariconfrom, function() {
         updateCalendarPosition(Selectors.filters.date.calendariconfrom);
     });
 
-    jqRoot.on(CustomEvents.events.activate, Selectors.filters.date.calendariconto, function () {
+    jqRoot.on(CustomEvents.events.activate, Selectors.filters.date.calendariconto, function() {
         updateCalendarPosition(Selectors.filters.date.calendariconto);
     });
 };
