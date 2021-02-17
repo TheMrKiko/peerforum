@@ -58,7 +58,7 @@ require_login(0, false);   // Script is useless unless they're logged in.
 
 
 if (!empty($submitid)) {
-    // Editing the page.
+    // Viewing the answers.
 
     $trainingsubmissionentity = $trainingsubmissionvault->get_from_id($submitid);
     if (empty($trainingsubmissionentity)) {
@@ -96,16 +96,14 @@ if (!empty($page)) {
 
     $PAGE->set_cm($cm, $course, $peerforum);
 
-    if (!has_capability('mod/peerforum:editanypost', $modcontext)) { // TODO change!
-        print_error('cannoteditposts', 'peerforum');
-    }
-
     // Load up the $trainingpage variable.
     $trainingpage->submitid = $submitid;
     $trainingpage->course = $course->id;
     $trainingpage->peerforum = $peerforum->id;
 
-    $SESSION->fromurl = get_local_referer(false);
+    if (empty($submitid)) {
+        $SESSION->fromurl = get_local_referer(false);
+    }
 
 } else {
     print_error('unknowaction');
@@ -119,6 +117,8 @@ if (isguestuser()) {
     // Just in case.
     print_error('noguest');
 }
+
+// TODO store a new empty submission on the database!
 
 $trainingpage->description = file_rewrite_pluginfile_urls($trainingpage->description, 'pluginfile.php',
         $modcontext->id, 'mod_peerforum', 'training', $trainingpage->id);
@@ -165,38 +165,39 @@ $mformpage->set_data(
                 'exercises' => $trainingpage->exercises,
                 'open' => time(),
                 'grades' => $grades,
+                'previous' => $submitid ?: 0,
         ) +
         $pageparams
 );
 
-if ($mformpage->is_cancelled()) {
+if (empty($SESSION->fromurl)) {
+    $gobackdestination = $urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity);
+} else {
+    $gobackdestination = $SESSION->fromurl;
+}
 
-    redirect($urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity));
+if ($mformpage->is_cancelled()) {
+    redirect($gobackdestination);
 
 } else if ($mformpage->is_submitted() && $fromform = $mformpage->get_data()) {
 
-
-    if (empty($SESSION->fromurl)) {
-        $errordestination = $urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity);
-    } else {
-        $errordestination = $SESSION->fromurl;
-    }
+    // TODO remove the empty submission from the database! (and add a new one below).
 
     $trainingexercise = $fromform;
-    $trainingpage->grades = $fromform->grades;
+    $trainingpage->grades = $fromform->grades ?? array();
     $trainingpage->open = $fromform->open;
+    $trainingpage->previous = $fromform->previous;
 
     $submitid = peerforum_submit_training_page($trainingpage, $mformpage);
 
     if (!empty($submitid)) {
         redirect(
-                "training.php?page=$page&submitid=$submitid",
+                $urlfactory->get_training_url($trainingpage, $submitid)
         );
     }
 
-    print_error("couldnotupdate", "peerforum", $errordestination);
+    print_error("couldnotupdate", "peerforum", $gobackdestination);
     exit;
-
 }
 
 // This section is only shown after all checks are in place, and the peerforumentity and any relevant discussion and post
@@ -213,18 +214,10 @@ $PAGE->set_heading($course->fullname);
 echo $OUTPUT->header();
 echo $OUTPUT->heading(format_string($trainingpage->name), 2);
 
-// Checkup.
-
-if (!$capabilitymanager->can_create_discussions($USER)) {
-    print_error('cannotcreatediscussion', 'peerforum');
-}
-
 echo $OUTPUT->box($trainingpage->description);
-
 
 $mformpage->display();
 
 echo $OUTPUT->footer();
 
-// usar tree_block_contents na tabela
 // usar tabtree para o grading

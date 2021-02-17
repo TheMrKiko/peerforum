@@ -73,6 +73,11 @@ class mod_peerforum_training_form extends moodleform {
 
             /*-------- CRITERIAS --------*/
             $criterias = (int) $trainingpage->ncriterias;
+
+            if ($criterias) {
+                $mform->addElement('html', '<h5>What grade would you give to these <b>criteria</b>?</h5>');
+            }
+
             foreach (range(0, $criterias) as $c) {
                 if ($c == $criterias) {
                     break; // So the last element isn't run. $criteria-1 does not work.
@@ -81,8 +86,8 @@ class mod_peerforum_training_form extends moodleform {
                 $critid = $trainingpage->criteria['id'][$c];
 
                 /* Grade */
-                $mform->addElement('select', 'grades[grade]['.$critid.']['.$exid.']', 'How would you grade this for ' .
-                        $trainingpage->criteria['name'][$c] . '?', $scalearray);
+                $mform->addElement('select', 'grades[grade]['.$critid.']['.$exid.']',
+                        $trainingpage->criteria['name'][$c], $scalearray);
                 $mform->addRule('grades[grade]['.$critid.']['.$exid.']', get_string('error'), 'required');
 
                 /* Feedback */
@@ -100,8 +105,10 @@ class mod_peerforum_training_form extends moodleform {
 
 
             /*-------- OVERALL EXERCISE --------*/
+            $mform->addElement('html', '<h4>How would you grade the exercise?</h4>');
+
             /* Grade */
-            $mform->addElement('select', 'grades[grade][-1]['.$exid.']', 'How would you grade this exercise?', $scalearray);
+            $mform->addElement('select', 'grades[grade][-1]['.$exid.']', 'Overall grade', $scalearray);
             $mform->addRule('grades[grade][-1]['.$exid.']', get_string('error'), 'required');
 
             /* Feedback */
@@ -133,7 +140,21 @@ class mod_peerforum_training_form extends moodleform {
         $mform->addElement('hidden', 'open');
         $mform->setType('open', PARAM_INT);
 
-        $this->add_action_buttons();
+        $mform->addElement('hidden', 'previous');
+        $mform->setType('previous', PARAM_INT);
+
+        // Elements in a row need a group.
+        $buttonarray = array();
+        if ($submitted) {
+            $buttonarray[] = &$mform->createElement('submit', 'submitbutton', 'Try again');
+        } else {
+            $buttonarray[] = &$mform->createElement('submit', 'submitbutton', 'Test answers');
+        }
+        $buttonarray[] = &$mform->createElement('cancel', null, 'Go back');
+
+        $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+        $mform->setType('buttonar', PARAM_RAW);
+        $mform->closeHeaderBefore('buttonar');
     }
 
     /**
@@ -145,9 +166,12 @@ class mod_peerforum_training_form extends moodleform {
      */
     function validation($data, $files) {
         $errors = parent::validation($data, $files);
-        foreach ($data['grades'] as $exid => $g) {
-            if ($g == RATING_UNSET_RATING) {
-                $errors['grades[grade]['.$exid.']'] = get_string('erroremptysubject', 'peerforum');
+        $grades = $data['grades']['grade'] ?? array();
+        foreach ($grades as $critid => $g) {
+            foreach ($g as $exid => $v) {
+                if ($v == RATING_UNSET_RATING) {
+                    $errors['grades[grade][' . $critid . '][' . $exid . ']'] = 'You gotta give a grade to this!';
+                }
             }
         }
         return $errors;

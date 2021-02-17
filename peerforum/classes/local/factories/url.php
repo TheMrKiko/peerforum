@@ -511,12 +511,53 @@ class url {
      * Generate the training link.
      *
      * @param \stdClass $trainingpage
+     * @param null $submitid
      * @return moodle_url
      * @throws \moodle_exception
      */
-    public function get_training_url(\stdClass $trainingpage): moodle_url {
-        return new moodle_url('training.php', [
+    public function get_training_url(\stdClass $trainingpage, $submitid = null): moodle_url {
+        $submit = ($submitid) ? array('submitid' => $submitid) : array();
+        return new moodle_url('training.php', array_merge([
                 'page' => $trainingpage->id
+        ], $submit));
+    }
+
+    /**
+     * Generate the edit training page link.
+     *
+     * @param \stdClass $trainingpage
+     * @return moodle_url
+     * @throws \moodle_exception
+     */
+    public function get_training_edit_url(\stdClass $trainingpage): moodle_url {
+        return new moodle_url('build_training.php', [
+                'edit' => $trainingpage->id
+        ]);
+    }
+
+    /**
+     * Generate the training new page link.
+     *
+     * @param peerforum_entity $peerforum
+     * @return moodle_url
+     * @throws \moodle_exception
+     */
+    public function get_training_new_url(peerforum_entity $peerforum): moodle_url {
+        return new moodle_url('build_training.php', [
+                'peerforum' => $peerforum->get_id()
+        ]);
+    }
+
+    /**
+     * Generate the training manager link.
+     *
+     * @param peerforum_entity $peerforum
+     * @return moodle_url
+     * @throws \moodle_exception
+     */
+    public function get_training_manager_url(peerforum_entity $peerforum): moodle_url {
+        return new moodle_url('trainingpages.php', [
+                'pf' => $peerforum->get_id()
         ]);
     }
 }

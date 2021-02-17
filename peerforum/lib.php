@@ -8486,8 +8486,11 @@ function peerforum_extend_settings_navigation(settings_navigation $settingsnav, 
         $url = new moodle_url('/mod/peerforum/export.php', ['id' => $peerforumobject->id]);
         $peerforumnode->add(get_string('export', 'mod_peerforum'), $url, navigation_node::TYPE_SETTING);
     }
-    $url = new moodle_url('/mod/peerforum/trainingpages.php', ['pf' => $peerforumobject->id]);
-    $peerforumnode->add("Training pages", $url, navigation_node::TYPE_SETTING);
+    $urlfactory = mod_peerforum\local\container::get_url_factory();
+    if ($capabilitymanager->can_edit_training_pages($USER)) {
+        $url = $urlfactory->get_training_manager_url($peerforumentity);
+        $peerforumnode->add("Training pages", $url, navigation_node::TYPE_SETTING);
+    }
 }
 
 /**
@@ -10867,8 +10870,7 @@ function remove_blocked_students($all_students) {
 function peerforum_add_new_training_page($trainingpage, $mform) {
     global $USER, $CFG, $DB;
 
-    $peerforum = $DB->get_record('peerforum', array('id' => $trainingpage->peerforum));
-    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
+    $cm = get_coursemodule_from_instance('peerforum', $trainingpage->peerforum);
     $context = context_module::instance($cm->id);
 
     $id = $DB->insert_record("peerforum_training_page", $trainingpage);
@@ -10934,8 +10936,7 @@ function peerforum_add_new_training_page($trainingpage, $mform) {
 function peerforum_update_training_page($trainingpage, $mform) {
     global $USER, $CFG, $DB;
 
-    $peerforum = $DB->get_record('peerforum', array('id' => $trainingpage->peerforum));
-    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
+    $cm = get_coursemodule_from_instance('peerforum', $trainingpage->peerforum);
     $context = context_module::instance($cm->id);
 
     $DB->update_record('peerforum_training_page', $trainingpage);
@@ -11022,8 +11023,7 @@ function peerforum_update_training_page($trainingpage, $mform) {
 function peerforum_submit_training_page($trainingpage, $mform) {
     global $USER, $CFG, $DB;
 
-    $peerforum = $DB->get_record('peerforum', array('id' => $trainingpage->peerforum));
-    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
+    $cm = get_coursemodule_from_instance('peerforum', $trainingpage->peerforum);
     $context = context_module::instance($cm->id);
 
     $submit = $DB->insert_record('peerforum_training_submit', (object) [
@@ -11031,6 +11031,7 @@ function peerforum_submit_training_page($trainingpage, $mform) {
                 'pageid' => $trainingpage->id,
                 'opened' => $trainingpage->open,
                 'submitted'=> time(),
+                'previous' => $trainingpage->previous
         ]);
 
     $grades = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->grades, array('criteriaid', 'exid'));

@@ -52,7 +52,6 @@ if ($cmid) {
 }
 
 $capabilitymanager = $managerfactory->get_capability_manager($peerforum);
-
 $PAGE->set_url('/mod/peerforum/trainingpages.php', array(
         'pf' => $peerforumid,
         'id' => $cmid,
@@ -64,14 +63,14 @@ $cm = \cm_info::create($coursemodule);
 
 require_course_login($course, true, $cm);
 
+if (!$capabilitymanager->can_edit_training_pages($USER)) {
+    print_error('cannoteditposts', 'peerforum');
+}
+
 $strname = get_string('name');
 $strex = 'Exercises';
 $strdisc = 'Discussion';
 $stredit = 'Edit';
-
-$editurl = new moodle_url('/mod/peerforum/build_training.php');
-$viewurl = new moodle_url('/mod/peerforum/training.php');
-
 
 $strparentname = 'Training pages manager';
 $PAGE->navbar->add($strparentname);
@@ -82,9 +81,7 @@ $PAGE->set_heading($peerforum->get_name());
 echo $OUTPUT->header();
 echo $OUTPUT->heading($strparentname, 2);
 
-$button = new single_button(new moodle_url($editurl, array(
-        'peerforum' => $peerforum->get_id(),
-)), 'Add a new training page', 'get');
+$button = new single_button($urlfactory->get_training_new_url($peerforum), 'Add a new training page', 'get');
 
 $button->primary = true;
 $button->class = 'py-3';
@@ -112,17 +109,13 @@ if (!$trainingpages) {
         $row = new html_table_row();
         $row->attributes['class'] = 'peergradeitemheader';
 
-        $link = html_writer::link(new moodle_url($viewurl, array(
-                'page' => $trainingpage->id,
-        )), $trainingpage->name);
+        $link = html_writer::link($urlfactory->get_training_url($trainingpage), $trainingpage->name);
         $row->cells[] = new html_table_cell($link);
         current($row->cells)->header = true;
 
         $row->cells[] = $trainingpage->exercises;
         $row->cells[] = $trainingpage->discussion;
-        $row->cells[] = html_writer::link(new moodle_url($editurl, array(
-                'edit' => $trainingpage->id,
-        )), $stredit);
+        $row->cells[] = html_writer::link($urlfactory->get_training_edit_url($trainingpage), $stredit);
         $table->data[] = $row;
     }
     echo html_writer::table($table);

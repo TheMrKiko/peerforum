@@ -76,7 +76,7 @@ if (!empty($peerforum)) {
     $modcontext = $peerforumentity->get_context();
     $coursecontext = context_course::instance($course->id);
 
-    if (!$capabilitymanager->can_create_discussions($USER)) { // TODO change!
+    if (!$capabilitymanager->can_edit_training_pages($USER)) {
         print_error('nopostpeerforum', 'peerforum');
     }
 
@@ -98,6 +98,8 @@ if (!empty($peerforum)) {
     $trainingpage->feedback = array();
     $trainingpage->correctgrades = array();
 
+    // Unsetting this will allow the correct return URL to be calculated later.
+    unset($SESSION->fromdiscussion);
 
 } else if (!empty($edit)) {
     // Editing the page.
@@ -125,7 +127,7 @@ if (!empty($peerforum)) {
 
     $PAGE->set_cm($cm, $course, $peerforum);
 
-    if (!has_capability('mod/peerforum:editanypost', $modcontext)) {
+    if (!$capabilitymanager->can_edit_training_pages($USER)) {
         print_error('cannoteditposts', 'peerforum');
     }
 
@@ -140,6 +142,9 @@ if (!empty($peerforum)) {
     $trainingpage->exercise['description'] = array_map(function ($ex) use ($modcontext) {
         return trusttext_pre_edit($ex, 'description', $modcontext);
     }, $trainingpage->exercise['description']);
+
+    // Unsetting this will allow the correct return URL to be calculated later.
+    unset($SESSION->fromdiscussion);
 
 } else if (!empty($delete)) {
     // User is deleting a page.
@@ -371,12 +376,12 @@ $mformpage->set_data(
 
 if ($mformpage->is_cancelled()) {
 
-    redirect($urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity));
+    redirect($urlfactory->get_training_manager_url($peerforumentity));
 
 } else if ($mformpage->is_submitted() && $fromform = $mformpage->get_data()) {
 
     if (empty($SESSION->fromurl)) {
-        $errordestination = $urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity);
+        $errordestination = $urlfactory->get_training_manager_url($peerforumentity);
     } else {
         $errordestination = $SESSION->fromurl;
     }
@@ -412,14 +417,14 @@ if ($mformpage->is_cancelled()) {
     if ($fromform->edit) {
         // Updating a post.
         $fromform->id = $fromform->edit;
-        $description = '';
+        $description = "Training page updated.";
 
-        if (false && !$capabilitymanager->can_edit_post($USER)) { //hack
+        if (!$capabilitymanager->can_edit_training_pages($USER)) {
             redirect(
                     $urlfactory->get_view_post_url_from_post($postentity),
                     get_string('cannotupdatepost', 'peerforum'),
                     null,
-                    \core\output\notification::ERROR
+                    \core\output\notification::NOTIFY_ERROR
             );
         }
 
@@ -429,14 +434,11 @@ if ($mformpage->is_cancelled()) {
             print_error("couldnotupdate", "peerforum", $errordestination);
         }
 
-        // peerforum_trigger_post_updated_event($post, $discussion, $modcontext, $peerforum);
-
-        $description .= get_string("postupdated", "peerforum");
-
-        $discussionurl = $urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity);
+        $returnurl = isset($fromform->submitbutton) ? $urlfactory->get_training_url($updatetrainingpage) :
+                $urlfactory->get_training_edit_url($updatetrainingpage);
 
         redirect(
-                peerforum_go_back_to($discussionurl),
+                peerforum_go_back_to($returnurl),
                 $description,
                 null,
                 \core\output\notification::NOTIFY_SUCCESS
@@ -445,31 +447,18 @@ if ($mformpage->is_cancelled()) {
     } else {
         // Adding a new page.
 
-        $description = '';
+        $description = 'Training page added.';
         $addtrainingpage = $fromform;
         $addtrainingpage->peerforum = $peerforum->id;
-        if ($fromform->id = peerforum_add_new_training_page($addtrainingpage, $mformpage)) {
+        if ($addtrainingpage->id = peerforum_add_new_training_page($addtrainingpage, $mformpage)) {
             $trainingpageentity = $trainingpagevault->get_from_id($fromform->id);
             $fromform->deleted = 0;
 
-            $description .= '<p>' . get_string("postaddedsuccess", "peerforum") . '</p>';
-
-            $discussionurl = $urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity);
-
-            $params = array(
-                    'context' => $modcontext,
-                    'objectid' => $fromform->id,
-                    'other' => array(
-                            'peerforumid' => $peerforum->id,
-                    )
-            );
-            /*$event = \mod_peerforum\event\post_created::create($params);
-            $event->add_record_snapshot('peerforum_posts', $fromform);
-            $event->add_record_snapshot('peerforum_discussions', $discussion);
-            $event->trigger();*/
+            $returnurl = isset($fromform->submitbutton) ? $urlfactory->get_training_url($addtrainingpage) :
+                    $urlfactory->get_training_edit_url($addtrainingpage);
 
             redirect(
-                    peerforum_go_back_to($discussionurl),
+                    peerforum_go_back_to($returnurl),
                     $description,
                     null,
                     \core\output\notification::NOTIFY_SUCCESS
@@ -510,7 +499,7 @@ echo $OUTPUT->heading(format_string($peerforum->name), 2);
 
 // Checkup.
 
-if (empty($edit) && !$capabilitymanager->can_create_discussions($USER)) {
+if (empty($edit) && !$capabilitymanager->can_edit_training_pages($USER)) {
     print_error('cannotcreatediscussion', 'peerforum');
 }
 
