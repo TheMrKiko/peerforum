@@ -94,15 +94,18 @@ class mod_peerforum_training_form extends moodleform {
                 if ($submitted) {
                     $grade = $trainingsubmission->grades['grade'][$critid][$exid];
                     $correctgrades = $trainingpage->correctgrades['grade'][$critid][$n];
-                    $feedback = $trainingpage->feedback['feedback'][$grade][$critid][$n];
+                    $feedback = trim($trainingpage->feedback['feedback'][$grade][$critid][$n]);
+                    if ($feedback[0] === '{' && $feedback[-1] === '}') {
+                        $ofid = substr($feedback, 1, -1);
+                        $feedback = $trainingpage->feedback['feedback'][$ofid][$critid][$n];
+                    }
                     if ($grade == $correctgrades) {
-                        $mform->addElement('html', '<p style="color: #00ff00;"><b>Right</b>: '.$feedback.'</p>');
+                        $mform->addElement('html', '<p style="color: var(--success);"><b>Correct</b>: '.$feedback.'</p>');
                     } else {
-                        $mform->addElement('html', '<p style="color: #ff0000;"><b>Wrong</b>: '.$feedback.'</p>');
+                        $mform->addElement('html', '<p style="color: var(--danger);"><b>Wrong</b>: '.$feedback.'</p>');
                     }
                 }
             }
-
 
             /*-------- OVERALL EXERCISE --------*/
             $mform->addElement('html', '<h4>How would you grade the exercise?</h4>');
@@ -115,11 +118,15 @@ class mod_peerforum_training_form extends moodleform {
             if ($submitted) {
                 $grade = $trainingsubmission->grades['grade'][-1][$exid];
                 $correctgrades = $trainingpage->correctgrades['grade'][-1][$n];
-                $feedback = $trainingpage->feedback['feedback'][$grade][-1][$n];
+                $feedback = trim($trainingpage->feedback['feedback'][$grade][-1][$n]);
+                if ($feedback[0] === '{' && $feedback[-1] === '}') {
+                    $ofid = substr($feedback, 1, -1);
+                    $feedback = $trainingpage->feedback['feedback'][$ofid][-1][$n];
+                }
                 if ($grade == $correctgrades) {
-                    $mform->addElement('html', '<p style="color: #00ff00;"><b>Right</b>: '.$feedback.'</p>');
+                    $mform->addElement('html', '<p style="color: var(--success);"><b>Correct</b>: '.$feedback.'</p>');
                 } else {
-                    $mform->addElement('html', '<p style="color: #ff0000;"><b>Wrong</b>: '.$feedback.'</p>');
+                    $mform->addElement('html', '<p style="color: var(--danger);"><b>Wrong</b>: '.$feedback.'</p>');
                 }
             }
         }
