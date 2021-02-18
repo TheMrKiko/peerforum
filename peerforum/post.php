@@ -26,10 +26,10 @@
 require_once('../../config.php');
 require_once('lib.php');
 require_once($CFG->libdir . '/completionlib.php');
-//require_once($CFG->dirroot .'/mod/peerforum/classes/peergrade_form.php');
 
 $reply = optional_param('reply', 0, PARAM_INT);
 $peerforum = optional_param('peerforum', 0, PARAM_INT);
+$discussion = null; // To mistchieve the debugger.
 $edit = optional_param('edit', 0, PARAM_INT);
 $delete = optional_param('delete', 0, PARAM_INT);
 $prune = optional_param('prune', 0, PARAM_INT);

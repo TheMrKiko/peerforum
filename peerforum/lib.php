@@ -16,7 +16,7 @@
 
 /**
  * Custom functions that allow peergrading in PeerForums
- * 
+ *
  * @package   mod_peerforum
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -494,7 +494,7 @@ function peerforum_get_final_grade_modes() {
 /**
  * Assign a user to peer grade a post
  *
- * @param stdClass $user
+ * @param stdClass $user author
  * @param int $postid
  * @param int $courseid
  * @param int $peerforumid
@@ -901,10 +901,10 @@ function remove_peer_from_peerforum_posts($itemid, $peerid) {
  * Insert a new student in the peergrade_users
  *
  * @param stdClass $peer_info
- * @return
+ * @param $itemid
  * @global object
  */
-function update_peer_peergrade_users($peer_info) {
+function update_peer_peergrade_users($peer_info, $itemid) {
     global $DB;
 
     $posts_blocked = $peer_info->postsblocked;

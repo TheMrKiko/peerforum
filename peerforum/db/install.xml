@@ -321,19 +321,23 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <FIELD NAME="peergradearea" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="scaleid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="peergrade" TYPE="float" LENGTH="10" NOTNULL="true" SEQUENCE="false" DECIMALS="2"/>
+                <FIELD NAME="peergrade" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="feedback" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="peergradescaleid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="peergraderid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="feedback" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-                <KEY NAME="contextid" TYPE="foreign" FIELDS="contextid" REFTABLE="peerforum_peergrade" REFFIELDS="id"/>
-                <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="peerforum_peergrade" REFFIELDS="id"/>
+                <KEY NAME="contextid" TYPE="foreign" FIELDS="contextid" REFTABLE="context" REFFIELDS="id" COMMENT="Relates to context.id"/>
+                <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="Relates to user.id"/>
             </KEYS>
+            <INDEXES>
+                <INDEX NAME="uniqueuserpeergrade" UNIQUE="false" FIELDS="component, peergradearea, contextid, itemid"
+                       COMMENT="These fields define a unique user peergrade of an item"/>
+            </INDEXES>
         </TABLE>
         <TABLE NAME="peerforum_time_assigned" COMMENT="Peer Forum time post is assigned to peer grade">
             <FIELDS>
@@ -341,8 +345,9 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="peergradearea" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="postid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="expired" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="blocked" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -356,6 +361,10 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
                 <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="Relates to user.id"/>
                 <KEY NAME="peergraded" TYPE="foreign" FIELDS="peergraded" REFTABLE="peerforum_peergrade" REFFIELDS="id"/>
             </KEYS>
+            <INDEXES>
+                <INDEX NAME="uniqueuserpeergrade" UNIQUE="false" FIELDS="component, peergradearea, contextid, itemid"
+                       COMMENT="These fields define a unique user assignment of an item"/>
+            </INDEXES>
         </TABLE>
         <TABLE NAME="peerforum_blockedgrades" COMMENT="Peer Forum blocked peer grades">
             <FIELDS>
@@ -408,8 +417,8 @@ Can be determined by scales/advancedgradingforms etc but will always be converte
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
                 <FIELD NAME="iduser" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="id of the student responding to the questionnaire"/>
-                <FIELD NAME="idpeersfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text with all the id of its favorite peers"/>
-                <FIELD NAME="idpeersunfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text w/ the id of all peers the students least likes"/>
+                <FIELD NAME="peersfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text with all the id of its favorite peers"/>
+                <FIELD NAME="peersunfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text w/ the id of all peers the students least likes"/>
                 <FIELD NAME="studentsranked" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="rankings" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="courseid" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false"/>

@@ -94,7 +94,11 @@ class block_peerblock extends block_list {
         $posts_not_expired = get_active_peergrading_posts($COURSE->id);
         $posts_expiring = get_posts_about_to_expire($COURSE->id, $peerforumid);
 
-        $rankings = ($DB->get_record('peerforum', array('course' => $peerforumid)))->peerrankings;
+        if (!($DB->get_record('peerforum', array('course' => $peerforumid)))) {
+            $rankings = false;
+        } else {
+            $rankings = ($DB->get_record('peerforum', array('course' => $peerforumid)))->peerrankings;
+        }
 
         if (!empty($time_old_post)) {
 

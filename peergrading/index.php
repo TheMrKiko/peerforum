@@ -798,7 +798,7 @@ if ($display == '-2') {
                         $group_user = '-';
                     }
 
-                    $status_blocked = $DB->get_record('peerforum_peergrade_users', array('iduser' => $i))->userblocked;
+                    $status_blocked = $DB->get_record('peerforum_peergrade_users', array('iduser' => $infograder[$i]->authorid))->userblocked;
 
                     if (empty($status_blocked)) {
                         $status_stud = 0; //not blocked

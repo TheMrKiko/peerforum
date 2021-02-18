@@ -43,7 +43,6 @@ class mod_peerforum_external extends external_api {
                 array(
                         'courseids' => new external_multiple_structure(new external_value(PARAM_INT, 'course ID',
                                 VALUE_REQUIRED, '', NULL_NOT_ALLOWED), 'Array of Course IDs', VALUE_DEFAULT, array()),
-                                // '', VALUE_REQUIRED, '', NULL_NOT_ALLOWED), 'Array of Course IDs', VALUE_DEFAULT, array()), Jessica
                 )
         );
     }
@@ -97,8 +96,7 @@ class mod_peerforum_external extends external_api {
                 $options = array('noclean' => true);
                 list($peerforum->intro, $peerforum->introformat) =
                         external_format_text($peerforum->intro, $peerforum->introformat, $context->id, 'mod_peerforum', 'intro',
-                                0,
-                                // null OLD
+                                null,
                                 $options);
                 $peerforum->introfiles = external_util::get_area_files($context->id, 'mod_peerforum', 'intro', false, false);
                 // Discussions count. This function does static request cache.
@@ -432,7 +430,7 @@ class mod_peerforum_external extends external_api {
                 $post->userpictureurl = $userpicture->get_url($PAGE)->out(false);
             }
 
-            // $post->subject = external_format_string($post->subject, $modcontext->id);
+            $post->subject = external_format_string($post->subject, $modcontext->id);
             // Rewrite embedded images URLs.
             $options = array('trusted' => $post->messagetrust);
             list($post->message, $post->messageformat) =
@@ -652,8 +650,8 @@ class mod_peerforum_external extends external_api {
                     $discussion->numreplies = (int) $replies[$discussion->discussion]->replies;
                 }
 
-                // $discussion->name = external_format_string($discussion->name, $modcontext->id);
-                // $discussion->subject = external_format_string($discussion->subject, $modcontext->id);
+                $discussion->name = external_format_string($discussion->name, $modcontext->id);
+                $discussion->subject = external_format_string($discussion->subject, $modcontext->id);
                 // Rewrite embedded images URLs.
                 $options = array('trusted' => $discussion->messagetrust);
                 list($discussion->message, $discussion->messageformat) =
@@ -1103,7 +1101,7 @@ class mod_peerforum_external extends external_api {
         $warnings = array();
 
         // Request and permission validation.
-        $peerforum = $DB->get_record('peerforum', array('id' => $params['peerforumid']), 'id', MUST_EXIST);
+        $peerforum = $DB->get_record('peerforum', array('id' => $params['peerforumid']), '*', MUST_EXIST);
         list($course, $cm) = get_course_and_cm_from_instance($peerforum, 'peerforum');
 
         $context = context_module::instance($cm->id);

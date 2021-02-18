@@ -38,7 +38,7 @@ if ($peerid == UNSET_STUDENT || $peerid == UNSET_STUDENT_SELECT) {
     $peer_info = $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $peerid));
 
     if (!empty($peer_info)) {
-        update_peer_peergrade_users($peer_info);
+        update_peer_peergrade_users($peer_info, $itemid);
     }
 } else if ($peerid != UNSET_STUDENT || $peerid != UNSET_STUDENT_SELECT) {
 
@@ -47,7 +47,7 @@ if ($peerid == UNSET_STUDENT || $peerid == UNSET_STUDENT_SELECT) {
     $peer_info = $DB->get_record('peerforum_peergrade_users', array('courseid' => $courseid, 'iduser' => $peerid));
 
     if (!empty($peer_info)) {
-        update_peer_peergrade_users($peer_info);
+        update_peer_peergrade_users($peer_info, $itemid);
     }
 }
 

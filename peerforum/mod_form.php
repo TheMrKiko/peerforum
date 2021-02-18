@@ -560,10 +560,16 @@ class mod_peerforum_mod_form extends moodleform_mod {
         //Present topics
         $record = $DB->get_record('peerforum', array('course' => $COURSE->id));
 
-        $discussiontopics = get_discussions_name($COURSE->id, $record->id);
-        $selecttopics =
-                $mform->addElement('select', 'topicstoattribute', get_string('topicstoattribute', 'peerforum'), $discussiontopics);
-        $selecttopics->setMultiple(true);
+        if ($record) {
+            $discussiontopics = get_discussions_name($COURSE->id, $record->id);
+            $selecttopics = $mform->addElement('select', 'topicstoattribute', get_string('topicstoattribute', 'peerforum'),
+                    $discussiontopics);
+            $selecttopics->setMultiple(true);
+        } else {
+            $rolenamestring = get_string('capabilitychecknotavailable', 'peerforum');
+            $mform->addElement('static', 'topicstoattribute', get_string('topicstoattribute', 'peerforum'), $rolenamestring);
+            $mform->addHelpButton('rolewarningpeer', 'rolewarningpeer', 'peerforum');
+        }
 
         //Choose the type of grading attribution
         $attrtypes = array(
@@ -579,7 +585,7 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->disabledIf('topicstoattribute', 'threaded_grading', 'eq', 0);
         $mform->disabledIf('topicstoattribute', 'random_distribution', 'eq', 1);
 
-        $peergraders = $record->selectpeergraders;
+        $peergraders = $record ? $record->selectpeergraders : 5;
 
         $optionsstudents = array(
                 1 => $peergraders + 1,
