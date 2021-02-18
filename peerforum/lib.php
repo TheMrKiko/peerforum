@@ -27,9 +27,6 @@ defined('MOODLE_INTERNAL') || die();
 /** Include required files */
 require_once(__DIR__ . '/deprecatedlib.php');
 require_once($CFG->libdir . '/filelib.php');
-// require_once($CFG->libdir . '/eventslib.php');
-/*require_once($CFG->dirroot . '/peergrade/lib.php');
-require_once($CFG->dirroot . '/rating/lib.php');*/
 
 /// CONSTANTS ///////////////////////////////////////////////////////////
 
@@ -2406,96 +2403,6 @@ function get_students_can_be_removed($courseid, $postid, $postauthor, $peerforum
 //------------------------------------------------//
 
 /**
- * Return the grades of all the users.
- *
- * @param object $peerforum
- * @param int $userid optional user id
- * @return array grades, null if none
- * @global object
- */
-function peerforum_get_user__grades($peerforum, $userid = 0) {
-    global $CFG;
-    require_once($CFG->dirroot . '/rating/lib.php');
-
-    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
-
-    $rm = new rating_manager();
-    return $rm->get_user_grades((object) [
-            'component' => 'mod_peerforum',
-            'ratingarea' => 'post',
-            'contextid' => \context_module::instance($cm->id)->id,
-
-            'modulename' => 'peerforum',
-            'moduleid  ' => $peerforum->id,
-            'userid' => $userid,
-            'aggregationmethod' => $peerforum->assessed,
-            'scaleid' => $peerforum->scale,
-            'itemtable' => 'peerforum_posts',
-            'itemtableusercolumn' => 'userid',
-    ]);
-}
-
-/**
- * Returns user's/student's grades
- *
- * @param object $peerforum
- * @param int $userid
- * @return array the array of the user's grades
- * @global object
- */
-function peerforum_get_user_students_peergrades($peerforum, $userid = 0) {
-    global $CFG;
-    require_once($CFG->dirroot . '/peergrade/lib.php');
-
-    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
-
-    $rm = new peergrade_manager();
-    return $rm->get_user_students_peergrades((object) [
-            'component' => 'mod_peerforum',
-            'peergradearea' => 'post',
-            'contextid' => \context_module::instance($cm->id)->id,
-
-            'modulename' => 'peerforum',
-            'moduleid  ' => $peerforum->id,
-            'userid' => $userid,
-            'aggregationmethod' => $peerforum->peergradeassessed,
-            'peergradescaleid' => $peerforum->peergradescale,
-            'itemtable' => 'peerforum_posts',
-            'itemtableusercolumn' => 'userid',
-    ]);
-}
-
-/**
- * Returns the peergrades given by the professors to a user
- *
- * @param stdClass $peerforum
- * @param int $userid
- * @return array grade
- * @global object
- */
-function peerforum_get_user_professors_peergrades($peerforum, $userid = 0) {
-    global $CFG;
-    require_once($CFG->dirroot . '/peergrade/lib.php');
-
-    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
-
-    $rm = new peergrade_manager();
-    return $rm->get_user_professors_peergrades((object) [
-            'component' => 'mod_peerforum',
-            'peergradearea' => 'post',
-            'contextid' => \context_module::instance($cm->id)->id,
-
-            'modulename' => 'peerforum',
-            'moduleid  ' => $peerforum->id,
-            'userid' => $userid,
-            'aggregationmethod' => $peerforum->peergradeassessed,
-            'peergradescaleid' => $peerforum->peergradescale,
-            'itemtable' => 'peerforum_posts',
-            'itemtableusercolumn' => 'userid',
-    ]);
-}
-
-/**
  * Returns the time when the post was created
  *
  * @param int $postid
@@ -2624,9 +2531,18 @@ function peerforum_add_instance($peerforum, $mform = null) {
         $peerforum->assessed = 0;
     }
 
+    if (empty($peerforum->peergradeassessed)) {
+        $peerforum->peergradeassessed = 0;
+    }
+
     if (empty($peerforum->ratingtime) or empty($peerforum->assessed)) {
         $peerforum->assesstimestart = 0;
         $peerforum->assesstimefinish = 0;
+    }
+
+    if (empty($peerforum->peergradetime) or empty($peerforum->peergradeassessed)) {
+        $peerforum->peergradeassesstimestart = 0;
+        $peerforum->peergradeassesstimefinish = 0;
     }
 
     $peerforum->id = $DB->insert_record('peerforum', $peerforum);
@@ -2698,15 +2614,19 @@ function peerforum_instance_created($context, $peerforum) {
  * @global object
  */
 function peerforum_update_instance($peerforum, $mform) {
-    global $DB, $OUTPUT, $USER, $COURSE;
+    global $DB, $OUTPUT, $USER, $COURSE, $CFG;
 
-    require_once($CFG->dirroot . '/mod/peerforum/locallib.php');
+    require_once($CFG->dirroot . '/mod/peerforum/locallib.php'); // TODO maybe remover.
 
     $peerforum->timemodified = time();
     $peerforum->id = $peerforum->instance;
 
     if (empty($peerforum->assessed)) {
         $peerforum->assessed = 0;
+    }
+
+    if (empty($peerforum->peergradeassessed)) {
+        $peerforum->peergradeassessed = 0;
     }
 
     if (empty($peerforum->ratingtime) or empty($peerforum->assessed)) {
@@ -2726,18 +2646,23 @@ function peerforum_update_instance($peerforum, $mform) {
     // for count and sum aggregation types the grade we check to make sure they do not exceed the scale (i.e. max score) when calculating the grade
     $updategrades = false;
 
-    if ($oldpeerforum->assessed <> $peerforum->assessed) {
+    if ($oldpeerforum->assessed <> $peerforum->assessed || $oldpeerforum->peergradeassessed <> $peerforum->peergradeassessed) {
         // Whether this peerforum is rated.
         $updategrades = true;
     }
 
-    if ($oldpeerforum->scale <> $peerforum->scale) {
+    if ($oldpeerforum->scale <> $peerforum->scale || $oldpeerforum->peergradescale <> $peerforum->peergradescale) {
         // The scale currently in use.
         $updategrades = true;
     }
 
     if (empty($oldpeerforum->grade_peerforum) || $oldpeerforum->grade_peerforum <> $peerforum->grade_peerforum) {
         // The whole peerforum grading.
+        $updategrades = true;
+    }
+
+    if ($oldpeerforum->finalgrademode <> $peerforum->finalgrademode) {
+        // The peer grade mode currently in use.
         $updategrades = true;
     }
 
@@ -2814,7 +2739,8 @@ function peerforum_update_instance($peerforum, $mform) {
     }
 
     peerforum_update_calendar($peerforum, $peerforum->coursemodule);
-    //Processing of threaded grading
+
+    // REVIEW: Processing of threaded grading TODO!
 
     //Get actual configutations
     $peerforum_info = $DB->get_record("peerforum", array('course' => $COURSE->id));
@@ -3243,6 +3169,28 @@ function peerforum_user_outline($course, $user, $mod, $peerforum) {
         }
     }
 
+    if (!empty($grades->items[2]->grades)) {
+        // Item 2 is the student peergrades.
+        $grade = reset($grades->items[2]->grades);
+        $gradetime = max($gradetime, grade_get_date_for_user_grade($grade, $user));
+        if (!$grade->hidden || has_capability('moodle/grade:viewhidden', context_course::instance($course->id))) {
+            $gradeinfo .= get_string('gradeforstudentpeergrade', 'peerforum', $grade) . html_writer::empty_tag('br');
+        } else {
+            $gradeinfo .= get_string('gradeforstudentpeergradehidden', 'peerforum') . html_writer::empty_tag('br');
+        }
+    }
+
+    if (!empty($grades->items[3]->grades)) {
+        // Item 2 is the professor peergrades.
+        $grade = reset($grades->items[3]->grades);
+        $gradetime = max($gradetime, grade_get_date_for_user_grade($grade, $user));
+        if (!$grade->hidden || has_capability('moodle/grade:viewhidden', context_course::instance($course->id))) {
+            $gradeinfo .= get_string('gradeforprofessorpeergrade', 'peerforum', $grade) . html_writer::empty_tag('br');
+        } else {
+            $gradeinfo .= get_string('gradeforprofessorpeergradehidden', 'peerforum') . html_writer::empty_tag('br');
+        }
+    }
+
     $count = peerforum_count_user_posts($peerforum->id, $user->id);
     if ($count && $count->postcount > 0) {
         $info = get_string("numposts", "peerforum", $count->postcount);
@@ -3310,6 +3258,16 @@ function peerforum_user_complete($course, $user, $mod, $peerforum) {
     // Item 1 is the whole-peerforum grade.
     if (!empty($grades->items[1]->grades)) {
         echo $getgradeinfo($grades->items[1]->grades, 'wholepeerforum');
+    }
+
+    // Item 2 is the student peergrade.
+    if (!empty($grades->items[2]->grades)) {
+        echo $getgradeinfo($grades->items[2]->grades, 'studentpeergrade');
+    }
+
+    // Item 3 is the professor peergrade.
+    if (!empty($grades->items[3]->grades)) {
+        echo $getgradeinfo($grades->items[3]->grades, 'professorpeergrade');
     }
 
     if ($posts = peerforum_get_user_posts($peerforum->id, $user->id)) {
@@ -3564,28 +3522,60 @@ function peerforum_update_grades($peerforum, $userid = 0): void {
     global $CFG, $DB;
     require_once($CFG->libdir . '/gradelib.php');
 
-    $rategrades = null; $peergradesstudents = null; $peergradesprofessors = null;
-    if ($peerforum->peergradeassessed && $peerforum->assessed) {
+    $ratings = null;
+    if ($peerforum->assessed) {
+        require_once($CFG->dirroot . '/rating/lib.php');
 
-        $rategrades = peerforum_get_user__grades($peerforum, $userid);
+        $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
 
-        $peergradesstudents = peerforum_get_user_students_peergrades($peerforum, $userid);
+        $rm = new rating_manager();
+        $ratings = $rm->get_user_grades((object) [
+                'component' => 'mod_peerforum',
+                'ratingarea' => 'post',
+                'contextid' => \context_module::instance($cm->id)->id,
+                'modulename' => 'peerforum',
+                'moduleid  ' => $peerforum->id,
+                'userid' => $userid,
+                'aggregationmethod' => $peerforum->assessed,
+                'scaleid' => $peerforum->scale,
+                'itemtable' => 'peerforum_posts',
+                'itemtableusercolumn' => 'userid',
+        ]);
+    }
 
-        $peergradesprofessors = peerforum_get_user_professors_peergrades($peerforum, $userid);
+    $studentpeergrades = null;
+    $professorpeergrades = null;
+    if ($peerforum->peergradeassessed) {
+        require_once($CFG->dirroot . '/peergrade/lib.php');
+
+        $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
+
+        $pgm = new peergrade_manager();
+        [$studentpeergrades, $professorpeergrades] = $pgm->get_user_grades((object) [
+                'component' => 'mod_peerforum',
+                'peergradearea' => 'post',
+                'contextid' => \context_module::instance($cm->id)->id,
+                'modulename' => 'peerforum',
+                'moduleid  ' => $peerforum->id,
+                'userid' => $userid,
+                'aggregationmethod' => $peerforum->peergradeassessed,
+                'peergradescaleid' => $peerforum->peergradescale,
+                'itemtable' => 'peerforum_posts',
+                'itemtableusercolumn' => 'userid',
+        ]);
     }
 
     $peerforumgrades = null;
     if ($peerforum->grade_peerforum) {
         $sql = <<<EOF
-SELECT
-    g.userid,
-    0 as datesubmitted,
-    g.grade as rawgrade,
-    g.timemodified as dategraded
-  FROM {peerforum} f
-  JOIN {peerforum_grades} g ON g.peerforum = f.id
- WHERE f.id = :peerforumid
-EOF;
+        SELECT g.userid,
+               0 as datesubmitted,
+               g.grade as rawgrade,
+               g.timemodified as dategraded
+          FROM {peerforum} f
+          JOIN {peerforum_grades} g ON g.peerforum = f.id
+         WHERE f.id = :peerforumid
+        EOF;
 
         $params = [
                 'peerforumid' => $peerforum->id,
@@ -3607,7 +3597,7 @@ EOF;
         }
     }
 
-    peerforum_grade_item_update($peerforum, $rategrades, $peerforumgrades, $peergradesprofessors, $peergradesstudents);
+    peerforum_grade_item_update($peerforum, $ratings, $peerforumgrades, $studentpeergrades, $professorpeergrades);
 }
 
 /**
@@ -3616,71 +3606,13 @@ EOF;
  * @param stdClass $peerforum PeerForum object with extra cmidnumber
  * @param mixed $grades Optional array/object of grade(s); 'reset' means reset grades in gradebook
  */
-function peerforum_grade_item_update($peerforum, $rategrades = null, $peerforumgrades = null, $peergradesprofessors = null, $peergradesstudents = null) {
-    //function peerforum_grade_item_update($peerforum, $peergradesprofessors = null, $peerforumgrades = null, $peergradesstudents = null, $rategrades = null) {
+function peerforum_grade_item_update($peerforum, $ratings = null, $peerforumgrades = null, $studentpeergrades = null, $professorpeergrades = null) {
     global $CFG;
     require_once("{$CFG->libdir}/gradelib.php");
 
-    $a = new stdclass();
-    $a->peerforumname = clean_param($peerforum->name, PARAM_NOTAGS);
-
-    // Update the peer grade professor.
-    $item1 = [
-            'itemname' => get_string('gradeitemprofessorpeergrade', 'peerforum', $a),
-            'idnumber' => $peerforum->cmidnumber,
-    ];
-
-    if (!$peerforum->peergradeassessed || $peerforum->peergradescale == 0) {
-        $item1['gradetype'] = GRADE_TYPE_NONE;
-    } else if ($peerforum->finalgrademode == 1) {
-        $item1['gradetype'] = GRADE_TYPE_NONE;
-    } else if ($peerforum->peergradescale > 0) {
-        $item1['gradetype'] = GRADE_TYPE_VALUE;
-        $item1['grademax'] = $peerforum->professorpercentage;
-        $item1['grademin'] = 0;
-    } else if ($peerforum->peergradescale < 0) {
-        $item1['gradetype'] = GRADE_TYPE_SCALE;
-        $item1['scaleid'] = -$peerforum->peergradescale;
-    }
-
-    if ($peergradesprofessors === 'reset') {
-        $item1['reset'] = true;
-        $peergradesprofessors = null;
-    }
-
-    // Itemnumber 3 is the rating.
-    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 3, $peergradesprofessors, $item1);
-
-    // Update the peer grade student.
-    $item2 = [
-            'itemname' => get_string('gradeitemstudentpeergrade', 'peerforum', $a),
-            'idnumber' => $peerforum->cmidnumber,
-    ];
-
-    if (!$peerforum->peergradeassessed || $peerforum->peergradescale == 0) {
-        $item2['gradetype'] = GRADE_TYPE_NONE;
-    } else if ($peerforum->finalgrademode == 1) {
-        $item2['gradetype'] = GRADE_TYPE_NONE;
-    } else if ($peerforum->peergradescale > 0) {
-        $item2['gradetype'] = GRADE_TYPE_VALUE;
-        $item2['grademax'] = $peerforum->studentpercentage;
-        $item2['grademin'] = 0;
-    } else if ($peerforum->peergradescale < 0) {
-        $item2['gradetype'] = GRADE_TYPE_SCALE;
-        $item2['scaleid'] = -$peerforum->peergradescale;
-    }
-
-    if ($peergradesstudents === 'reset') {
-        $item2['reset'] = true;
-        $peergradesstudents = null;
-    }
-
-    // Itemnumber 2 is the student peer grade.
-    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 2, $peergradesstudents, $item2);
-
     // Update the rating.
     $item = [
-            'itemname' => get_string('gradeitemrate', 'peerforum', $a),
+            'itemname' => get_string('gradeitemnameforrating', 'peerforum', $peerforum),
             'idnumber' => $peerforum->cmidnumber,
     ];
 
@@ -3695,12 +3627,12 @@ function peerforum_grade_item_update($peerforum, $rategrades = null, $peerforumg
         $item['scaleid'] = -$peerforum->scale;
     }
 
-    if ($rategrades === 'reset') {
+    if ($ratings === 'reset') {
         $item['reset'] = true;
-        $rategrades = null;
+        $ratings = null;
     }
     // Itemnumber 0 is the rating.
-    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 0, $rategrades, $item);
+    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 0, $ratings, $item);
 
     // Whole peerforum grade.
     $item = [
@@ -3725,6 +3657,61 @@ function peerforum_grade_item_update($peerforum, $rategrades = null, $peerforumg
     }
     // Itemnumber 1 is the whole peerforum grade.
     grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 1, $peerforumgrades, $item);
+
+    // Update the student given peergrades.
+    $item = [
+            'itemname' => get_string('gradeitemstudentpeergrade', 'peerforum', $peerforum),
+            'idnumber' => $peerforum->cmidnumber,
+    ];
+
+    if (!$peerforum->peergradeassessed || $peerforum->peergradescale == 0) {
+        $item['gradetype'] = GRADE_TYPE_NONE;
+    } else if ($peerforum->finalgrademode == PEERFORUM_MODE_PROFESSOR) {
+        $item['gradetype'] = GRADE_TYPE_NONE;
+    } else if ($peerforum->peergradescale > 0) {
+        $item['gradetype'] = GRADE_TYPE_VALUE;
+        $item['grademax'] = $peerforum->peergradescale;
+        $item['grademin'] = 0;
+    } else if ($peerforum->peergradescale < 0) {
+        $item['gradetype'] = GRADE_TYPE_SCALE;
+        $item['scaleid'] = -$peerforum->peergradescale;
+    }
+
+    if ($studentpeergrades === 'reset') {
+        $item['reset'] = true;
+        $studentpeergrades = null;
+    }
+    // Itemnumber 2 is the student given peergrades.
+    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 2, $studentpeergrades, $item);
+
+    // Update the professor given peergrades.
+    $item = [
+            'itemname' => get_string('gradeitemprofessorpeergrade', 'peerforum', $peerforum),
+            'idnumber' => $peerforum->cmidnumber,
+    ];
+
+    if (!$peerforum->peergradeassessed || $peerforum->peergradescale == 0) {
+        $item['gradetype'] = GRADE_TYPE_NONE;
+    } else if ($peerforum->finalgrademode == PEERFORUM_MODE_STUDENT) {
+        $item['gradetype'] = GRADE_TYPE_NONE;
+    } else if ($peerforum->peergradescale > 0) {
+        $item['gradetype'] = GRADE_TYPE_VALUE;
+        $item['grademax'] = $peerforum->peergradescale;
+        $item['grademin'] = 0;
+    } else if ($peerforum->peergradescale < 0) {
+        $item['gradetype'] = GRADE_TYPE_SCALE;
+        $item['scaleid'] = -$peerforum->peergradescale;
+    }
+
+    if ($professorpeergrades === 'reset') {
+        $item['reset'] = true;
+        $professorpeergrades = null;
+    }
+    // Itemnumber 3 is the professor given peergrades.
+    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 3, $professorpeergrades, $item);
+
+    // TODO This accepts feedback omg check that!
+    // Also $item['multfactor'] !!!!
 }
 
 /**
@@ -3738,6 +3725,8 @@ function peerforum_grade_item_delete($peerforum) {
 
     grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 0, null, ['deleted' => 1]);
     grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 1, null, ['deleted' => 1]);
+    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 2, null, ['deleted' => 1]);
+    grade_update('mod/peerforum', $peerforum->course, 'mod', 'peerforum', $peerforum->id, 3, null, ['deleted' => 1]);
 }
 
 /**
@@ -6235,6 +6224,8 @@ function peerforum_delete_post($post, $children, $course, $cm, $peerforum, $skip
     $rm->delete_ratings($delopt);
 
     //Delete peergrades.
+    require_once($CFG->dirroot . '/peergrade/lib.php');
+    $delopt->peergradearea = 'post';
     $pm = new peergrade_manager();
     $pm->delete_peergrades($delopt);
 
@@ -7990,6 +7981,7 @@ function peerforum_reset_gradebook($courseid, $type = '') {
 function peerforum_reset_userdata($data) {
     global $CFG, $DB;
     require_once($CFG->dirroot . '/rating/lib.php');
+    require_once($CFG->dirroot . '/peergrade/lib.php');
 
     $componentstr = get_string('modulenameplural', 'peerforum');
     $status = array();
@@ -8036,12 +8028,19 @@ function peerforum_reset_userdata($data) {
     $peerforumssql = $peerforums = $rm = null;
 
     // Check if we need to get additional data.
-    if ($removeposts || !empty($data->reset_peerforum_ratings) || !empty($data->reset_peerforum_tags)) {
+    if ($removeposts || !empty($data->reset_peerforum_ratings) ||
+            !empty($data->reset_peerforum_peergrades) || !empty($data->reset_peerforum_tags)) {
         // Set this up if we have to remove ratings.
         $rm = new rating_manager();
         $ratingdeloptions = new stdClass;
         $ratingdeloptions->component = 'mod_peerforum';
         $ratingdeloptions->ratingarea = 'post';
+
+        // Set this up if we have to remove peergrades.
+        $pgm = new peergrade_manager();
+        $peergradedeloptions = new stdClass;
+        $peergradedeloptions->component = 'mod_peerforum';
+        $peergradedeloptions->peergradearea = 'post';
 
         // Get the peerforums for actions that require it.
         $peerforumssql = "$allpeerforumssql $typesql";
@@ -8068,8 +8067,8 @@ function peerforum_reset_userdata($data) {
                 $rm->delete_ratings($ratingdeloptions);
 
                 //remove peergrades
-                $peergradepeerdeloptions->contextid = $context->id;
-                $rm->delete_peergrades($peergradepeerdeloptions);
+                $peergradedeloptions->contextid = $context->id;
+                $pgm->delete_peergrades($peergradedeloptions);
 
                 core_tag_tag::delete_instances('mod_peerforum', null, $context->id);
             }
@@ -8139,7 +8138,7 @@ function peerforum_reset_userdata($data) {
 
                 //remove peergrades
                 $peergradedeloptions->contextid = $context->id;
-                $rm->delete_peergrades($peergradedeloptions);
+                $pgm->delete_peergrades($peergradedeloptions);
             }
         }
 
@@ -8238,7 +8237,7 @@ function peerforum_reset_course_form_definition(&$mform) {
  */
 function peerforum_reset_course_form_defaults($course) {
     return array('reset_peerforum_all' => 1, 'reset_peerforum_digests' => 0, 'reset_peerforum_subscriptions' => 0,
-            'reset_peerforum_track_prefs' => 0, 'reset_peerforum_ratings' => 1);
+            'reset_peerforum_track_prefs' => 0, 'reset_peerforum_ratings' => 1, 'reset_peerforum_peergrades' => 0);
 }
 
 /**

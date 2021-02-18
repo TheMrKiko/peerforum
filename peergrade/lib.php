@@ -274,12 +274,12 @@ class peergrade_assignment {
     /**
      * @var stdClass The detailed information of the user to whom the peergrade was assigned to
      */
-    public $userinfo;
+    public $userinfo = null;
 
     /**
      * @var int The time the peer grade was assigned
      */
-    public $timeassigned;
+    public $timeassigned = null;
 
     /**
      * @var int The time the peer grade
@@ -329,12 +329,16 @@ class peergrade_assignment {
         $this->peergradearea = $this->peergradeoptions->peergradearea;
         $this->itemid = $options->itemid;
         $this->userid = $options->userid;
-        $this->userinfo = $options->userinfo;
-        $this->timeassigned = $options->timeassigned;
         $this->blocked = $options->blocked;
         $this->peergraded = $options->peergraded;
         $this->expired = $options->expired;
 
+        if (isset($options->userinfo)) {
+            $this->userinfo = $options->userinfo;
+        }
+        if (isset($options->timeassigned)) {
+            $this->timeassigned = $options->timeassigned;
+        }
         if (isset($options->timemodified)) {
             $this->timemodified = $options->timemodified;
         }
@@ -349,7 +353,7 @@ class peergrade_assignment {
 
         $time = time();
         $params = array();
-        $params['contextid'] = $this->context;
+        $params['contextid'] = $this->context->id;
         $params['component'] = $this->component;
         $params['peergradearea'] = $this->peergradearea;
         $params['itemid'] = $this->itemid;
@@ -381,7 +385,7 @@ class peergrade_assignment {
         $data->component = $this->component;
         $data->peergradearea = $this->peergradearea;
 
-        return $DB->insert_record('peerforum_peergrade', $data);
+        return $DB->insert_record('peerforum_time_assigned', $data);
     }
 } // End peergrade assignment class definition.
 
@@ -1960,7 +1964,7 @@ class peergrade_manager {
             throw new coding_exception('The aggregate option is now a required option when generate a peergrade settings object.');
         }
         if (!isset($options->peergradescaleid)) {
-            throw new coding_exception('The peergradescaleid option2 is now a required option when generate a peergrade settings object.');
+            throw new coding_exception('The peergradescaleid option is now a required option when generate a peergrade settings object.');
         }
 
         global $DB;
@@ -2124,7 +2128,7 @@ class peergrade_manager {
      * }
      * @return array the array of the user's grades
      */
-    public function get_user_students_peergrades($options) {
+    public function get_user_grades($options) {
         global $DB;
 
         $contextid = null;
@@ -2133,7 +2137,7 @@ class peergrade_manager {
             throw new coding_exception('The component option is now a required option when getting user grades from peergrades.');
         }
         if (!isset($options->peergradearea)) {
-            throw new coding_exception('The peergradearea option is now a required option when getting user grades from peergrades.');
+            throw new coding_exception('The peergradearea option is now a required opt when getting user grades from peergrades.');
         }
 
         // If the calling code doesn't supply a context id we'll have to figure it out.
@@ -2141,7 +2145,7 @@ class peergrade_manager {
             $contextid = $options->contextid;
         } else if (!empty($options->modulename) && !empty($options->moduleid)) {
             $modulename = $options->modulename;
-            $moduleid = intval($options->moduleid);
+            $moduleid   = intval($options->moduleid);
 
             // Going direct to the db for the context id seems wrong.
             $ctxselect = ', ' . context_helper::get_preload_record_columns_sql('ctx');
@@ -2158,13 +2162,13 @@ class peergrade_manager {
         }
 
         $params = array();
-        $params['contextid'] = $contextid;
-        $params['component'] = $options->component;
+        $params['contextid']  = $contextid;
+        $params['component']  = $options->component;
         $params['peergradearea'] = $options->peergradearea;
-        $itemtable = $options->itemtable;
-        $itemtableusercolumn = $options->itemtableusercolumn;
-        $peergradescaleid = $options->peergradescaleid;
-        $aggregationstring = $this->get_aggregation_method($options->aggregationmethod);
+        $itemtable            = $options->itemtable;
+        $itemtableusercolumn  = $options->itemtableusercolumn;
+        $peergradescaleid     = $options->peergradescaleid;
+        $aggregationstring    = $this->get_aggregation_method($options->aggregationmethod);
 
         // If userid is not 0 we only want the grade for a single user.
         $singleuserwhere = '';
@@ -2173,127 +2177,40 @@ class peergrade_manager {
             $singleuserwhere = "AND i.{$itemtableusercolumn} = :userid1";
         }
 
+        $context = context::instance_by_id($contextid);
+
+        $stdjoin = get_with_capability_join($context,  'mod/peerforum:studentpeergrade', 'r.userid');
         // MDL-24648 The where line used to be "WHERE (r.contextid is null or r.contextid=:contextid)".
-        // r.contextid will be null for users who haven't been peergraded yet.
-        // No longer including users who haven't been peergraded to reduce memory requirements.
-        $sql = "SELECT u.id as id, u.id AS userid, $aggregationstring(p.peergrade) AS rawgrade
-                  FROM {user} u
-             LEFT JOIN {{$itemtable}} i ON u.id=i.{$itemtableusercolumn}
-             LEFT JOIN {peerforum_peergrade} p ON p.itemid=i.id
-             LEFT JOIN {role_assignments} ra ON ra.userid = p.userid
-                 WHERE ra.roleid = 5 AND
-                       p.contextid = :contextid AND
-                       p.component = :component AND
-                       p.peergradearea = :peergradearea
-                       $singleuserwhere
-              GROUP BY u.id";
-        $results = $DB->get_records_sql($sql, $params);
-
-        if ($results) {
-
-            $peergradescale = null;
-            $max = 0;
-            if ($options->peergradescaleid >= 0) {
-                // Numeric.
-                $max = $options->peergradescaleid;
-            } else {
-                // Custom scales.
-                $peergradescale = $DB->get_record('peergradescale', array('id' => -$options->peergradescaleid));
-                if ($peergradescale) {
-                    $peergradescale = explode(',', $peergradescale->peergradescale);
-                    $max = count($peergradescale);
-                } else {
-                    debugging('peergrade_manager::get_user_students_peergrades() received a peergradescale ID that doesnt exist');
-                }
-            }
-
-            // It could throw off the grading if count and sum returned a rawgrade higher than scale
-            // so to prevent it we review the results and ensure that rawgrade does not exceed the scale.
-            // If it does we set rawgrade = scale (i.e. full credit).
-
-            foreach ($results as $rid => $result) {
-                if ($options->peergradescaleid >= 0) {
-                    // Numeric.
-                    if ($result->rawgrade > $options->peergradescaleid) {
-                        $results[$rid]->rawgrade = $options->peergradescaleid;
-                    }
-                } else {
-                    // Scales.
-                    if (!empty($peergradescale) && $result->rawgrade > $max) {
-                        $results[$rid]->rawgrade = $max;
-                    }
-                }
-            }
-        }
-
-        return $results;
-    }
-
-    public function get_user_professors_peergrades($options) {
-        global $DB;
-
-        $contextid = null;
-
-        if (!isset($options->component)) {
-            throw new coding_exception('The component option is now a required option when getting user grades from peergrades.');
-        }
-        if (!isset($options->peergradearea)) {
-            throw new coding_exception('The peergradearea option is now a required option when getting user grades from peergrades.');
-        }
-
-        // If the calling code doesn't supply a context id we'll have to figure it out.
-        if (!empty($options->contextid)) {
-            $contextid = $options->contextid;
-        } else if (!empty($options->modulename) && !empty($options->moduleid)) {
-            $modulename = $options->modulename;
-            $moduleid = intval($options->moduleid);
-
-            // Going direct to the db for the context id seems wrong.
-            $ctxselect = ', ' . context_helper::get_preload_record_columns_sql('ctx');
-            $ctxjoin = "LEFT JOIN {context} ctx ON (ctx.instanceid = cm.id AND ctx.contextlevel = :contextlevel)";
-            $sql = "SELECT cm.* $ctxselect
-                      FROM {course_modules} cm
-                 LEFT JOIN {modules} mo ON mo.id = cm.module
-                 LEFT JOIN {{$modulename}} m ON m.id = cm.instance $ctxjoin
-                     WHERE mo.name=:modulename AND
-                           m.id=:moduleid";
-            $params = array('modulename' => $modulename, 'moduleid' => $moduleid, 'contextlevel' => CONTEXT_MODULE);
-            $contextrecord = $DB->get_record_sql($sql, $params, '*', MUST_EXIST);
-            $contextid = $contextrecord->ctxid;
-        }
-
-        $params = array();
-        $params['contextid'] = $contextid;
-        $params['component'] = $options->component;
-        $params['peergradearea'] = $options->peergradearea;
-        $itemtable = $options->itemtable;
-        $itemtableusercolumn = $options->itemtableusercolumn;
-        $peergradescaleid = $options->peergradescaleid;
-        $aggregationstring = $this->get_aggregation_method($options->aggregationmethod);
-
-        // If userid is not 0 we only want the grade for a single user.
-        $singleuserwhere = '';
-        if ($options->userid != 0) {
-            $params['userid1'] = intval($options->userid);
-            $singleuserwhere = "AND i.{$itemtableusercolumn} = :userid1";
-        }
-
-        // MDL-24648 The where line used to be "WHERE (r.contextid is null or r.contextid=:contextid)".
-        // r.contextid will be null for users who haven't been peergraded yet.
-        // No longer including users who haven't been peergraded to reduce memory requirements.
-        $sql = "SELECT u.id as id, u.id AS userid, $aggregationstring(r.peergrade) AS rawgrade
+        // r.contextid will be null for users who haven't been rated yet.
+        // No longer including users who haven't been rated to reduce memory requirements.
+        $sql = "SELECT u.id as id, u.id AS userid, $aggregationstring(r.peergrade) AS rawgrade, 0 as type
                   FROM {user} u
              LEFT JOIN {{$itemtable}} i ON u.id=i.{$itemtableusercolumn}
              LEFT JOIN {peerforum_peergrade} r ON r.itemid=i.id
-             LEFT JOIN {role_assignments} ra ON ra.userid = r.userid
-             WHERE ra.roleid != 5 AND
-                       r.contextid = :contextid AND
+                       $stdjoin->joins
+                 WHERE r.contextid = :contextid AND
                        r.component = :component AND
                        r.peergradearea = :peergradearea
                        $singleuserwhere
               GROUP BY u.id";
-        $results = $DB->get_records_sql($sql, $params);
+        $results0 = $DB->get_records_sql($sql, $params + $stdjoin->params);
 
+        $profjoin = get_with_capability_join($context, 'mod/peerforum:professorpeergrade', 'r.userid');
+        $sql = "SELECT u.id as id, u.id AS userid, $aggregationstring(r.peergrade) AS rawgrade, 1 as type
+                  FROM {user} u
+             LEFT JOIN {{$itemtable}} i ON u.id=i.{$itemtableusercolumn}
+             LEFT JOIN {peerforum_peergrade} r ON r.itemid=i.id
+                       $profjoin->joins
+                 WHERE r.contextid = :contextid AND
+                       r.component = :component AND
+                       r.peergradearea = :peergradearea
+                       $singleuserwhere
+              GROUP BY u.id";
+        $results1 = $DB->get_records_sql($sql, $params + $profjoin->params);
+        $results = array_merge($results0, $results1);
+
+        $studentgivenpeergrades = array();
+        $professorgivenpeergrades = array();
         if ($results) {
 
             $peergradescale = null;
@@ -2303,12 +2220,12 @@ class peergrade_manager {
                 $max = $options->peergradescaleid;
             } else {
                 // Custom scales.
-                $peergradescale = $DB->get_record('peergradescale', array('id' => -$options->peergradescaleid));
+                $peergradescale = $DB->get_record('scale', array('id' => -$options->peergradescaleid));
                 if ($peergradescale) {
-                    $peergradescale = explode(',', $peergradescale->peergradescale);
+                    $peergradescale = explode(',', $peergradescale->scale);
                     $max = count($peergradescale);
                 } else {
-                    debugging('peergrade_manager::get_user_professors_peergrades() received a peergradescale ID that doesnt exist');
+                    debugging('peergrade_manager::get_user_grades() received a scale ID that doesnt exist');
                 }
             }
 
@@ -2328,9 +2245,19 @@ class peergrade_manager {
                     }
                 }
             }
+
+            foreach ($results as $result) {
+                if ($result->type === '0') {
+                    unset($result->type);
+                    $studentgivenpeergrades[$result->id] = $result;
+                } else if ($result->type === '1') {
+                    unset($result->type);
+                    $professorgivenpeergrades[$result->id] = $result;
+                }
+            }
         }
 
-        return $results;
+        return array($studentgivenpeergrades, $professorgivenpeergrades);
     }
 
     /**
@@ -2760,7 +2687,6 @@ class peergrade_manager {
             $assignoptions->expired = 0;
             $assignoptions->blocked = 0;
             $assignoptions->peergraded = 0;
-            $assignoptions->userinfo = null;
             $assignoptions->peergradeoptions = $peergradeoptions;
             $assign = new peergrade_assignment($assignoptions);
             if ($assign->assign()) {

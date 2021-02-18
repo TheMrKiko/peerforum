@@ -47,6 +47,8 @@ class gradeitems implements itemnumber_mapping, advanced_mapping {
         return [
                 0 => 'rating',
                 1 => 'peerforum',
+                2 => 'studentpeergrade',
+                3 => 'professorpeergrade',
         ];
     }
 
