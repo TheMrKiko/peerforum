@@ -261,5 +261,19 @@ function xmldb_peerforum_upgrade($oldversion) {
     // Automatically generated Moodle v3.10.0 release upgrade line.
     // Put any upgrade step following this.
 
+    if ($oldversion < 2021021803) {
+
+        // Changing precision of field type on table peerforum_discussions to (4).
+        $table = new xmldb_table('peerforum_discussions');
+        $field = new xmldb_field('type', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '2', 'idlink');
+
+        // Launch change of precision for field type.
+        $dbman->change_field_precision($table, $field);
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021021803, 'peerforum');
+    }
+
+
     return true;
 }

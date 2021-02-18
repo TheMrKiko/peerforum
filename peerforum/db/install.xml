@@ -105,7 +105,7 @@
                 <FIELD NAME="pinned" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="timelocked" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="idlink" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="type" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="2" SEQUENCE="false"/>
+                <FIELD NAME="type" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="2" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

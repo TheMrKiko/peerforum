@@ -103,7 +103,7 @@ class discussion {
             int $timeend,
             bool $pinned,
             int $locked,
-            int $type,
+            ?int $type,
             ?int $idlink
     ) {
         $this->id = $id;
