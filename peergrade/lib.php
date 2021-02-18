@@ -294,17 +294,17 @@ class peergrade_assignment {
     /**
      * @var int If the assignment was already peergraded and the id of the peergrade (if yes)
      */
-    public $peergraded;
+    public $peergraded = 0;
 
     /**
      * @var bool If the user is blocked from peer grading the item
      */
-    public $blocked;
+    public $blocked = 0;
 
     /**
      * @var bool If the user let the peer grade expire
      */
-    public $expired;
+    public $expired = 0;
 
     /**
      * Constructor.
@@ -338,6 +338,50 @@ class peergrade_assignment {
         if (isset($options->timemodified)) {
             $this->timemodified = $options->timemodified;
         }
+    }
+
+    /**
+     * Update this peergrade in the database
+     *
+     */
+    public function assign() {
+        global $DB;
+
+        $time = time();
+        $params = array();
+        $params['contextid'] = $this->context;
+        $params['component'] = $this->component;
+        $params['peergradearea'] = $this->peergradearea;
+        $params['itemid'] = $this->itemid;
+        $params['userid'] = $this->userid;
+
+        $sql = "SELECT r.id
+                  FROM {peerforum_time_assigned} r
+                 WHERE r.contextid = :contextid AND
+                       r.userid = :userid AND
+                       r.postid = :itemid AND
+                       r.component = :component AND
+                       r.peergradearea = :peergradearea";
+        $records = $DB->get_records_sql($sql, $params);
+
+        if (!empty($records)) {
+            return false;
+        }
+
+        $data = new stdClass;
+        // Insert a new peergrade.
+        $data->postid = $this->itemid;
+        $data->userid = $this->userid;
+        $data->timeassigned = $time;
+        $data->timemodified = $time;
+        $data->expired = $this->expired;
+        $data->blocked = $this->blocked;
+        $data->peergraded = $this->peergraded;
+        $data->contextid = $this->context->id;
+        $data->component = $this->component;
+        $data->peergradearea = $this->peergradearea;
+
+        return $DB->insert_record('peerforum_peergrade', $data);
     }
 } // End peergrade assignment class definition.
 
@@ -1778,9 +1822,8 @@ class peergrade_manager {
               ORDER BY r.itemid";
         $aggregatepeergrades = $DB->get_records_sql($sql, $params);
 
-
         $userfields = user_picture::fields('u', ['deleted'], 'userid');
-        $sql = "SELECT r.id, r.userid, r.peergraded, r.expired,  r.blocked, r.timeassigned, r.timemodified, $userfields
+        $sql = "SELECT r.id, r.postid, r.userid, r.peergraded, r.expired, r.blocked, r.timeassigned, r.timemodified, $userfields
                   FROM {peerforum_time_assigned} r
              LEFT JOIN {user} u ON r.userid = u.id
                  WHERE r.contextid = :contextid AND
@@ -1838,6 +1881,9 @@ class peergrade_manager {
             if (!empty($usersassigned)) {
                 $usersopts = array();
                 foreach ($usersassigned as $userassign) {
+                    if ($item->{$itemidcol} != $userassign->postid) {
+                        continue;
+                    }
                     $assignoptions = new stdClass();
                     $assignoptions->id = $userassign->id;
                     $assignoptions->userid = $userassign->userid;
@@ -2657,6 +2703,71 @@ class peergrade_manager {
             //$result->canshow = $canshow;
         }
         return $result;
+    }
+
+    /**
+     * Adds a new peergrade
+     *
+     * @param $peergradeoptions
+     * @return array
+     */
+    public function assign_peergraders($peergradeoptions) {
+        global $DB;
+
+        $users = get_users_by_capability($peergradeoptions->context, 'mod/peerforum:studentpeergrade', 'u.id AS userid');
+        // Get the items from the database.
+        list($useridtest, $params) = $DB->get_in_or_equal(
+                array_map(function ($u) {
+                    return $u->userid;
+                }, $users), SQL_PARAMS_NAMED);
+
+        $params['contextid'] = $peergradeoptions->context->id;
+        $params['component'] = $peergradeoptions->component;
+        $params['peergradearea'] = $peergradeoptions->peergradearea;
+
+        $sql = "SELECT r.userid, r.peergraded, SUM(r.expired) AS sexpied, MAX(r.timeassigned) AS lastassign, COUNT(p.id) AS numpeergrades
+                  FROM {peerforum_time_assigned} r
+             LEFT JOIN {peerforum_peergrade} p ON r.peergraded = p.id
+                 WHERE r.contextid = :contextid AND
+                       r.userid {$useridtest} AND
+                       r.component = :component AND
+                       r.peergradearea = :peergradearea
+              GROUP BY r.userid, r.component, r.peergradearea, r.contextid
+              ORDER BY numpeergrades ASC, sexpied ASC, lastassign ASC, r.userid";
+        $usersassigned = $DB->get_records_sql($sql, $params);
+
+        $emptyusers = array_filter($users, function($us) use ($usersassigned) {
+            return !isset($usersassigned[$us->userid]) || empty($usersassigned[$us->userid]);
+        });
+
+        $usersassigned = $emptyusers + $usersassigned;
+
+        // $userinfo = $DB->get_record('peerforum_peergrade_users', array('iduser' => $userid)); TODO check block!
+
+        $gradersalreadyassigned = array();
+        foreach ($usersassigned as $userassigned) {
+            if (count($gradersalreadyassigned) == $peergradeoptions->maxpeergraders) {
+                break;
+            }
+
+            if ($userassigned->userid == $peergradeoptions->itemuserid) {
+                continue;
+            }
+
+            $assignoptions = new stdClass();
+            $assignoptions->userid = $userassigned->userid;
+            $assignoptions->itemid = $peergradeoptions->itemid;
+            $assignoptions->expired = 0;
+            $assignoptions->blocked = 0;
+            $assignoptions->peergraded = 0;
+            $assignoptions->userinfo = null;
+            $assignoptions->peergradeoptions = $peergradeoptions;
+            $assign = new peergrade_assignment($assignoptions);
+            if ($assign->assign()) {
+                $gradersalreadyassigned[] = $userassigned->userid;
+            }
+        }
+        return $gradersalreadyassigned;
     }
 
     /**
