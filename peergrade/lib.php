@@ -2012,15 +2012,15 @@ class peergrade_manager {
         }
 
         // Check site capabilities.
-        $settings->permissions = new stdClass;
+        $settings->permissions = new stdClass; // TODO hacks to change!!!!!
         // Can view the aggregate of peergrades of their own items.
-        $settings->permissions->view = has_capability('mod/peerforum:view', $options->context);
+        $settings->permissions->view = has_capability('mod/peerforum:viewrating', $options->context);
         // Can view the aggregate of peergrades of other people's items.
-        $settings->permissions->viewany = has_capability('mod/peerforum:viewany', $options->context);
+        $settings->permissions->viewany = has_capability('mod/peerforum:viewanyrating', $options->context);
         // Can view individual peergrades.
-        $settings->permissions->viewall = has_capability('mod/peerforum:viewall', $options->context);
+        $settings->permissions->viewall = has_capability('mod/peerforum:viewallpeergrades', $options->context);
         // Can submit peergrades.
-        $settings->permissions->peergrade = has_capability('mod/peerforum:peergrade', $options->context);
+        $settings->permissions->peergrade = has_capability('mod/peerforum:rate', $options->context);
 
         // Check module capabilities
         // This is mostly for backwards compatability with old modules that previously implemented their own peergrades.

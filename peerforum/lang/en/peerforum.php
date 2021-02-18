@@ -1040,16 +1040,19 @@ $string['showdetails'] = 'Show option of remove/assign students on post';
 $string['showdetails_help'] =
         "Select 'yes' if you want to show, in a PeerForum post, two select options about assigning and removing students to peer grade the post.";
 $string['peerforum:raterating'] = "Add ratings to items";
-$string['mod/peerforum:grade'] = "Add peer grades to items";
+$string['mod/peerforum:peergrade'] = "Add peer grades to items";
+$string['mod/peerforum:grade'] = "Add grade to forum";
 $string['mod/peerforum:peergradepost'] = "Peer grade posts";
 $string['mod/peerforum:viewallpeergrades'] = "View all raw peer grades given by individuals";
 $string['mod/peerforum:viewallratings'] = "View all raw ratings given by individuals";
 $string['mod/peerforum:viewpanelpeergrades'] = "View Peer Grade panel";
-$string['peerforum:grade'] = "Peer grade an item";
+$string['peerforum:grade'] = "Grade forum";
 $string['peerforum:peergradepost'] = "Peer grade post";
 $string['peerforum:viewallpeergrades'] = "View all raw peer grades given by individuals";
 $string['peerforum:viewallrating'] = "View all raw ratings given by individuals";
 $string['peerforum:viewpanelpeergrades'] = "View Peer Grade panel";
+$string['peerforum:studentpeergrade'] = 'Be labeled as student while peer grading';
+$string['peerforum:professorpeergrade'] = 'Be labeled as professor while peer grading';
 $string['attribution_advanced'] = 'Enable advanced topic attribution';
 $string['attribution_advanced_help'] = "Select 'yes' if you want peer grading to have different student attribution rules.";
 $string['topicattribution'] = "Topic attribution";
@@ -1102,3 +1105,6 @@ $string['clicktosubscribe'] = "Click to subscribe";
 $string['discussionsubscription'] = "Subscription";
 $string['discussionsubscription_help'] =
         "If you are subscribed to a peerforum it means you will receive notification of new peerforum posts. Usually you can choose whether you wish to be subscribed, though sometimes subscription is forced so that everyone receives notifications.";
+/* Training */
+$string['peerforum:edittraining'] = 'Edit training pages';
+$string['peerforum:submittraining'] = 'Count for the training stats';
