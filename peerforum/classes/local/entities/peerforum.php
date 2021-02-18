@@ -1170,4 +1170,32 @@ class peerforum {
     public function is_adv_peergrading(): int {
         return $this->advpeergrading;
     }
+
+    /**
+     * Generate an array of peergrade options for get_peergrades().
+     * Intentionaly, no field item(s) or userid
+     *
+     * @return array
+     */
+    public function get_peergrade_options(): array {
+        return array(
+            'context' => $this->get_context(),
+            'component' => 'mod_peerforum',
+            'peergradearea' => 'post',
+            'aggregate' => $this->get_peergrade_aggregate(),
+            'peergradescaleid' => $this->get_peergradescale(),
+            'assesstimestart' => $this->get_peergradeassesstimestart(),
+            'assesstimefinish' => $this->get_peergradeassesstimefinish(),
+            'timetoexpire' => $this->get_timetopeergrade(),
+            'finishpeergrade' => $this->get_finishpeergrade(),
+            'enablefeedback' => $this->is_enablefeedback(),
+            'showpeergrades' => $this->is_showpeergrades(),
+            'minpeergraders' => $this->get_minpeergraders(),
+            'peergradevisibility' => $this->get_peergradesvisibility(),
+            'expirepost' => $this->is_expirepeergrade(),
+            'whenpeergradevisible' => $this->get_whenpeergrades(),
+            'remainanonymous' => $this->is_remainanonymous(),
+            'maxpeergraders' => $this->get_selectpeergraders(),
+        );
+    }
 }

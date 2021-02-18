@@ -452,6 +452,56 @@ class exported_posts {
     }
 
     /**
+     * Get the list of peergrades for each post. The peergrades are returned in an array
+     * indexed by the post id.
+     *
+     * @param stdClass $user The user viewing the peergrades.
+     * @param array $groupedposts List of posts grouped by discussions.
+     * @return array Sets of peergrades indexed by post id.
+     */
+    private function get_peergrades_from_posts(stdClass $user, array $groupedposts) {
+        $peergradesbypostid = [];
+        $postsdatamapper = $this->legacydatamapperfactory->get_post_data_mapper();
+        $postsbypeerforum = array_reduce($groupedposts, function($carry, $grouping) {
+            ['peerforum' => $peerforum, 'posts' => $posts] = $grouping;
+
+            $peerforumid = $peerforum->get_id();
+            if (!isset($carry[$peerforumid])) {
+                $carry[$peerforumid] = [
+                        'peerforum' => $peerforum,
+                        'posts' => []
+                ];
+            }
+
+            $carry[$peerforumid]['posts'] = array_merge($carry[$peerforumid]['posts'], $posts);
+            return $carry;
+        }, []);
+
+        foreach ($postsbypeerforum as $grouping) {
+            ['peerforum' => $peerforum, 'posts' => $posts] = $grouping;
+
+            if (!$peerforum->has_peergrade_aggregate()) {
+                continue;
+            }
+
+            $items = $postsdatamapper->to_legacy_objects($posts);
+            $peergradeoptions = (object) ([
+                    'items' => $items,
+                    'userid' => $user->id,
+            ] + $peerforum->get_peergrade_options());
+
+            $rm = $this->peergrademanager;
+            $items = $rm->get_peergrades($peergradeoptions);
+
+            foreach ($items as $item) {
+                $peergradesbypostid[$item->id] = empty($item->peergrade) ? null : $item->peergrade;
+            }
+        }
+
+        return $peergradesbypostid;
+    }
+
+    /**
      * Get the read receipt collections for the given viewing user and each peerforum. The
      * receipt collections will only be loaded for posts in peerforums that the user is tracking.
      *
