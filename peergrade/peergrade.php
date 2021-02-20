@@ -34,16 +34,14 @@ $component = required_param('component', PARAM_COMPONENT);
 $peergradearea = required_param('peergradearea', PARAM_AREA);
 $itemid = required_param('itemid', PARAM_INT);
 $peergradescaleid = required_param('peergradescaleid', PARAM_INT);
-$userpeergrade = optional_param('peergrade', null, PARAM_INT);
+$feedback = required_param('feedback', PARAM_TEXT);
+$userpeergrade = required_param('peergrade', PARAM_INT);
 $peergradeduserid =
         required_param('peergradeduserid', PARAM_INT); // Which user is being peergraded. Required to update their grade.
 $returnurl = required_param('returnurl', PARAM_LOCALURL); // Required for non-ajax requests.
-$feedback = required_param('feedback', PARAM_TEXT); // Required for non-ajax requests.
-$peerforumid = required_param('peerforumid', PARAM_INT);
+$finalgrademode = required_param('finalgrademode', PARAM_INT);
 
 $result = new stdClass;
-
-global $USER, $COURSE, $DB;
 
 list($context, $course, $cm) = get_context_info_array($contextid);
 require_login($course, false, $cm);
@@ -52,45 +50,20 @@ $contextid = null; // Now we have a context object, throw away the id from the u
 $PAGE->set_context($context);
 $PAGE->set_url('/peergrade/peergrade.php', array('contextid' => $context->id));
 
-if (!confirm_sesskey() || !has_capability('mod/peerforum:peergrade', $context)) {
-    print_error('peergradepermissiondenied', 'peergrade');
+if (!confirm_sesskey() ||
+        (!has_capability('mod/peerforum:studentpeergrade', $context) &&
+                !has_capability('mod/peerforum:professorpeergrade', $context))) {
+    print_error('peergradepermissiondenied', 'peerforum');
 }
 
-$exists_feedback = false;
-$feedback = PEERGRADE_UNSET_FEEDBACK;
-
-$edit = false;
-
-//Submit the written feedback
-if (isset($_POST['postpeergrademenusubmit' . $itemid])) {
-
-    if (isset($_POST['feedbacktext' . $itemid])) {
-        if (strlen(trim($_POST['feedbacktext' . $itemid]))) {
-
-            $feedback = htmlspecialchars($_POST['feedbacktext' . $itemid]);
-            $exists_feedback = true;
-
-        } else {
-            $feedback = PEERGRADE_UNSET_FEEDBACK;
-            $exists_feedback = false;
-        }
-    }
-}
-
-if (isset($_POST['editpeergrade' . $itemid])) {
-    $returnurl = $returnurl . '&editpostid=' . $itemid . '#p' . $itemid;
-
-    redirect($returnurl);
-
-}
-$rm = new peergrade_manager();
+$pgm = new peergrade_manager();
 
 // Check the module peergrade permissions.
 // Doing this check here rather than within peergrade_manager::get_peergrades() so we can choose how to handle the error.
-$pluginpermissionsarray = $rm->get_plugin_permissions_array($context->id, $component, $peergradearea);
+$pluginpermissionsarray = $pgm->get_plugin_permissions_array($context->id, $component, $peergradearea);
 
-if (!$pluginpermissionsarray['peergrade']) {
-    print_error('peergradepermissiondenied', 'peergrade');
+if (!$pgm->check_peergrade_permission($pluginpermissionsarray, $finalgrademode)) {
+    print_error('peergradepermissiondenied', 'peerforum');
 } else {
     $params = array(
             'context' => $context,
@@ -99,39 +72,27 @@ if (!$pluginpermissionsarray['peergrade']) {
             'itemid' => $itemid,
             'peergradescaleid' => $peergradescaleid,
             'peergrade' => $userpeergrade,
-            'peergradeduserid' => $peergradeduserid,
-            'feedback' => $feedback
+            'feedback' => $feedback,
+            'peergradeduserid' => $peergradeduserid
     );
-    if (!$rm->check_peergrade_is_valid($params)) {
+    if (!$pgm->check_peergrade_is_valid($params)) {
         echo $OUTPUT->header();
-        echo get_string('peergradeinvalid', 'peergrade');
+        echo get_string('peergradeinvalid', 'peerforum');
         echo $OUTPUT->footer();
         die();
     }
 }
 
-if (($userpeergrade != PEERGRADE_UNSET_PEERGRADE) && ($feedback != PEERGRADE_UNSET_FEEDBACK)) {
+$peergradeoptions = new stdClass;
+$peergradeoptions->context = $context;
+$peergradeoptions->component = $component;
+$peergradeoptions->peergradearea = $peergradearea;
+$peergradeoptions->itemid = $itemid;
+$peergradeoptions->peergradescaleid = $peergradescaleid;
+$peergradeoptions->userid = $USER->id;
 
-    $exists_peergrade = $DB->get_record('peerforum_peergrade', array('userid' => $USER->id, 'itemid' => $itemid));
-    if ($exists_peergrade) {
-        $edit = true;
-    } else {
-        $edit = false;
-    }
-
-    $peergradeoptions = new stdClass;
-    $peergradeoptions->context = $context;
-    $peergradeoptions->component = $component;
-    $peergradeoptions->peergradearea = $peergradearea;
-    $peergradeoptions->itemid = $itemid;
-    $peergradeoptions->peergradescaleid = $peergradescaleid;
-    $peergradeoptions->userid = $USER->id;
-    $peergradeoptions->feedback = $feedback;
-
-    $peergrade = new peergrade($peergradeoptions);
-    $peergrade->update_peergrade($userpeergrade, $feedback);
-    $rm->update_peergrader_posts($USER->id, $itemid, $COURSE->id);
-}
+$peergrade = new peergrade($peergradeoptions);
+$peergrade->update_peergrade($userpeergrade);
 
 if (!empty($cm) && $context->contextlevel == CONTEXT_MODULE) {
     // Tell the module that its grades have changed.
@@ -144,75 +105,4 @@ if (!empty($cm) && $context->contextlevel == CONTEXT_MODULE) {
     }
 }
 
-if ($userpeergrade == PEERGRADE_UNSET_PEERGRADE && $feedback == PEERGRADE_UNSET_FEEDBACK) {
-    $erro = $OUTPUT->notification(get_string('error:nopeergrade', 'peerforum'), 'notifyproblem');
-
-    $returnurl = $returnurl . '&editpostid=-2' . '#p' . $itemid;
-    redirect($returnurl, $erro, 10);
-
-} else if ($userpeergrade != PEERGRADE_UNSET_PEERGRADE && $feedback == PEERGRADE_UNSET_FEEDBACK) {
-    global $DB;
-    $enable_feedback = $DB->get_record('peerforum', array('id' => $peerforumid))->enablefeedback;
-
-    if ($enable_feedback) {
-        $erro = $OUTPUT->notification(get_string('error:nofeedback', 'peerforum'), 'notifyproblem');
-
-        $returnurl = $returnurl . '&editpostid=-2' . '#p' . $itemid;
-        redirect($returnurl, $erro, 10);
-    } else {
-        if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
-
-            $time = new stdclass();
-            $time->courseid = $COURSE->id;
-            $time->postid = $itemid;
-            $time->userid = $USER->id;
-            $time->timeassigned = time();
-            $time->timemodified = time();
-
-            $DB->insert_record("peerforum_time_assigned", $time);
-
-            $str = $OUTPUT->notification(get_string('submited:peergrade', 'peerforum'), 'notifymessage');
-        } else {
-            $str = $OUTPUT->notification(get_string('submited:peergradeupdated', 'peerforum'), 'notifymessage');
-        }
-
-        $returnurl = $returnurl . '&editpostid=-1' . '#p' . $itemid;
-        redirect($returnurl, $str, 10);
-    }
-
-} else if ($userpeergrade == PEERGRADE_UNSET_PEERGRADE && $feedback != PEERGRADE_UNSET_FEEDBACK) {
-    $erro = $OUTPUT->notification(get_string('error:nopeergrade', 'peerforum'), 'notifyproblem');
-
-    $returnurl = $returnurl . '&editpostid=-2' . '#p' . $itemid;
-    redirect($returnurl, $erro, 10);
-
-} else if ($userpeergrade != PEERGRADE_UNSET_PEERGRADE && $feedback != PEERGRADE_UNSET_FEEDBACK) {
-
-    $maxtime = $CFG->maxeditingtime;
-
-    if (!$edit) {
-        $edit = '<p>' . get_string("peergradeaddedtimeleft", "peerforum", format_time($maxtime)) . '</p>';
-        $str = $OUTPUT->notification(get_string('submited:peergrade', 'peerforum') . $edit, 'notifymessage');
-    } else {
-
-        if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
-
-            $time = new stdclass();
-            $time->courseid = $COURSE->id;
-            $time->postid = $itemid;
-            $time->userid = $USER->id;
-            $time->timeassigned = time();
-            $time->timemodified = time();
-
-            $DB->insert_record("peerforum_time_assigned", $time);
-
-            $str = $OUTPUT->notification(get_string('submited:peergrade', 'peerforum'), 'notifymessage');
-        }
-        if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
-            $str = $OUTPUT->notification(get_string('submited:peergradeupdated', 'peerforum'), 'notifymessage');
-        }
-    }
-
-    $returnurl = $returnurl . '&editpostid=-1' . '#p' . $itemid;
-    redirect($returnurl, $str, 10);
-}
+redirect($returnurl);
