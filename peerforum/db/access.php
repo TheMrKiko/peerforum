@@ -26,8 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $capabilities = array(
 
-    //---- New capabilities of PeerForum ----//
-        'mod/peerforum:viewpanelpeergrades' => array( // Aka view peergrade panel.
+        'mod/peerforum:viewpanelpeergrades' => array( // Aka view peergrade professor panel.
 
                 'captype' => 'read',
                 'contextlevel' => CONTEXT_MODULE,
@@ -39,8 +38,46 @@ $capabilities = array(
                 )
         ),
 
+        /* ---------- START/PEERGRADE ---------- */
+        'mod/peerforum:viewpeergrade' => array(
+
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'student' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewsomepeergrades' => array(
+
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'student' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
+        'mod/peerforum:viewanypeergrade' => array(
+
+                'riskbitmask' => RISK_PERSONAL,
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array(
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+
         'mod/peerforum:viewallpeergrades' => array(
 
+                'riskbitmask' => RISK_PERSONAL,
                 'captype' => 'read',
                 'contextlevel' => CONTEXT_MODULE,
                 'archetypes' => array(
@@ -82,8 +119,7 @@ $capabilities = array(
                         'student' => CAP_ALLOW
                 )
         ),
-
-    //---------------------------------------//
+        /* ---------- END/PEERGRADE ---------- */
 
         /* ---------- START/TRAINING ---------- */
         'mod/peerforum:submittraining' => array(

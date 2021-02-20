@@ -1962,6 +1962,34 @@ function peerforum_grading_permissions($contextid, $component, $gradingarea) {
 }
 
 /**
+ * Returns the peergrade related permissions
+ *
+ * @param int $contextid
+ * @param string $component
+ * @param string $gradingarea
+ * @return array with permissions
+ */
+function peerforum_peergrade_permissions($contextid, $component, $gradingarea) {
+
+    $context = context::instance_by_id($contextid, MUST_EXIST);
+    if ($component != 'mod_peerforum' || $gradingarea != 'post') {
+        // We don't know about this component/peergradearea so just return null to get the
+        // default restrictive permissions.
+        return null;
+    }
+
+    return array(
+            'view' => has_capability('mod/peerforum:viewpeergrade', $context),
+            'viewany' => has_capability('mod/peerforum:viewanypeergrade', $context),
+            'viewsome' => has_capability('mod/peerforum:viewsomepeergrades', $context),
+            'viewall' => has_capability('mod/peerforum:viewallpeergrades', $context),
+            'student' => has_capability('mod/peerforum:studentpeergrade', $context),
+            'professor' => has_capability('mod/peerforum:professorpeergrade', $context),
+            'peergrade' => has_capability('mod/peerforum:peergrade', $context), // Hack! DELETE!
+    );
+}
+
+/**
  * Returns the name of all students enrolled in a given course
  *
  * @param int $courseid
