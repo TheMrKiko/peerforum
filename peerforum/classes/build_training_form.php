@@ -59,11 +59,12 @@ class mod_peerforum_build_training_form extends moodleform {
         $mform = $this->_form; // Don't forget the underscore!
 
         $peerforum = $this->_customdata['peerforum'];
-        $ratingscaleitems = $this->_customdata['ratingscaleitems'];
+        $peergradescaleitems = $this->_customdata['peergradescaleitems'];
         $trainingpage = $this->_customdata['trainingpage'];
         $edit = $this->_customdata['edit'];
 
-        $scalearray = array(RATING_UNSET_RATING => 'Rating...') + $ratingscaleitems;
+
+        $scalearray = array(PEERGRADE_UNSET_PEERGRADE => 'Rating...') + $peergradescaleitems;
 
         /*--------------------------------------- HEADER ---------------------------------------*/
         /* Name */
@@ -140,7 +141,7 @@ class mod_peerforum_build_training_form extends moodleform {
             $repeatarray[] = $mform->createElement('html', '<h4>What to show if student grades as:</h4>');
 
             /*-- Feedback strings --*/
-            foreach ($ratingscaleitems as $rid => $str) {
+            foreach ($peergradescaleitems as $rid => $str) {
                 /* Text */
                 $repeatarray[] = $mform->createElement('text', 'feedback[feedback]['.$rid.']['.$critid.']',
                         '... a ' . $str . '? (use {'.$rid.'} for repetition)');
@@ -167,7 +168,7 @@ class mod_peerforum_build_training_form extends moodleform {
         $repeatarray[] = $mform->createElement('html', '<h4>What to show if student grades as:</h4>');
 
         /*-- Feedback strings --*/
-        foreach ($ratingscaleitems as $rid => $str) {
+        foreach ($peergradescaleitems as $rid => $str) {
             /* Text */
             $repeatarray[] = $mform->createElement('text', 'feedback[feedback]['.$rid.'][-1]',
                     'a ' . $str . '? (use {'.$rid.'} for repetition)');

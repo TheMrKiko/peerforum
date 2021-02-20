@@ -129,27 +129,28 @@ foreach ($trainingpage->exercise['description'] as $k => $d) {
             $modcontext->id, 'mod_peerforum', 'training', $trainingpage->id.$k);
 }
 
-$ratingoptions = (object) [
-        'context' => $modcontext,
-        'component' => 'mod_peerforum',
-        'ratingarea' => 'post',
-        'items' => array((object) [
-                'id' => 0,
-                'userid' => 0
-        ]),
-        'aggregate' => $peerforum->peergradeassessed,
-        'scaleid' => $peerforum->peergradescale,
-        'userid' => 0,
-        'peerforum' => $peerforum,
-];
+if ($peerforum->peergradeassessed) {
+    $peergradeoptions = (object) [
+            'context' => $modcontext,
+            'component' => 'mod_peerforum',
+            'peergradearea' => 'post',
+            'items' => array((object) [
+                    'id' => 0,
+                    'userid' => 0
+            ]),
+            'aggregate' => $peerforum->peergradeassessed,
+            'peergradescaleid' => $peerforum->peergradescale,
+            'userid' => 0
+    ];
 
-$rm = \mod_peerforum\local\container::get_manager_factory()->get_rating_manager();
-$rating = $rm->get_ratings($ratingoptions)[0]->rating;
-$ratingscaleitems = $rating->settings->scale->scaleitems;
+    $pgm = \mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
+    $peergrade = $pgm->get_peergrades($peergradeoptions)[0]->peergrade;
+}
+$peergradescaleitems = $peergrade->settings->peergradescale->peergradescaleitems ?? array();
 
 $mformpage = new mod_peerforum_training_form('training.php', [
         'peerforum' => $peerforum,
-        'ratingscaleitems' => $ratingscaleitems,
+        'peergradescaleitems' => $peergradescaleitems,
         'trainingpage' => $trainingpage,
         'submission' => $trainingsubmission ?? null,
 ]);

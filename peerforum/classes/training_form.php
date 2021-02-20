@@ -47,14 +47,14 @@ class mod_peerforum_training_form extends moodleform {
         $mform = $this->_form; // Don't forget the underscore!
 
         $peerforum = $this->_customdata['peerforum'];
-        $ratingscaleitems = $this->_customdata['ratingscaleitems'];
+        $peergradescaleitems = $this->_customdata['peergradescaleitems'];
         $trainingpage = $this->_customdata['trainingpage'];
         $trainingsubmission = $this->_customdata['submission'];
         $submitted = isset($trainingsubmission) && !empty($trainingsubmission);
 
         $exercises = (int) $trainingpage->exercises;
 
-        $scalearray = array(RATING_UNSET_RATING => 'Rating...') + $ratingscaleitems;
+        $scalearray = array(PEERGRADE_UNSET_PEERGRADE => 'Rating...') + $peergradescaleitems;
 
         /*--------------------------------------- EXERCISES ---------------------------------------*/
         foreach (range(0, $exercises) as $k) {
@@ -176,7 +176,7 @@ class mod_peerforum_training_form extends moodleform {
         $grades = $data['grades']['grade'] ?? array();
         foreach ($grades as $critid => $g) {
             foreach ($g as $exid => $v) {
-                if ($v == RATING_UNSET_RATING) {
+                if ($v == PEERGRADE_UNSET_PEERGRADE) {
                     $errors['grades[grade][' . $critid . '][' . $exid . ']'] = 'You gotta give a grade to this!';
                 }
             }
