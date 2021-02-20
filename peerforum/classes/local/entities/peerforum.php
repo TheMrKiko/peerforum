@@ -985,7 +985,7 @@ class peerforum {
     /**
      * @return int
      */
-    public function is_finalgrademode(): int {
+    public function get_finalgrademode(): int {
         return $this->finalgrademode;
     }
 
@@ -1196,6 +1196,7 @@ class peerforum {
             'whenpeergradevisible' => $this->get_whenpeergrades(),
             'remainanonymous' => $this->is_remainanonymous(),
             'maxpeergraders' => $this->get_selectpeergraders(),
+            'finalgrademode' => $this->get_finalgrademode(),
         );
     }
 }

@@ -88,7 +88,7 @@ class peerforum {
                     'minpeergraders' => $peerforum->get_minpeergraders(),
                     'finishpeergrade' => $peerforum->get_finishpeergrade(),
                     'timetopeergrade' => $peerforum->get_timetopeergrade(),
-                    'finalgrademode' => $peerforum->is_finalgrademode(),
+                    'finalgrademode' => $peerforum->get_finalgrademode(),
                     'studentpercentage' => $peerforum->is_studentpercentage(),
                     'professorpercentage' => $peerforum->is_professorpercentage(),
                     'allowpeergrade' => $peerforum->is_allowpeergrade(),
