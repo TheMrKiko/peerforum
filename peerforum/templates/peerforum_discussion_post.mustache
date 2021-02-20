@@ -135,6 +135,12 @@
                     <div id="post-content-{{id}}" class="post-content-container">
                         {{{message}}}
                     </div>
+                    {{/capabilities.viewreply}}
+                    {{^capabilities.viewreply}}
+                        <div id="post-content-{{id}}" style="color: var(--info);" class="content post-content-container">
+                            Sorry, you can only see this reply after the peer grading is complete.
+                        </div>
+                    {{/capabilities.viewreply}}
 
                     {{^isdeleted}}
                         {{#haswordcount}}
@@ -327,12 +333,6 @@
 
                         {{$footer}}{{/footer}}
                     {{/isdeleted}}
-                    {{/capabilities.viewreply}}
-                    {{^capabilities.viewreply}}
-                        <div id="post-content-{{id}}" class="content post-content-container">
-                            Sorry, you can't see this post yet.
-                        </div>
-                    {{/capabilities.viewreply}}
                 </div>
             </div>
         </div>
