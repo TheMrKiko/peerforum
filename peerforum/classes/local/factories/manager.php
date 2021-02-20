@@ -68,7 +68,8 @@ class manager {
                 $peerforum,
                 $this->legacydatamapperfactory->get_peerforum_data_mapper(),
                 $this->legacydatamapperfactory->get_discussion_data_mapper(),
-                $this->legacydatamapperfactory->get_post_data_mapper()
+                $this->legacydatamapperfactory->get_post_data_mapper(),
+                $this->get_peergrade_manager()
         );
     }
 

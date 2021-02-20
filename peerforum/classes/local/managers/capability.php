@@ -36,6 +36,7 @@ use mod_peerforum\local\container;
 use mod_peerforum\subscriptions;
 use context;
 use context_system;
+use peergrade_manager;
 use stdClass;
 use moodle_exception;
 
@@ -56,6 +57,8 @@ class capability {
     private $discussiondatamapper;
     /** @var legacy_post_data_mapper $postdatamapper Legacy post data mapper */
     private $postdatamapper;
+    /** @var peergrade_manager $peergrademanager Peergrade manager */
+    private $peergrademanager;
     /** @var peerforum_entity $peerforum PeerForum entity */
     private $peerforum;
     /** @var stdClass $peerforumrecord Legacy peerforum record */
@@ -72,16 +75,19 @@ class capability {
      * @param legacy_peerforum_data_mapper $peerforumdatamapper Legacy peerforum data mapper
      * @param legacy_discussion_data_mapper $discussiondatamapper Legacy discussion data mapper
      * @param legacy_post_data_mapper $postdatamapper Legacy post data mapper
+     * @param peergrade_manager $peergrademanager Peergrade manager
      */
     public function __construct(
             peerforum_entity $peerforum,
             legacy_peerforum_data_mapper $peerforumdatamapper,
             legacy_discussion_data_mapper $discussiondatamapper,
-            legacy_post_data_mapper $postdatamapper
+            legacy_post_data_mapper $postdatamapper,
+            peergrade_manager $peergrademanager
     ) {
         $this->peerforumdatamapper = $peerforumdatamapper;
         $this->discussiondatamapper = $discussiondatamapper;
         $this->postdatamapper = $postdatamapper;
+        $this->peergrademanager = $peergrademanager;
         $this->peerforum = $peerforum;
         $this->peerforumrecord = $peerforumdatamapper->to_legacy_object($peerforum);
         $this->context = $peerforum->get_context();
@@ -418,36 +424,45 @@ class capability {
      * Returns if a reply given by a teacher can be seen by students.
      * Posts need to either have the minimum peergrades given or expired!
      *
+     * @param stdClass $user The user to check
      * @param post_entity $post
      * @return bool if students can see teacher reply.
      */
-    public function can_see_reply(post_entity $post): bool {
+    public function can_view_reply(stdClass $user, post_entity $post): bool {
         $peerforum = $this->get_peerforum();
-        if (!$peerforum->is_hidereplies()) {
+        if (!$peerforum->is_hidereplies() || has_capability('mod/peerforum:professorpeergrade', $this->context, $user)) {
             return true;
         }
-
-        $postauthor = $post->get_author_id();
-        // TODO Fazer disto uma capacidade!
-        $isstudent = current(get_user_roles($this->get_context(), $postauthor))->shortname == 'student';
-        if ($isstudent || !$post->has_parent()) {
-            return true;
-        }
+        // We are professors, a omnipresent force. or we dont care.
 
         $parentpostid = $post->get_parent_id();
-        $postparentauthor = container::get_vault_factory()->get_post_vault()->get_from_id($parentpostid)->get_author_id();
-        // This student is the author!
-        $isstudent = current(get_user_roles($this->get_context(), $postparentauthor))->shortname == 'student';
-
-        if ($isstudent && !has_capability('mod/peerforum:viewallpeergrades', $this->get_context())) {
-            $minpeergraders = end_peergrade_post($parentpostid, $this->get_peerforum_record());
-            if ($minpeergraders) {
-                return true;
-            }
-            return post_has_expired($this->get_post_record($post), $this->get_peerforum_record());
+        if (!$parentpostid) {
+            return true;
         }
-        // Post if from student but being acessed by teacher.
-        return true;
+        // This is a reply.
+
+        $postauthor = $post->get_author_id();
+        if (!has_capability('mod/peerforum:professorpeergrade', $this->context, $postauthor)) {
+            return true;
+        }
+        // This is a reply by the professor.
+
+        $postparent = container::get_vault_factory()->get_post_vault()->get_from_id($parentpostid);
+        $postparentauthor = $postparent->get_author_id();
+        if (has_capability('mod/peerforum:professorpeergrade', $this->context, $postparentauthor)) {
+            return true;
+        }
+        // This is a reply by the professor to a student.
+
+        $pgm = $this->peergrademanager;
+        $peergradeoptions = $peerforum->get_peergrade_options();
+        $peergradeoptions += array(
+                'userid' => $user->id,
+                'items' => array($this->postdatamapper->to_legacy_object($postparent)),
+        );
+        $peergrade = $pgm->get_peergrades((object) $peergradeoptions)[0]->peergrade;
+
+        return $peergrade->is_ended();
     }
 
     /**

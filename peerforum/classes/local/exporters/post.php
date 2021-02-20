@@ -389,7 +389,7 @@ class post extends exporter {
         $cancontrolreadstatus = $capabilitymanager->can_manually_control_post_read_status($user);
         $canselfenrol = $capabilitymanager->can_self_enrol($user);
         $canreplyprivately = $capabilitymanager->can_reply_privately_to_post($user, $post);
-        $canviewreply = $capabilitymanager->can_see_reply($post);
+        $canviewreply = $capabilitymanager->can_view_reply($user, $post);
 
         $urlfactory = $this->related['urlfactory'];
         $viewurl = $canview ? $urlfactory->get_view_post_url_from_post($post) : null;
