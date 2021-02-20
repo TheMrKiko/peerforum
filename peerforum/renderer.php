@@ -243,7 +243,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $formstart = null;
         // If the item doesn't belong to the current user, the user has permission to peergrade
         // and we're within the assessable period.
-        if ($peergrade->user_can_peergrade()) {
+        if ($peergrade->user_can_peergrade() || $peergrade->can_edit()) {
 
             $peergradeurl = $peergrade->get_peergrade_url();
             $inputs = $peergradeurl->params();
@@ -266,7 +266,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             }
 
             if (empty($peergradehtml)) {
-                $peergradehtml .= $strpeergrade . ': ';
+                $peergradehtml .= html_writer::span($strpeergrade . ': ', 'font-weight-bold');
             }
             $peergradehtml = $formstart . $peergradehtml;
 
@@ -290,14 +290,18 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
             // Output the text feedback.
             if ($peergrade->settings->enablefeedback) {
-                $attributes = array('name' => 'feedbacktext' . $peergrade->itemid,
+                $attributes = array('name' => 'feedback',
                         'form' => "postpeergrade{$peergrade->itemid}",
-                        'class' => 'feedbacktext', 'id' => 'feedbacktext' . $peergrade->itemid,
+                        'class' => 'feedbacktext peergradeinput', 'id' => 'feedback' . $peergrade->itemid,
                         'wrap' => 'virtual', 'style' => 'height: 100%; width: 98%; max-width: 98%;',
                         'rows' => '5', 'cols' => '5',
                         'placeholder' => get_string('writefeedback', 'peerforum'));
 
                     $peergradehtml .= html_writer::tag('textarea', $peergrade->feedback, $attributes);
+            } else {
+                $attributes = array('type' => 'hidden', 'class' => 'peergradeinput',
+                        'name' => 'feedback', 'value' => PEERGRADE_UNSET_FEEDBACK);
+                $peergradehtml .= html_writer::empty_tag('input', $attributes);
             }
 
             // Feedback autor.
@@ -315,8 +319,6 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     'value' => s(get_string('peergrade', 'peerforum')));
             $peergradehtml .= html_writer::empty_tag('input', $attributes);
 
-            $peergradehtml .= html_writer::tag('div', $grader, array('class' => 'author')); // Author.
-
             if (!$peergrade->settings->peergradescale->isnumeric) {
                 // If a global scale, try to find current course ID from the context.
                 if (empty($peergrade->settings->peergradescale->courseid) &&
@@ -327,14 +329,23 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                 }
                 $peergradehtml .= $this->output->help_icon_scale($courseid, $peergrade->settings->peergradescale);
             }
+
+            $confmessage = $peergrade->can_edit() ? 'You can still edit.' : '';
+            // Confirmation for the user.
+            $peergradehtml .= html_writer::span($confmessage, array('id' => 'confirmation' . $peergrade->itemid,
+                    'style' => 'color: #ff6666;'));
+
             $peergradehtml .= html_writer::end_tag('span');
+
+            $peergradehtml .= html_writer::tag('p', $grader, array('class' => 'author')); // Author.
+
             $peergradehtml .= html_writer::end_tag('div');
             $peergradehtml .= html_writer::end_tag('form');
         } else if ($peergrade->is_expired_for_user()) {
             $peergradehtml .= html_writer::tag('p', "Your time to peer grade this post has expired!",
                     array('style' => 'color: #6699ff;'));
         } else if ($peergrade->get_self_assignment()) {
-            $peergradehtml .= html_writer::tag('p', "The activity of peer grading this post has ended.",
+            $peergradehtml .= html_writer::tag('p', "The activity of peer grading this post has ended for you.",
                     array('style' => 'color: #6699ff;'));
         }
 

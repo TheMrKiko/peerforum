@@ -25,7 +25,7 @@
  *             div.footer
  */
 /* TODO Check for the theme used! */
-#feedbacktext {
+.feedbacktext {
     height: 100%;
     width: 98%;
 }
