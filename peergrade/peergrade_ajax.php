@@ -37,12 +37,10 @@ $peergradearea = required_param('peergradearea', PARAM_AREA);
 $itemid = required_param('itemid', PARAM_INT);
 $peergradescaleid = required_param('peergradescaleid', PARAM_INT);
 $userpeergrade = required_param('peergrade', PARAM_INT);
+$userfeedback = required_param('feedback', PARAM_TEXT);
 $peergradeduserid = required_param('peergradeduserid', PARAM_INT); // The user being peergraded. Required to update their grade.
 $aggregationmethod =
         optional_param('aggregation', PEERGRADE_AGGREGATE_NONE, PARAM_INT); // Used to calculate the aggregate to return.
-$feedback = required_param('feedback', PARAM_TEXT);
-// TODO: change to zero by default?
-// $canshow = optional_param('canshow', 1, PARAM_INT);
 
 $result = new stdClass;
 
@@ -60,20 +58,21 @@ $contextid = null; // Now we have a context object, throw away the id from the u
 $PAGE->set_context($context);
 $PAGE->set_url('/peergrade/peergrade_ajax.php', array('contextid' => $context->id));
 
-if (!confirm_sesskey() || !has_capability('mod/peerforum:peergrade', $context)) {
+if (!confirm_sesskey() || (!has_capability('mod/peerforum:studentpeergrade', $context) &&
+                !has_capability('mod/peerforum:professorpeergrade', $context))) {
     echo $OUTPUT->header();
-    echo get_string('peergradepermissiondenied', 'peergrade');
+    echo get_string('peergradepermissiondenied', 'peerforum');
     echo $OUTPUT->footer();
     die();
 }
 
 $rm = new peergrade_manager();
-$result = $rm->add_peergrade($cm, $context, $component, $peergradearea, $itemid, $peergradescaleid, $userpeergrade, $peergradeduserid,
-        $aggregationmethod, $feedback);
+$result = $rm->add_peergrade($cm, $context, $component, $peergradearea, $itemid, $peergradescaleid,
+        $userpeergrade, $peergradeduserid, $aggregationmethod, $userfeedback);
 
 // Return translated error.
 if (!empty($result->error)) {
-    $result->error = get_string($result->error, 'peergrade');
+    $result->error = get_string($result->error, 'peerforum');
 }
 
 echo json_encode($result);

@@ -6,15 +6,16 @@ M.core_peergrade = {
 
     init: function (Y) {
         this.Y = Y;
-        Y.all('select.postpeergrademenu').each(this.attach_peergrade_events, this);
-
+        Y.all('input.postpeergrademenusubmit').each(this.attach_peergrade_events, this);
     },
 
     attach_peergrade_events: function (selectnode) {
-        selectnode.on('change', this.submit_peergrade, this, selectnode);
+        selectnode.on('click', this.submit_peergrade, this, selectnode);
     },
 
     submit_peergrade: function (e, selectnode) {
+        e.preventDefault();
+
         var theinputs = selectnode.ancestor('form').all('.peergradeinput');
         var thedata = [];
 
@@ -38,8 +39,8 @@ M.core_peergrade = {
 
                         var data = scope.Y.JSON.parse(outcome.responseText);
                         if (data.success) {
-                            //if the user has access to the aggregate then update it
-                            if (data.itemid /*&& data.canshow*/) { //do not test data.aggregate or data.count otherwise it doesn't refresh value=0 or no value
+                            // If the user has access to the aggregate then update it.
+                            if (data.itemid) { // Do not test data.aggregate or data.count otherwise it doesn't refresh value=0 or no value.
                                 var itemid = data.itemid;
 
                                 var node = scope.Y.one('#peergradeaggregate' + itemid);
@@ -53,8 +54,12 @@ M.core_peergrade = {
                                     node.set('innerHTML', "");
                                 }
                             }
+                            var node = scope.Y.one('#confirmation' + data.id);
+                            node.set('innerHTML', "Peer grade submitted with success! Thanks!");
                             return true;
                         } else if (data.error) {
+                            var node = scope.Y.one('#confirmation' + data.id);
+                            node.set('innerHTML', "Godjy bodji, an error!");
                             alert(data.error);
                         }
                     } catch (e) {
