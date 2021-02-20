@@ -274,6 +274,21 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021021803, 'peerforum');
     }
 
+    if ($oldversion < 2021021901) {
+
+        // Define field ended to be added to peerforum_time_assigned.
+        $table = new xmldb_table('peerforum_time_assigned');
+        $field = new xmldb_field('ended', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'blocked');
+
+        // Conditionally launch add field ended.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021021901, 'peerforum');
+    }
+
 
     return true;
 }
