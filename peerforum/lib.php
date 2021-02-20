@@ -2305,11 +2305,12 @@ function get_time_left($time_interval) {
  *            component => The component for this module - should always be mod_peerforum [required]
  *            peergradearea => object the context in which the peergraded items exists [required]
  *            itemid => int the ID of the object being peergraded [required]
- *            scaleid => int the scale from which the user can select a peergrade. Used for bounds checking. [required]
- *            rating => int the submitted peergrade [required]
- *            rateduserid => int the id of the user whose items have been peergraded. NOT the user who submitted the
- *         peergrading. 0 to update all. [required] aggregation => int the aggregation method to apply when calculating grades ie
- *         PEERGRADE_AGGREGATE_AVERAGE [required]
+ *            peergradescaleid => int the scale from which the user can select a peergrade. Used for bounds checking. [required]
+ *            peergrade => int the submitted peergrade [required]
+ *            feedback => string the submitted feedback [required]
+ *            peergradeduserid => int the id of the user whose items have been peergraded. NOT the user who submitted the
+ *         peergrading. 0 to update all. [required]
+ *            aggregation => int the aggregation method to apply when calculating grades ie PEERGRADE_AGGREGATE_AVERAGE [required]
  * @return boolean true if the peergrade is valid. Will throw peergrade_exception if not
  */
 function peerforum_peergrade_validate($params) {
@@ -2356,10 +2357,17 @@ function peerforum_peergrade_validate($params) {
         }
     }
 
+    if ($params['peergrade'] === PEERGRADE_UNSET_PEERGRADE) {
+        throw new peergrade_exception('invalidnum4');
+    }
+    if ($peerforum->enablefeedback && $params['feedback'] === PEERGRADE_UNSET_FEEDBACK) {
+        throw new peergrade_exception('nofeedback', 'peerforum');
+    }
+
     //check that the submitted rating is valid for the scale
 
     // lower limit
-    if ($params['peergrade'] < 0 && $params['peergrade'] != PEERGRADE_UNSET_PEERGRADE) {
+    if ($params['peergrade'] < 0) {
         throw new peergrade_exception('invalidnum4');
     }
 
@@ -2400,6 +2408,20 @@ function peerforum_peergrade_validate($params) {
     }
 
     return true;
+}
+
+function peerforum_peergrade_extrasettings($contextid, $component, $gradingarea) {
+    $context = context::instance_by_id($contextid, MUST_EXIST);
+    if ($component != 'mod_peerforum' || $gradingarea != 'post') {
+        // We don't know about this component/peergradearea so just return null to get the
+        // default restrictive permissions.
+        return null;
+    }
+
+    $peerforumvault = \mod_peerforum\local\container::get_vault_factory()->get_peerforum_vault();
+    $peerforum = $peerforumvault->get_from_course_module_id($context->instanceid);
+
+    return $peerforum->get_peergrade_options();
 }
 
 /**

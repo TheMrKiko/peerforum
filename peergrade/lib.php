@@ -340,6 +340,9 @@ class peergrade_assignment {
         $this->peergraded = $options->peergraded;
         $this->expired = $options->expired;
 
+        if (isset($options->id)) {
+            $this->id = $options->id;
+        }
         if (isset($options->userinfo)) {
             $this->userinfo = $options->userinfo;
         }
@@ -395,6 +398,19 @@ class peergrade_assignment {
         $data->peergradearea = $this->peergradearea;
 
         return $DB->insert_record('peerforum_time_assigned', $data);
+    }
+
+    public function update_peergrade($peergradeid) {
+        global $DB;
+
+        $time = time();
+
+        $data = new stdClass;
+        $data->id = $this->id;
+        $data->peergraded = $peergradeid;
+        $data->timemodified = $time;
+        $data->ended = 1;
+        $DB->update_record('peerforum_time_assigned', $data);
     }
 } // End peergrade assignment class definition.
 
@@ -596,11 +612,7 @@ class peergrade implements renderable {
         $items = $rm->get_peergrades($peergradeoptions);
         $firstitem = $items[0]->peergrade;
 
-        if (!empty($firstitem->id)) {
-            $peergrader = $rm->get_post_peergrader($firstitem->id);
-        }
-
-        //obj does not exist in DB
+        // Obj does not exist in DB.
         if (empty($firstitem->id)) {
             // Insert a new peergrade.
             $data->contextid = $this->context->id;
@@ -617,10 +629,9 @@ class peergrade implements renderable {
             $data->peergraderid = 0;
             $data->scaleid = 0;
 
-            $DB->insert_record('peerforum_peergrade', $data);
-        }
-
-        if (!empty($firstitem->id) && $peergrader == $this->userid) {
+            $id = $DB->insert_record('peerforum_peergrade', $data);
+            $firstitem->get_self_assignment($this->userid)->update_peergrade($id);
+        } else {
             // Update the peergrade.
             $data->id = $firstitem->id;
             $DB->update_record('peerforum_peergrade', $data);
@@ -724,11 +735,14 @@ class peergrade implements renderable {
     /**
      * Returns the peer grade assignment to this user, if was assigned.
      *
+     * @param int|null $userid
      * @return peergrade_assignment|null
      */
-    public function get_self_assignment(): ?peergrade_assignment {
-        global $USER;
-        $userid = $USER->id;
+    public function get_self_assignment($userid = null): ?peergrade_assignment {
+        if (empty($userid)) {
+            global $USER;
+            $userid = $USER->id;
+        }
         return $this->usersassigned[$userid] ?? null;
     }
 
@@ -755,7 +769,7 @@ class peergrade implements renderable {
         $userid = $USER->id;
 
         // You only can peergrade your item.
-        if ($this->itemuserid != $userid) {
+        if ($this->userid != $userid) {
             return false;
         }
 
@@ -1179,7 +1193,7 @@ class peergrade implements renderable {
         }
 
         // You can't peergrade if you don't have the system cap and the pugin cap and depends on the final grade mode.
-        if (!$this->has_permissions_to_peergrade()) {
+        if (!$this->settings->pluginpermissions->peergrade) {
             return false;
         }
 
@@ -1283,34 +1297,6 @@ class peergrade implements renderable {
     }
 
     /**
-     * Returns the grading permissions based on the final grade mode. Useful because there are several.
-     *
-     * @return bool
-     */
-    public function has_permissions_to_peergrade(): bool {
-        switch ($this->settings->finalgrademode) {
-            case PEERFORUM_MODE_PROFESSOR:
-                // You can't rate if you don't have the system cap and the plugin cap (cause now are the same).
-                if (!$this->settings->permissions->professor || !$this->settings->pluginpermissions->professor) {
-                    return false;
-                }
-                break;
-            case PEERFORUM_MODE_STUDENT:
-                // You can't rate if you don't have the system cap and the plugin cap (cause now are the same).
-                if (!$this->settings->permissions->student || !$this->settings->pluginpermissions->student) {
-                    return false;
-                }
-                break;
-            case PEERFORUM_MODE_PROFESSORSTUDENT:
-                // You can't rate if you don't have the system cap and the plugin cap (cause now are the same).
-                return ($this->settings->permissions->professor && $this->settings->pluginpermissions->professor) ||
-                        ($this->settings->permissions->student && $this->settings->pluginpermissions->student);
-        }
-
-        return true;
-    }
-
-    /**
      * Returns true if the user is able to view the aggregate for this peergrade object.
      *
      * @param int|null $userid If left empty the current user is assumed.
@@ -1398,7 +1384,7 @@ class peergrade implements renderable {
      */
     public function can_peergrades_be_shown(): bool {
         return $this->settings->whenpeergradevisible !== 'after peergrade ends' ||
-                $this->is_ended() || $this->get_peergrade();
+                $this->is_ended() || ($this->get_peergrade() && !$this->can_edit());
     }
 
     /**
@@ -1441,8 +1427,6 @@ class peergrade implements renderable {
                 $returnurl = $PAGE->url;
             }
         }
-        global $DB;
-        $peerforumid = $DB->get_record('course_modules', array('id' => $this->context->instanceid))->instance;
 
         $args = array(
                 'contextid' => $this->context->id,
@@ -1453,8 +1437,8 @@ class peergrade implements renderable {
                 'returnurl' => $returnurl,
                 'peergradeduserid' => $this->itemuserid,
                 'aggregation' => $this->settings->aggregationmethod,
-                'sesskey' => sesskey(),
-                'peerforumid' => $peerforumid
+                'finalgrademode' => $this->settings->finalgrademode,
+                'sesskey' => sesskey()
         );
         if ($peergrade !== null) {
             $args['peergrade'] = $peergrade;
@@ -1766,7 +1750,7 @@ class peergrade_manager {
             $posts = $DB->get_records_sql($sql);
         }
 
-        adjust_database();
+        // adjust_database(); TODO Remover!
 
         $all_posts = array();
 
@@ -2121,10 +2105,18 @@ class peergrade_manager {
         // Settings that are common to all peergrades objects in this context.
         $settings = new stdClass;
         $settings->peergradescale = $this->generate_peergrade_peergradescale_object($options->peergradescaleid,
-                $peerforumid); // The peergradescale to use now.
+                $peerforumid); // The peergradescale to use now. // TODO wtf is this extra arg!!!
         $settings->aggregationmethod = $options->aggregate;
         $settings->assesstimestart = null;
         $settings->assesstimefinish = null;
+
+        list($type, $name) = core_component::normalize_component($options->component);
+        $pluginextrasettingsarray = plugin_callback($type,
+                $name,
+                'peergrade',
+                'extrasettings',
+                array($options->context->id, $options->component, $options->peergradearea),
+                array());
 
         // Collect options into the settings object.
         if (!empty($options->assesstimestart)) {
@@ -2136,36 +2128,17 @@ class peergrade_manager {
         if (!empty($options->returnurl)) {
             $settings->returnurl = $options->returnurl;
         }
-        if (isset($options->timetoexpire)) {
-            $settings->timetoexpire = $options->timetoexpire;
-        }
-        if (isset($options->finishpeergrade)) {
-            $settings->finishpeergrade = $options->finishpeergrade;
-        }
-        if (isset($options->enablefeedback)) {
-            $settings->enablefeedback = $options->enablefeedback;
-        }
-        if (isset($options->showpeergrades)) {
-            $settings->showpeergrades = $options->showpeergrades;
-        }
-        if (isset($options->minpeergraders)) {
-            $settings->minpeergraders = $options->minpeergraders;
-        }
-        if (isset($options->peergradevisibility)) {
-            $settings->peergradevisibility = $options->peergradevisibility;
-        }
-        if (isset($options->expirepost)) {
-            $settings->expirepost = $options->expirepost;
-        }
-        if (isset($options->remainanonymous)) {
-            $settings->remainanonymous = $options->remainanonymous;
-        }
-        if (isset($options->whenpeergradevisible)) {
-            $settings->whenpeergradevisible = $options->whenpeergradevisible;
-        }
-        if (isset($options->finalgrademode)) {
-            $settings->finalgrademode = $options->finalgrademode;
-        }
+
+        $settings->timetoexpire = $options->timetoexpire ?? $pluginextrasettingsarray['timetoexpire'];
+        $settings->finishpeergrade = $options->finishpeergrade ?? $pluginextrasettingsarray['finishpeergrade'];
+        $settings->enablefeedback = $options->enablefeedback ?? $pluginextrasettingsarray['enablefeedback'];
+        $settings->showpeergrades = $options->showpeergrades ?? $pluginextrasettingsarray['showpeergrades'];
+        $settings->minpeergraders = $options->minpeergraders ?? $pluginextrasettingsarray['minpeergraders'];
+        $settings->peergradevisibility = $options->peergradevisibility ?? $pluginextrasettingsarray['peergradevisibility'];
+        $settings->expirepost = $options->expirepost ?? $pluginextrasettingsarray['expirepost'];
+        $settings->remainanonymous = $options->remainanonymous ?? $pluginextrasettingsarray['remainanonymous'];
+        $settings->whenpeergradevisible = $options->whenpeergradevisible ?? $pluginextrasettingsarray['whenpeergradevisible'];
+        $settings->finalgrademode = $options->finalgrademode ?? $pluginextrasettingsarray['finalgrademode'];
 
         // Check site capabilities.
         $settings->permissions = new stdClass;
@@ -2179,6 +2152,7 @@ class peergrade_manager {
         $settings->permissions->viewall = has_capability('mod/peerforum:viewallpeergrades', $options->context);
         // Can submit peergrades. // TODO remove and deprecate!
         $settings->permissions->peergrade = has_capability('mod/peerforum:peergrade', $options->context);
+        // These are not used anywhere.
         // Can submit peergrades as professor.
         $settings->permissions->professor = has_capability('mod/peerforum:professorpeergrade', $options->context);
         // Can submit peergrades as student.
@@ -2194,9 +2168,10 @@ class peergrade_manager {
         $settings->pluginpermissions->viewany = $pluginpermissionsarray['viewany'];
         $settings->pluginpermissions->viewsome = $pluginpermissionsarray['viewsome'];
         $settings->pluginpermissions->viewall = $pluginpermissionsarray['viewall'];
-        $settings->pluginpermissions->peergrade = $pluginpermissionsarray['peergrade']; // TODO Deprecate!
         $settings->pluginpermissions->professor = $pluginpermissionsarray['professor'];
         $settings->pluginpermissions->student = $pluginpermissionsarray['student'];
+        $settings->pluginpermissions->peergrade =
+                $this->check_peergrade_permission($pluginpermissionsarray, $settings->finalgrademode);
 
         return $settings;
     }
@@ -2498,6 +2473,35 @@ class peergrade_manager {
     }
 
     /**
+     * Returns the grading permissions based on the final grade mode. Useful because there are several.
+     *
+     * @param array $pluginpermissionsarray
+     * @param int $finalgrademode
+     * @return bool
+     */
+    public function check_peergrade_permission(array $pluginpermissionsarray, int $finalgrademode): bool {
+        switch ($finalgrademode) {
+            case PEERFORUM_MODE_PROFESSOR:
+                // You can't rate if you don't have the system cap and the plugin cap (cause now are the same).
+                if (!$pluginpermissionsarray['professor']) {
+                    return false;
+                }
+                break;
+            case PEERFORUM_MODE_STUDENT:
+                // You can't rate if you don't have the system cap and the plugin cap (cause now are the same).
+                if (!$pluginpermissionsarray['student']) {
+                    return false;
+                }
+                break;
+            case PEERFORUM_MODE_PROFESSORSTUDENT:
+                // You can't rate if you don't have the system cap and the plugin cap (cause now are the same).
+                return $pluginpermissionsarray['professor'] || $pluginpermissionsarray['student'];
+        }
+
+        return true;
+    }
+
+    /**
      * Validates a submitted peergrade
      *
      * @param array $params submitted data
@@ -2535,6 +2539,8 @@ class peergrade_manager {
         if (!isset($params['feedback'])) {
             throw new coding_exception('The feedback option is now a required option when checking peergrade validity');
         }
+
+        // This does not check for permissions and if it is assigned.
 
         list($plugintype, $pluginname) = core_component::normalize_component($params['component']);
 
@@ -2676,11 +2682,12 @@ class peergrade_manager {
      * @param string $feedback the feedback
      * @since Moodle 3.2
      */
-    public function add_peergrade($cm, $context, $component, $peergradearea, $itemid, $peergradescaleid, $userpeergrade, $peergradeduserid,
-            $aggregationmethod, $feedback) {
+    public function add_peergrade($cm, $context, $component, $peergradearea, $itemid, $peergradescaleid, $userpeergrade,
+            $peergradeduserid, $aggregationmethod, $feedback) {
         global $CFG, $DB, $USER;
 
         $result = new stdClass;
+        $result->id = $itemid;
         // Check the module peergrade permissions.
         // Doing this check here rather than within peergrade_manager::get_peergrades() so we can return a error response.
         $pluginpermissionsarray = $this->get_plugin_permissions_array($context->id, $component, $peergradearea);
@@ -2696,9 +2703,8 @@ class peergrade_manager {
                     'itemid' => $itemid,
                     'peergradescaleid' => $peergradescaleid,
                     'peergrade' => $userpeergrade,
-                    'peergradeduserid' => $peergradeduserid,
                     'feedback' => $feedback,
-                    //'canshow' => $canshow,
+                    'peergradeduserid' => $peergradeduserid,
                     'aggregation' => $aggregationmethod
             );
             if (!$this->check_peergrade_is_valid($params)) {
@@ -2707,7 +2713,7 @@ class peergrade_manager {
             }
         }
 
-        // PeerGrade options used to update the peergrade then retrieve the aggregate.
+        // Peergrade options used to update the peergrade then retrieve the aggregate.
         $peergradeoptions = new stdClass;
         $peergradeoptions->context = $context;
         $peergradeoptions->peergradearea = $peergradearea;
@@ -2716,20 +2722,9 @@ class peergrade_manager {
         $peergradeoptions->peergradescaleid = $peergradescaleid;
         $peergradeoptions->feedback = $feedback;
         $peergradeoptions->userid = $USER->id;
-        //$peergradeoptions->canshow = $canshow;
 
-        if ($userpeergrade != PEERGRADE_UNSET_PEERGRADE && $feedback != PEERGRADE_UNSET_FEEDBACK) {
-            $peergrade = new peergrade($peergradeoptions);
-            $peergrade->update_peergrade($userpeergrade, $feedback);
-        } else { // Delete the peergrade if the user set to "PeerGrade..."
-            $options = new stdClass;
-            $options->contextid = $context->id;
-            $options->component = $component;
-            $options->peergradearea = $peergradearea;
-            $options->userid = $USER->id;
-            $options->feedback = $feedback;
-            $options->itemid = $itemid;
-        }
+        $peergrade = new peergrade($peergradeoptions);
+        $peergrade->update_peergrade($userpeergrade, $feedback);
 
         // Future possible enhancement: add a setting to turn grade updating off for those who don't want them in gradebook.
         // Note that this would need to be done in both peergrade.php and peergrade_ajax.php.
@@ -2772,9 +2767,10 @@ class peergrade_manager {
             if ($firstpeergrade->settings->aggregationmethod == PEERGRADE_AGGREGATE_COUNT or $firstpeergrade->count == 0) {
                 $aggregatetoreturn = ' - ';
             } else if ($firstpeergrade->settings->peergradescale->id < 0) { // If its non-numeric peergradescale.
-                // Dont use the peergradescale item if the aggregation method is sum as adding items from a custom peergradescale makes no sense.
+                // Dont use the peergradescale item if the aggregation method
+                // is sum as adding items from a custom peergradescale makes no sense.
                 if ($firstpeergrade->settings->aggregationmethod != PEERGRADE_AGGREGATE_SUM) {
-                    $peergradescalerecord = $DB->get_record('scale', array('id' => -$firstpeergrade->settings->$peergradescale->id));
+                    $peergradescalerecord = $DB->get_record('scale', array('id' => -$firstpeergrade->settings->peergradescale->id));
                     if ($peergradescalerecord) {
                         $peergradescalearray = explode(',', $peergradescalerecord->peergradescale);
                         $aggregatetoreturn = $peergradescalearray[$aggregatetoreturn - 1];
@@ -2782,17 +2778,10 @@ class peergrade_manager {
                 }
             }
 
-            /*
-            //see if can show grade
-            $peerforum = $DB->get_record('peerforum', array('id' => $peerforumid));
-            $post = $DB->get_record('peerforum_posts', array('id' => $itemid));
-            $canshow = can_see_peergrades_aggreagate($post, $peerforum);*/
-
             $result->aggregate = $aggregatetoreturn;
             $result->count = $firstpeergrade->count;
             $result->itemid = $itemid;
             $result->feedback = $feedback;
-            //$result->canshow = $canshow;
         }
         return $result;
     }
@@ -2916,9 +2905,11 @@ class peergrade_exception extends moodle_exception {
      * Generate exceptions that can be easily identified as coming from the peergrades system
      *
      * @param string $errorcode the error code to generate
+     * @param string $component
+     * @throws coding_exception
      */
-    public function __construct($errorcode) {
+    public function __construct($errorcode, $component = 'error') {
         $this->errorcode = $errorcode;
-        $this->message = get_string($errorcode, 'error');
+        $this->message = get_string($errorcode, $component);
     }
 }
