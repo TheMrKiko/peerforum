@@ -302,6 +302,11 @@ class peergrade_assignment {
     public $blocked = 0;
 
     /**
+     * @var bool If the peergrading has ended
+     */
+    public $ended = 0;
+
+    /**
      * @var bool If the user let the peer grade expire
      */
     public $expired = 0;
@@ -316,6 +321,7 @@ class peergrade_assignment {
      *            userinfo  => stdClass The detailed information of the user to whom the peergrade was assigned to [required]
      *            itemid  => int the id of the associated item (forum post, glossary item etc) [required]
      *            timeassigned  => int The time the peer grade was assigned [required]
+     *            ended => If the peergrading has ended [required]
      *            blocked => If the user is blocked from peer grading this item [required]
      *            peergraded => If the assignment was already peergraded and the id of the peergrade (if yes) [required]
      *            expired => If the user let the peer grade expire [required]
@@ -329,6 +335,7 @@ class peergrade_assignment {
         $this->peergradearea = $this->peergradeoptions->peergradearea;
         $this->itemid = $options->itemid;
         $this->userid = $options->userid;
+        $this->ended = $options->ended;
         $this->blocked = $options->blocked;
         $this->peergraded = $options->peergraded;
         $this->expired = $options->expired;
@@ -376,8 +383,10 @@ class peergrade_assignment {
         // Insert a new peergrade.
         $data->postid = $this->itemid;
         $data->userid = $this->userid;
+        $data->courseid = 0; //you want to remove this
         $data->timeassigned = $time;
         $data->timemodified = $time;
+        $data->ended = $this->ended;
         $data->expired = $this->expired;
         $data->blocked = $this->blocked;
         $data->peergraded = $this->peergraded;
@@ -401,7 +410,7 @@ class peergrade_assignment {
 class peergrade implements renderable {
 
     /**
-     * @var stdClass The context in which this peergrade exists
+     * @var stdClass|context The context in which this peergrade exists
      */
     public $context;
 
@@ -429,7 +438,7 @@ class peergrade implements renderable {
     /**
      * @var int The id of the user who submitted the peergrade
      */
-    public $userid;
+    public $userid; // When empty peer grade, also empty user.
 
     /**
      * @var int The time the peer grade was first submitted
@@ -480,6 +489,11 @@ class peergrade implements renderable {
      * @var peergrade_assignment[] The list of assignments related to this item
      */
     public $usersassigned = array();
+
+    /**
+     * @var bool If the peergrading has ended
+     */
+    public $ended = null;
 
     /**
      * @var bool If the user is blocked from peer grading at all
@@ -536,6 +550,14 @@ class peergrade implements renderable {
         }
         if (isset($options->usersassigned)) {
             $this->usersassigned = $options->usersassigned;
+            if (!empty($this->usersassigned)) {
+                $this->ended = true;
+                foreach ($this->usersassigned as $userassign) {
+                    if (!$userassign->ended) {
+                        $this->ended = false;
+                    }
+                }
+            }
         }
         if (isset($options->userblocked)) {
             $this->userblocked = $options->userblocked;
@@ -705,18 +727,18 @@ class peergrade implements renderable {
      * @return peergrade_assignment|null
      */
     public function get_self_assignment(): ?peergrade_assignment {
-        return $this->usersassigned[$this->userid] ?? null;
+        global $USER;
+        $userid = $USER->id;
+        return $this->usersassigned[$userid] ?? null;
     }
 
     /**
-     * The number of assignments waiting grade
+     * If there is any peer grade activity for this item.
      *
-     * @return int
+     * @return bool
      */
-    public function get_waiting_grade(): int {
-        return count(array_filter($this->usersassigned, static function ($assign) {
-            return !$assign->expired || !$assign->peergraded;
-        }));
+    public function exists(): bool {
+        return !empty($this->usersassigned);
     }
 
     /**
@@ -1155,8 +1177,9 @@ class peergrade implements renderable {
         if ($this->itemuserid == $userid) {
             return false;
         }
-        // You can't peergrade if you don't have the system cap.
-        if (!$this->settings->permissions->peergrade) {
+
+        // You can't peergrade if you don't have the system cap and the pugin cap and depends on the final grade mode.
+        if (!$this->has_permissions_to_peergrade()) {
             return false;
         }
 
@@ -1174,14 +1197,14 @@ class peergrade implements renderable {
         }
 
         // You can't peergrade if the peer grading is over or expired.
-        if ($this->is_expired_for_user()) {
+        if ($this->is_ended() || $this->is_ended_for_user()) {
             return false;
         }
 
         // You can't peergrade if you are blocked.
         if ($this->userblocked || $this->get_self_assignment()->blocked) {
             return false;
-        } // TODO exlusive and finalgrademode!
+        } // TODO exlusive!
         return true;
     }
 
@@ -1191,22 +1214,59 @@ class peergrade implements renderable {
      * @return bool true if the user is able to peergrade this peergrade object
      */
     public function is_ended() {
-        $finishpeergrade = $this->settings->finishpeergrade;
-
-        if ($finishpeergrade) {
-            $numendspeergrade = $this->settings->minpeergraders;
-            if ($this->count >= $numendspeergrade && !$this->user_can_peergrade()) {
-                return true;
-            }
-        }
-
-        // If the user has already peer graded this.
-        if ($this->get_peergrade()) {
+        if ($this->ended) {
             return true;
         }
 
-        // If there are no active assigns waiting for grade or expiration.
-        if (!$this->get_waiting_grade()) {
+        if ($this->is_expired_for_user()) {
+            return true;
+        }
+
+        // If it should be finished at min graders.
+        // The cron should check this but just in case it does not in time.
+        if ($this->settings->finishpeergrade) {
+            $numendspeergrade = $this->settings->minpeergraders;
+            if ($this->count >= $numendspeergrade) {
+                $this->ended = true;
+                return $this->ended;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if the user let the item expire.
+     *
+     * @return bool true if the user let the item expire.
+     */
+    public function is_expired_for_user() {
+        if (!$this->get_self_assignment()) {
+            return false; // The user does not have anything to expire.
+        }
+
+        if ($this->get_self_assignment()->expired) {
+            return true;
+        }
+
+        if ($this->get_peergrade()) {
+            return false; // If the user peergraded, then not expired.
+        }
+
+        // If it should be finished at min graders.
+        if ($this->settings->finishpeergrade) {
+            $numendspeergrade = $this->settings->minpeergraders;
+            if ($this->count >= $numendspeergrade) {
+                return false;
+            }
+        }
+
+        $time = time();
+        // The cron should check this but just in case it does not in time.
+        $timeassigned = $this->get_self_assignment()->timeassigned;
+        $timetilexpire = $this->settings->timetoexpire * 60 * 60 * 24;
+        if ($time > $timeassigned + $timetilexpire) {
+            $this->get_self_assignment()->expired = true;
             return true;
         }
 
@@ -1214,12 +1274,40 @@ class peergrade implements renderable {
     }
 
     /**
-     * Returns true if the user did not let the item expire.
+     * If the peergrading is ended for the user.
      *
-     * @return bool true if the user did not let the item expire.
+     * @return bool true if the peergrading is ended for the user.
      */
-    public function is_expired_for_user() {
-        return $this->get_self_assignment()->expired ?? false;
+    public function is_ended_for_user() {
+        return $this->get_self_assignment()->ended ?? false;
+    }
+
+    /**
+     * Returns the grading permissions based on the final grade mode. Useful because there are several.
+     *
+     * @return bool
+     */
+    public function has_permissions_to_peergrade(): bool {
+        switch ($this->settings->finalgrademode) {
+            case PEERFORUM_MODE_PROFESSOR:
+                // You can't rate if you don't have the system cap and the plugin cap (cause now are the same).
+                if (!$this->settings->permissions->professor || !$this->settings->pluginpermissions->professor) {
+                    return false;
+                }
+                break;
+            case PEERFORUM_MODE_STUDENT:
+                // You can't rate if you don't have the system cap and the plugin cap (cause now are the same).
+                if (!$this->settings->permissions->student || !$this->settings->pluginpermissions->student) {
+                    return false;
+                }
+                break;
+            case PEERFORUM_MODE_PROFESSORSTUDENT:
+                // You can't rate if you don't have the system cap and the plugin cap (cause now are the same).
+                return ($this->settings->permissions->professor && $this->settings->pluginpermissions->professor) ||
+                        ($this->settings->permissions->student && $this->settings->pluginpermissions->student);
+        }
+
+        return true;
     }
 
     /**
@@ -1232,6 +1320,11 @@ class peergrade implements renderable {
         if (empty($userid)) {
             global $USER;
             $userid = $USER->id;
+        }
+
+        if (!$this->can_peergrades_be_shown()) {
+
+            return false;
         }
 
         // If the item doesnt belong to anyone or its another user's items and they can see the aggregate on items they don't own.
@@ -1252,6 +1345,60 @@ class peergrade implements renderable {
         }
 
         return false;
+    }
+
+    /**
+     * Returns true if the user is able to view all the peergrades for this peergrade object.
+     * Probably best used always with @see can_peergrades_be_shown(): when not active.
+     *
+     * @param array|null $peergrades The specific peergrade(s) to check
+     * @param bool $checkpgshown If this function should check for the canpeergradebeshown
+     * @param int|null $userid If left empty the current user is assumed.
+     * @return bool true if the user is able to view all the peergrades for this peergrade object
+     */
+    public function user_can_view_peergrades($peergrades = array(), $checkpgshown = true, $userid = null) {
+        if (empty($userid)) {
+            global $USER;
+            $userid = $USER->id;
+        }
+
+        foreach ($peergrades as $pg) {
+            if ($pg->userid == $userid) {
+                return true; // If the user is the author, it can at least see some.
+            }
+        }
+
+        if ($checkpgshown && !$this->can_peergrades_be_shown()) {
+            // We may want to verify this outside this function for better error report.
+            return false;
+        }
+
+        // If they can see the peergrades on all items.
+        if ($this->settings->permissions->viewall && $this->settings->pluginpermissions->viewall) {
+
+            return true;
+        }
+
+        // If its the current user's item and they have permission to view the peergrades on their own items.
+        if ($this->itemuserid == $userid
+                && $this->settings->permissions->viewsome
+                && $this->settings->pluginpermissions->viewsome) {
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks for the whenpeergradevisible setting.
+     * Probably best used always with @see user_can_view_peergrades()
+     *
+     * @return bool
+     */
+    public function can_peergrades_be_shown(): bool {
+        return $this->settings->whenpeergradevisible !== 'after peergrade ends' ||
+                $this->is_ended() || $this->get_peergrade();
     }
 
     /**
@@ -1711,7 +1858,7 @@ class peergrade_manager {
                 'peergradearea' => $options->peergradearea,
         );
 
-        $userfields = user_picture::fields('u', null, 'userid');
+        $userfields = user_picture::fields('u', ['deleted'], 'userid');
         $sql = "SELECT r.id, r.peergrade, r.feedback, r.itemid, r.userid, r.timemodified, r.component, r.peergradearea, $userfields
                   FROM {peerforum_peergrade} r
              LEFT JOIN {user} u ON r.userid = u.id
@@ -1827,7 +1974,7 @@ class peergrade_manager {
         $aggregatepeergrades = $DB->get_records_sql($sql, $params);
 
         $userfields = user_picture::fields('u', ['deleted'], 'userid');
-        $sql = "SELECT r.id, r.postid, r.userid, r.peergraded, r.expired, r.blocked, r.timeassigned, r.timemodified, $userfields
+        $sql = "SELECT r.id, r.postid, r.userid, r.peergraded, r.ended, r.expired, r.blocked, r.timeassigned, r.timemodified, $userfields
                   FROM {peerforum_time_assigned} r
              LEFT JOIN {user} u ON r.userid = u.id
                  WHERE r.contextid = :contextid AND
@@ -1893,6 +2040,7 @@ class peergrade_manager {
                     $assignoptions->userid = $userassign->userid;
                     $assignoptions->userinfo = user_picture::unalias($userassign, ['deleted'], 'userid');
                     $assignoptions->itemid = $item->{$itemidcol};
+                    $assignoptions->ended = $userassign->ended;
                     $assignoptions->expired = $userassign->expired;
                     $assignoptions->blocked = $userassign->blocked;
                     $assignoptions->peergraded = $userassign->peergraded;
@@ -1903,7 +2051,7 @@ class peergrade_manager {
 
                     $usersopts[$userassign->userid] = $assign;
                 }
-                $peergradeoptions->usersassigned = $usersopts;
+                $peergradeoptions->usersassigned = !empty($usersopts) ? $usersopts : null;
             }
 
             if ($userinfo && $userinfo->userblocked) {
@@ -1946,6 +2094,7 @@ class peergrade_manager {
      *      remainanonymous   => settings data [optional]
      *      peergradevisibility => settings data [optional]
      *      whenpeergradevisible => settings data [optional]
+     *      finalgrademode => settings data [optional]
      * }
      * @return stdClass peergrade settings object
      */
@@ -2014,17 +2163,26 @@ class peergrade_manager {
         if (isset($options->whenpeergradevisible)) {
             $settings->whenpeergradevisible = $options->whenpeergradevisible;
         }
+        if (isset($options->finalgrademode)) {
+            $settings->finalgrademode = $options->finalgrademode;
+        }
 
         // Check site capabilities.
-        $settings->permissions = new stdClass; // TODO hacks to change!!!!!
+        $settings->permissions = new stdClass;
         // Can view the aggregate of peergrades of their own items.
-        $settings->permissions->view = has_capability('mod/peerforum:viewrating', $options->context);
+        $settings->permissions->view = has_capability('mod/peerforum:viewpeergrade', $options->context);
         // Can view the aggregate of peergrades of other people's items.
-        $settings->permissions->viewany = has_capability('mod/peerforum:viewanyrating', $options->context);
+        $settings->permissions->viewany = has_capability('mod/peerforum:viewanypeergrade', $options->context);
+        // Can view the individual peergrades given to their own items.
+        $settings->permissions->viewsome = has_capability('mod/peerforum:viewsomepeergrades', $options->context);
         // Can view individual peergrades.
         $settings->permissions->viewall = has_capability('mod/peerforum:viewallpeergrades', $options->context);
-        // Can submit peergrades.
-        $settings->permissions->peergrade = has_capability('mod/peerforum:rate', $options->context);
+        // Can submit peergrades. // TODO remove and deprecate!
+        $settings->permissions->peergrade = has_capability('mod/peerforum:peergrade', $options->context);
+        // Can submit peergrades as professor.
+        $settings->permissions->professor = has_capability('mod/peerforum:professorpeergrade', $options->context);
+        // Can submit peergrades as student.
+        $settings->permissions->student = has_capability('mod/peerforum:studentpeergrade', $options->context);
 
         // Check module capabilities
         // This is mostly for backwards compatability with old modules that previously implemented their own peergrades.
@@ -2034,8 +2192,11 @@ class peergrade_manager {
         $settings->pluginpermissions = new stdClass;
         $settings->pluginpermissions->view = $pluginpermissionsarray['view'];
         $settings->pluginpermissions->viewany = $pluginpermissionsarray['viewany'];
+        $settings->pluginpermissions->viewsome = $pluginpermissionsarray['viewsome'];
         $settings->pluginpermissions->viewall = $pluginpermissionsarray['viewall'];
-        $settings->pluginpermissions->peergrade = $pluginpermissionsarray['peergrade'];
+        $settings->pluginpermissions->peergrade = $pluginpermissionsarray['peergrade']; // TODO Deprecate!
+        $settings->pluginpermissions->professor = $pluginpermissionsarray['professor'];
+        $settings->pluginpermissions->student = $pluginpermissionsarray['student'];
 
         return $settings;
     }
@@ -2314,10 +2475,14 @@ class peergrade_manager {
      * @param string $peergradearea The area the peergrade is associated with
      * @return array peergrade related permissions
      */
-    public function get_plugin_permissions_array($contextid, $component, $peergradearea) {
+    public function get_plugin_permissions_array($contextid, $component, $peergradearea): array {
         $pluginpermissionsarray = null;
         // Deny by default.
-        $defaultpluginpermissions = array('peergrade' => true, 'view' => true, 'viewany' => true, 'viewall' => true);
+        $defaultpluginpermissions = array(
+                'view' => false, 'viewany' => false, 'viewsome' => false, 'viewall' => false,
+                'student' => false, 'professor' => false,
+                'peergrade' => false // This one is a hack and must be replaced eventually!
+        );
         if (!empty($component)) {
             list($type, $name) = core_component::normalize_component($component);
             $pluginpermissionsarray = plugin_callback($type,
@@ -2684,6 +2849,7 @@ class peergrade_manager {
             $assignoptions = new stdClass();
             $assignoptions->userid = $userassigned->userid;
             $assignoptions->itemid = $peergradeoptions->itemid;
+            $assignoptions->ended = 0;
             $assignoptions->expired = 0;
             $assignoptions->blocked = 0;
             $assignoptions->peergraded = 0;
