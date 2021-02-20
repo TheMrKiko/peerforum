@@ -103,8 +103,8 @@ class discussion {
             int $timeend,
             bool $pinned,
             int $locked,
-            ?int $type,
-            ?int $idlink
+            $type,
+            $idlink
     ) {
         $this->id = $id;
         $this->courseid = $courseid;
@@ -120,8 +120,8 @@ class discussion {
         $this->timeend = $timeend;
         $this->pinned = $pinned;
         $this->timelocked = $locked;
-        $this->type = $type;
-        $this->idlink = $idlink;
+        $this->type = 0;
+        $this->idlink = 0;
     }
 
     /**
