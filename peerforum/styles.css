@@ -47,7 +47,14 @@
 .peerforumpost .row {
     width: 100%;
     position: relative;
-    margin-left: 0 !important; /* Fix that is in the theme. */
+}
+
+/* Fix that is in the theme. */
+.peerforumpostseefeedback .row,
+.peerforumpostfeedback .row,
+.peerforumpost .row {
+    display: block;
+    margin-left: 0 !important;
 }
 
 .peerforumpostseefeedback .row .left,
