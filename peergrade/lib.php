@@ -2221,7 +2221,7 @@ class peergrade_manager {
 
             if ($peergradescaleid < 0) {
                 // It is a proper scale (not numeric).
-                $peergradescalerecord = $DB->get_record('peergradescale', array('id' => abs($peergradescaleid)));
+                $peergradescalerecord = $DB->get_record('scale', array('id' => abs($peergradescaleid)));
                 if ($peergradescalerecord) {
                     // We need to generate an array with string keys starting at 1.
                     $peergradescalearray = explode(',', $peergradescalerecord->peergradescale);
@@ -2774,7 +2774,7 @@ class peergrade_manager {
             } else if ($firstpeergrade->settings->peergradescale->id < 0) { // If its non-numeric peergradescale.
                 // Dont use the peergradescale item if the aggregation method is sum as adding items from a custom peergradescale makes no sense.
                 if ($firstpeergrade->settings->aggregationmethod != PEERGRADE_AGGREGATE_SUM) {
-                    $peergradescalerecord = $DB->get_record('peergradescale', array('id' => -$firstpeergrade->settings->$peergradescale->id));
+                    $peergradescalerecord = $DB->get_record('scale', array('id' => -$firstpeergrade->settings->$peergradescale->id));
                     if ($peergradescalerecord) {
                         $peergradescalearray = explode(',', $peergradescalerecord->peergradescale);
                         $aggregatetoreturn = $peergradescalearray[$aggregatetoreturn - 1];

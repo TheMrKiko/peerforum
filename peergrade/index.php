@@ -62,7 +62,7 @@ $params = array('contextid' => $contextid,
         'itemid' => $itemid,
         'peergradescaleid' => $peergradescaleid);
 
-$canviewallpeergrades = has_capability('mod/peerforum:viewall', $context);
+$canviewallpeergrades = has_capability('mod/peerforum:viewallpeergrades', $context);
 
 switch ($sort) {
     case 'firstname':

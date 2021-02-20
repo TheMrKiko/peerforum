@@ -2367,7 +2367,7 @@ function peerforum_peergrade_validate($params) {
 
     if ($peerforum->peergradescale < 0) {
         //its a custom scale
-        $peergradescalerecord = $DB->get_record('peergradescale', array('id' => -$peerforum->peergradescale));
+        $peergradescalerecord = $DB->get_record('scale', array('id' => -$peerforum->peergradescale));
 
         if ($peergradescalerecord) {
             $peergradescalearray = explode(',', $peergradescalerecord->peergradescale);
@@ -6122,6 +6122,9 @@ function peerforum_add_discussion($discussion, $mform = null, $unused = null, $u
     $discussion->usermodified = $post->userid;
     $discussion->userid = $userid;
     $discussion->assessed = 0;
+
+    $discussion->idlink = 0; // TODO delete both
+    $discussion->type = 0;
 
     $post->discussion = $DB->insert_record("peerforum_discussions", $discussion);
 
