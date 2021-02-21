@@ -189,11 +189,17 @@ if ($mformpage->is_cancelled()) {
     $trainingpage->open = $fromform->open;
     $trainingpage->previous = $fromform->previous;
 
-    $submitid = peerforum_submit_training_page($trainingpage, $mformpage);
+    list($submitid, $allcorrect) = peerforum_submit_training_page($trainingpage, $mformpage);
 
     if (!empty($submitid)) {
         redirect(
-                $urlfactory->get_training_url($trainingpage, $submitid)
+                $urlfactory->get_training_url($trainingpage, $submitid),
+                'Training answers submitted! ' .
+                (!$allcorrect ? 'Spoilers? You got things wrong, lels. ' : '') .
+                '<a href="#e">View results</a>.',
+                null,
+                $allcorrect ? \core\output\notification::NOTIFY_SUCCESS :
+                        \core\output\notification::NOTIFY_WARNING
         );
     }
 
@@ -216,6 +222,7 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(format_string($trainingpage->name), 2);
 
 echo $OUTPUT->box($trainingpage->description);
+echo html_writer::empty_tag('div', array('id' => 'e'));
 
 $mformpage->display();
 

@@ -11069,7 +11069,7 @@ function peerforum_update_training_page($trainingpage, $mform) {
  *
  * @param stdClass $trainingpage The page to update
  * @param mixed $mform The submitted form
- * @return bool|int
+ * @return array
  */
 function peerforum_submit_training_page($trainingpage, $mform) {
     global $USER, $CFG, $DB;
@@ -11077,12 +11077,26 @@ function peerforum_submit_training_page($trainingpage, $mform) {
     $cm = get_coursemodule_from_instance('peerforum', $trainingpage->peerforum);
     $context = context_module::instance($cm->id);
 
+    $allcorrect = true;
+    $correctgrades = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->correctgrades, array('criteriaid', 'n'));
+    $correctgrades = \mod_peerforum\local\vaults\training_page::turn_inside_out($correctgrades, array('criteriaid', 'exid'))['grade'];
+
+    foreach ($trainingpage->grades['grade'] as $c => $crit) {
+        foreach ($crit as $e => $exgrade) {
+            if ($exgrade != $correctgrades[$c][$e]) {
+                $allcorrect = false;
+                break 2;
+            }
+        }
+    }
+
     $submit = $DB->insert_record('peerforum_training_submit', (object) [
                 'userid' => $USER->id,
                 'pageid' => $trainingpage->id,
                 'opened' => $trainingpage->open,
                 'submitted'=> time(),
-                'previous' => $trainingpage->previous
+                'previous' => $trainingpage->previous,
+                'allcorrect' => $allcorrect,
         ]);
 
     $grades = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->grades, array('criteriaid', 'exid'));
@@ -11091,5 +11105,5 @@ function peerforum_submit_training_page($trainingpage, $mform) {
         $DB->insert_record('peerforum_training_rating', $grade);
     }
 
-    return $submit;
+    return array($submit, $allcorrect);
 }
