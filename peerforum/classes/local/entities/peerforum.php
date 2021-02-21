@@ -117,7 +117,7 @@ class peerforum {
     private $peergradeassesstimefinish;
     /** @var string $peergradesvisibility peergradesvisibility */
     private $peergradesvisibility;
-    /** @var string $whenpeergrades whenpeergrades */
+    /** @var int $whenpeergrades whenpeergrades */
     private $whenpeergrades;
     /** @var string $feedbackvisibility feedbackvisibility */
     private $feedbackvisibility;
@@ -231,7 +231,7 @@ class peerforum {
      * @param int $peergradeassesstimestart
      * @param int $peergradeassesstimefinish
      * @param string $peergradesvisibility
-     * @param string $whenpeergrades
+     * @param int $whenpeergrades
      * @param string $feedbackvisibility
      * @param string $whenfeedback
      * @param int $enablefeedback
@@ -307,7 +307,7 @@ class peerforum {
             int $peergradeassesstimestart,
             int $peergradeassesstimefinish,
             string $peergradesvisibility,
-            string $whenpeergrades,
+            int $whenpeergrades,
             string $feedbackvisibility,
             string $whenfeedback,
             int $enablefeedback,
@@ -920,9 +920,9 @@ class peerforum {
     }
 
     /**
-     * @return string
+     * @return int
      */
-    public function get_whenpeergrades(): string {
+    public function get_whenpeergrades(): int {
         return $this->whenpeergrades;
     }
 

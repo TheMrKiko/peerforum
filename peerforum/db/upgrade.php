@@ -289,6 +289,33 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021021901, 'peerforum');
     }
 
+    if ($oldversion < 2021022101) {
+
+        $peerforums = $DB->get_records('peerforum');
+        foreach ($peerforums as $peerforum) {
+            $old = $peerforum->whenpeergrades;
+            if ($peerforum->whenpeergrades == 'always') {
+                $new = PEERFORUM_GRADEVISIBLE_ALWAYS;
+            } else if ($peerforum->whenpeergrades == 'after peergrade ends') {
+                $new = PEERFORUM_GRADEVISIBLE_AFTERPGENDS;
+            } else {
+                $new = 0;
+            }
+            $DB->set_field('peerforum', 'whenpeergrades', $new, array('id' => $peerforum->id));
+        }
+
+        // Changing type of field whenpeergrades on table peerforum to int.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('whenpeergrades', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, null, 'peergradesvisibility');
+
+        // Launch change of type for field whenpeergrades.
+        $dbman->change_field_type($table, $field);
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021022101, 'peerforum');
+    }
+
+
 
     return true;
 }

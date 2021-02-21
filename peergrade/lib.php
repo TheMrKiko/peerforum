@@ -1383,7 +1383,7 @@ class peergrade implements renderable {
      * @return bool
      */
     public function can_peergrades_be_shown(): bool {
-        return $this->settings->whenpeergradevisible !== 'after peergrade ends' ||
+        return $this->settings->whenpeergradevisible !== PEERFORUM_GRADEVISIBLE_AFTERPGENDS ||
                 $this->is_ended() || ($this->get_peergrade() && !$this->can_edit());
     }
 

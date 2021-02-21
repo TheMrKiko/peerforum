@@ -356,7 +356,7 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->addElement('select', 'whenpeergrades', get_string('when', 'peerforum'), $peergradetypes);
         $mform->hideIf('whenpeergrades', 'peergradesvisibility', 'eq', 'onlyprofessor');
         $mform->hideIf('whenpeergrades', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-        $mform->setDefault('whenpeergrades', 'always');
+        $mform->setDefault('whenpeergrades', PEERFORUM_GRADEVISIBLE_ALWAYS);
         $mform->addHelpButton('whenpeergrades', 'when', 'peerforum');
 
         // Select if its necessary to give written feedback in a post.
@@ -470,7 +470,7 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->hideIf('whenfeedback', 'enablefeedback', 'eq', '0');
         $mform->hideIf('whenfeedback', 'feedbackvisibility', 'eq', 'onlyprofessor');
         $mform->hideIf('whenfeedback', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-        $mform->setDefault('whenfeedback', 'always');
+        $mform->setDefault('whenfeedback', PEERFORUM_GRADEVISIBLE_ALWAYS);
         $mform->addHelpButton('whenfeedback', 'when', 'peerforum');
         $mform->setAdvanced('whenfeedback');
 

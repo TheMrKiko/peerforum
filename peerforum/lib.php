@@ -80,6 +80,9 @@ define('PEERFORUM_MODE_PROFESSOR', 1);
 define('PEERFORUM_MODE_STUDENT', 2);
 define('PEERFORUM_MODE_PROFESSORSTUDENT', 3);
 
+define('PEERFORUM_GRADEVISIBLE_ALWAYS', 1);
+define('PEERFORUM_GRADEVISIBLE_AFTERPGENDS', 2);
+
 define('MANAGEPOSTS_MODE_SEEALL', 1);
 define('MANAGEPOSTS_MODE_SEEGRADED', 2);
 define('MANAGEPOSTS_MODE_SEENOTGRADED', 3);
@@ -495,8 +498,8 @@ function peerforum_get_final_grade_modes() {
  */
 function peerforum_get_when_peergrade_visible() {
     return array(
-            'always' => get_string('always', 'peerforum'),
-            'after peergrade ends' => get_string('afterpeergradeends', 'peerforum'),
+            PEERFORUM_GRADEVISIBLE_ALWAYS => get_string('always', 'peerforum'),
+            PEERFORUM_GRADEVISIBLE_AFTERPGENDS => get_string('afterpeergradeends', 'peerforum'),
     );
 }
 
