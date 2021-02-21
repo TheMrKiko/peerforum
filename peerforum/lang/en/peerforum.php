@@ -847,9 +847,12 @@ $string['peergrade'] = 'Peer grade';
 $string['peergradesettings'] = 'Peer grade settings';
 $string['configpeergradesettings'] = 'Peer grade settings';
 $string['configpeergrade'] = 'Set to \'No\' if you do not want to enable peer grade on PeerForum';
-$string['rolewarningpeer'] = 'Roles with permission to peer grade';
-$string['rolewarningpeer_help'] =
-        'To submit peer grades users require the mod/peerforum:peergrade capability and any module specific capabilities. Users assigned the following roles should be able to peergrade items. The list of roles may be amended via the permissions link in the administration block.';
+$string['rolewarningpeerstd'] = 'Roles with permission to peer grade as students';
+$string['rolewarningpeerstd_help'] =
+        'To submit peer grade as students users require the mod/peerforum:studentpeergrade capability and any module specific capabilities. Users assigned the following roles should be able to peergrade items. The list of roles may be amended via the permissions link in the administration block.';
+$string['rolewarningpeerprof'] = 'Roles with permission to peer grade as professors';
+$string['rolewarningpeerprof_help'] =
+        'To submit peer grades as professors users require the mod/peerforum:professorpeergrade capability and any module specific capabilities. Users assigned the following roles should be able to peergrade items. The list of roles may be amended via the permissions link in the administration block.';
 $string['peeraggregatetype'] = 'Aggregate type';
 $string['peeraggregateavg'] = 'Average of peer grades';
 $string['peeraggregatecount'] = 'Count of peer grades';

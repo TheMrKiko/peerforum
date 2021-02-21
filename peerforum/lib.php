@@ -489,6 +489,18 @@ function peerforum_get_final_grade_modes() {
 }
 
 /**
+ * Returns array of peerforum grades visibility
+ *
+ * @return array
+ */
+function peerforum_get_when_peergrade_visible() {
+    return array(
+            'always' => get_string('always', 'peerforum'),
+            'after peergrade ends' => get_string('afterpeergradeends', 'peerforum'),
+    );
+}
+
+/**
  * Assign a user to peer grade a post
  *
  * @param stdClass $user author
