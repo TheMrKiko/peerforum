@@ -174,7 +174,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
      * @return string
      */
     public function render_peergrade(peergrade $peergrade) {
-        global $CFG;
+        global $CFG, $USER;
 
         if ($peergrade->settings->aggregationmethod == PEERGRADE_AGGREGATE_NONE) {
             return null; // Peergrades are turned off.
@@ -195,7 +195,11 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $vaultfactory = \mod_peerforum\local\container::get_vault_factory();
         $urlfactory = \mod_peerforum\local\container::get_url_factory();
         $entityfactory = \mod_peerforum\local\container::get_entity_factory();
-        $peerforumentity = $vaultfactory->get_peerforum_vault()->get_from_post_id($peergrade->itemid);
+        $postentity = $vaultfactory->get_post_vault()->get_from_id($peergrade->itemid);
+        $peerforumentity = $vaultfactory->get_peerforum_vault()->get_from_post_id($postentity->get_id());
+        $correcttrainings = $vaultfactory->get_training_submission_vault()
+            ->get_from_discussion_id_and_user_id($peerforumentity->get_id(), $postentity->get_discussion_id(), $USER->id);
+        $shouldcompletetraining = !empty($correcttrainings) && !$correcttrainings[$USER->id]->corrects;
 
         $strpeergrade = get_string("peergrade", "peerforum");
         $peergradehtml = ''; // The string we'll return.
@@ -243,7 +247,13 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $formstart = null;
         // If the item doesn't belong to the current user, the user has permission to peergrade
         // and we're within the assessable period.
-        if ($peergrade->user_can_peergrade() || $peergrade->can_edit()) {
+        if ($shouldcompletetraining && $peergrade->user_can_peergrade()) {
+            $peergradehtml .= html_writer::tag('p', "You are assigned to peer grade this BUT
+            you have to complete the training first. Okay? ".
+                    html_writer::link($urlfactory->get_training_url($correcttrainings[$USER->id]), 'Let\'s go!'),
+                    array('style' => 'color: #6699ff;'));
+
+        } else if ($peergrade->user_can_peergrade() || $peergrade->can_edit()) {
 
             $peergradeurl = $peergrade->get_peergrade_url();
             $inputs = $peergradeurl->params();
@@ -393,7 +403,6 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     $expandhtml .= html_writer::start_tag('div', array('class' => 'topic'));
 
                     // Feedback author.
-                    global $USER;
                     if (!$peergrade->settings->remainanonymous || $pg->userid == $USER->id) {
                         $userfields = user_picture::unalias($pg, ['deleted'], 'userid');
                         $authorentity = $entityfactory->get_author_from_stdclass($userfields);

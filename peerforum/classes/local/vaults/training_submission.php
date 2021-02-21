@@ -111,6 +111,31 @@ class training_submission extends db_table_vault {
             return $record;
         }, $results);
     }
+
+    /**
+     * Get the list of records for the given ids.
+     *
+     * @param int $id Identifier
+     * @return array
+     */
+    public function get_from_discussion_id_and_user_id(int $peerforumid, int $discussionid, int $userid) {
+        $table = self::TABLE;
+        $alias = $this->get_table_alias();
+        list($insql1, $params1) = $this->get_db()->get_in_or_equal($peerforumid, SQL_PARAMS_NAMED);
+        list($insql2, $params2) = $this->get_db()->get_in_or_equal($discussionid, SQL_PARAMS_NAMED);
+        list($insql3, $params3) = $this->get_db()->get_in_or_equal($userid, SQL_PARAMS_NAMED);
+
+        $fields = $alias . '.userid, '. 'p.id, SUM(' . $alias . '.allcorrect) AS corrects';
+        $tables = "{{$table}} {$alias}";
+
+        $sql = "SELECT {$fields} FROM {$tables}";
+        $sql .= ' LEFT JOIN {peerforum_training_page} p ON ' .  $alias . '.pageid = p.id';
+        $sql .= ' WHERE ' . 'p.peerforum ' . $insql1;
+        $sql .= ' AND ' . 'p.discussion ' . $insql2;
+        $sql .= ' AND ' .  $alias . '.userid ' . $insql3;
+        $sql .= ' GROUP BY ' .  $alias . '.pageid';
+        return $this->get_db()->get_records_sql($sql, $params1 + $params2 + $params3);
+    }
 }
 
 class training_rating extends db_table_vault {
