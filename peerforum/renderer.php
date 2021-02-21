@@ -211,146 +211,149 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         /*------------------- SHOW AGGREGATE -----------------------------------*/
 
         // Permissions check - can they view the aggregate?
-        if ($peergrade->user_can_view_aggregate()) {
+        if ($peergrade->user_can_view_aggregate(false)) {
+            if ($peergrade->can_peergrades_be_shown()) {
 
-            $aggregatelabel = $peergrademanager->get_aggregate_label($peergrade->settings->aggregationmethod);
-            $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'peergrade-aggregate-label'));
-            $aggregatestr = $peergrade->get_aggregate_string();
+                $aggregatelabel = $peergrademanager->get_aggregate_label($peergrade->settings->aggregationmethod);
+                $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'peergrade-aggregate-label'));
+                $aggregatestr = $peergrade->get_aggregate_string();
 
-            $aggregatehtml = html_writer::tag('span', $aggregatestr,
-                array('id' => 'peergradeaggregate' . $peergrade->itemid, 'class' => 'peergradeaggregate')) . ' ';
-            if ($peergrade->count > 0) {
-                $countstr = "({$peergrade->count})";
+                $aggregatehtml = html_writer::tag('span', $aggregatestr,
+                                array('id' => 'peergradeaggregate' . $peergrade->itemid, 'class' => 'peergradeaggregate')) . ' ';
+                if ($peergrade->count > 0) {
+                    $countstr = "({$peergrade->count})";
+                } else {
+                    $countstr = '-';
+                }
+                $aggregatehtml .= html_writer::tag('span', $countstr,
+                                array('id' => "peergradecount{$peergrade->itemid}", 'class' => 'peergradecount')) . ' ';
+
+                if ($peergrade->user_can_view_peergrades()) {
+
+                    $nonpopuplink = $peergrade->get_view_peergrades_url();
+                    $popuplink = $peergrade->get_view_peergrades_url(true);
+
+                    $action = new popup_action('click', $popuplink, 'peergrades', array('height' => 400, 'width' => 600));
+                    $aggregatehtml = $this->output->action_link($nonpopuplink, $aggregatehtml, $action);
+                }
+
+                $peergradehtml .= html_writer::tag('span', $aggregatelabel . $aggregatehtml,
+                        array('class' => 'peergrade-aggregate-container'));
             } else {
-                $countstr = '-';
+                $peergradehtml .= html_writer::tag('p', "There is a peer grading activity in progress.",
+                        array('style' => 'color: #6699ff;'));
             }
-            $aggregatehtml .= html_writer::tag('span', $countstr,
-                            array('id' => "peergradecount{$peergrade->itemid}", 'class' => 'peergradecount')).' ';
-
-            if ($peergrade->user_can_view_peergrades()) {
-
-                $nonpopuplink = $peergrade->get_view_peergrades_url();
-                $popuplink = $peergrade->get_view_peergrades_url(true);
-
-                $action = new popup_action('click', $popuplink, 'peergrades', array('height' => 400, 'width' => 600));
-                $aggregatehtml = $this->output->action_link($nonpopuplink, $aggregatehtml, $action);
-            }
-
-            $peergradehtml .= html_writer::tag('span', $aggregatelabel . $aggregatehtml,
-                    array('class' => 'peergrade-aggregate-container'));
-        } else if ($peergrade->can_peergrades_be_shown()) {
-            $peergradehtml .= html_writer::tag('p', "There is a peer grading activity in progress.",
-                    array('style' => 'color: #6699ff;'));
         }
 
         /*------------------- GIVE PEERGRADE -----------------------------------*/
         $formstart = null;
         // If the item doesn't belong to the current user, the user has permission to peergrade
         // and we're within the assessable period.
-        if ($shouldcompletetraining && $peergrade->user_can_peergrade()) {
-            $peergradehtml .= html_writer::tag('p', "You are assigned to peer grade this BUT
-            you have to complete the training first. Okay? ".
-                    html_writer::link($urlfactory->get_training_url($correcttrainings[$USER->id]), 'Let\'s go!'),
-                    array('style' => 'color: #6699ff;'));
+        if ($peergrade->user_can_peergrade() || $peergrade->can_edit()) {
+            if ($shouldcompletetraining) {
+                $peergradehtml .= html_writer::tag('p', "You are assigned to peer grade this BUT
+                you have to complete the training first. Okay? ".
+                        html_writer::link($urlfactory->get_training_url($correcttrainings[$USER->id]), 'Let\'s go!'),
+                        array('style' => 'color: #6699ff;'));
 
-        } else if ($peergrade->user_can_peergrade() || $peergrade->can_edit()) {
+            } else {
+                $peergradeurl = $peergrade->get_peergrade_url();
+                $inputs = $peergradeurl->params();
 
-            $peergradeurl = $peergrade->get_peergrade_url();
-            $inputs = $peergradeurl->params();
+                // Start the peergrade form.
+                $formattrs = array(
+                        'id' => "postpeergrade{$peergrade->itemid}",
+                        'class' => 'postpeergradeform',
+                        'method' => 'post',
+                        'action' => $peergradeurl->out_omit_querystring()
+                );
+                $formstart = html_writer::start_tag('form', $formattrs);
+                $formstart .= html_writer::start_tag('div', array('class' => 'peergradeform'));
 
-            // Start the peergrade form.
-            $formattrs = array(
-                    'id' => "postpeergrade{$peergrade->itemid}",
-                    'class' => 'postpeergradeform',
-                    'method' => 'post',
-                    'action' => $peergradeurl->out_omit_querystring()
-            );
-            $formstart  = html_writer::start_tag('form', $formattrs);
-            $formstart .= html_writer::start_tag('div', array('class' => 'peergradeform'));
+                // Add the hidden inputs.
+                foreach ($inputs as $name => $value) {
+                    $attributes =
+                            array('type' => 'hidden', 'class' => 'peergradeinput', 'name' => $name, 'value' => $value);
+                    $formstart .= html_writer::empty_tag('input', $attributes);
+                }
 
-            // Add the hidden inputs.
-            foreach ($inputs as $name => $value) {
-                $attributes =
-                        array('type' => 'hidden', 'class' => 'peergradeinput', 'name' => $name, 'value' => $value);
-                $formstart .= html_writer::empty_tag('input', $attributes);
-            }
+                if (empty($peergradehtml)) {
+                    $peergradehtml .= html_writer::span($strpeergrade . ': ', 'font-weight-bold');
+                }
+                $peergradehtml = $formstart . $peergradehtml;
 
-            if (empty($peergradehtml)) {
-                $peergradehtml .= html_writer::span($strpeergrade . ': ', 'font-weight-bold');
-            }
-            $peergradehtml = $formstart . $peergradehtml;
+                $scalearray = array(PEERGRADE_UNSET_PEERGRADE => $strpeergrade . '...') +
+                        $peergrade->settings->peergradescale->peergradescaleitems;
+                $scaleattrs = array('class' => 'postpeergrademenu peergradeinput', 'id' => 'menupeergrade' . $peergrade->itemid);
+                $peergradehtml .= html_writer::label($peergrade->peergrade, 'menupeergrade' . $peergrade->itemid,
+                        false, array('class' => 'accesshide'));
 
-            $scalearray = array(PEERGRADE_UNSET_PEERGRADE => $strpeergrade . '...') +
-                    $peergrade->settings->peergradescale->peergradescaleitems;
-            $scaleattrs = array('class' => 'postpeergrademenu peergradeinput', 'id' => 'menupeergrade' . $peergrade->itemid);
-            $peergradehtml .= html_writer::label($peergrade->peergrade, 'menupeergrade' . $peergrade->itemid,
-                    false, array('class' => 'accesshide'));
+                // Time left to peergrade.
+                $timeleft = $peergrade->get_time_to_expire();
+                $peergradehtml .= html_writer::empty_tag('br');
+                $peergradehtml .= html_writer::tag('span', 'Time left to peergrade: ' . $timeleft,
+                        array('style' => 'color: #ff6666;')); // Or color: #6699ff; .
+                $peergradehtml .= html_writer::tag('hr', '',
+                        array('style' => 'height: 2px; width: 98%; background-color: #e3e3e3;'));
 
-            // Time left to peergrade.
-            $timeleft = $peergrade->get_time_to_expire();
-            $peergradehtml .= html_writer::empty_tag('br');
-            $peergradehtml .= html_writer::tag('span', 'Time left to peergrade: ' . $timeleft,
-                    array('style' => 'color: #ff6666;')); // Or color: #6699ff; .
-            $peergradehtml .= html_writer::tag('hr', '',
-                    array('style' => 'height: 2px; width: 98%; background-color: #e3e3e3;'));
+                $peergradehtml .= html_writer::tag('span', 'Select a grade: ',
+                        array('style' => 'color: black;')); // Or color: #6699ff; .
+                $peergradehtml .= html_writer::select($scalearray, 'peergrade', $peergrade->peergrade, false, $scaleattrs);
 
-            $peergradehtml .= html_writer::tag('span', 'Select a grade: ',
-                    array('style' => 'color: black;')); // Or color: #6699ff; .
-            $peergradehtml .= html_writer::select($scalearray, 'peergrade', $peergrade->peergrade, false, $scaleattrs);
-
-            // Output the text feedback.
-            if ($peergrade->settings->enablefeedback) {
-                $attributes = array('name' => 'feedback',
-                        'form' => "postpeergrade{$peergrade->itemid}",
-                        'class' => 'feedbacktext peergradeinput', 'id' => 'feedback' . $peergrade->itemid,
-                        'wrap' => 'virtual', 'style' => 'height: 100%; width: 98%; max-width: 98%;',
-                        'rows' => '5', 'cols' => '5',
-                        'placeholder' => get_string('writefeedback', 'peerforum'));
+                // Output the text feedback.
+                if ($peergrade->settings->enablefeedback) {
+                    $attributes = array('name' => 'feedback',
+                            'form' => "postpeergrade{$peergrade->itemid}",
+                            'class' => 'feedbacktext peergradeinput', 'id' => 'feedback' . $peergrade->itemid,
+                            'wrap' => 'virtual', 'style' => 'height: 100%; width: 98%; max-width: 98%;',
+                            'rows' => '5', 'cols' => '5',
+                            'placeholder' => get_string('writefeedback', 'peerforum'));
 
                     $peergradehtml .= html_writer::tag('textarea', $peergrade->feedback, $attributes);
-            } else {
-                $attributes = array('type' => 'hidden', 'class' => 'peergradeinput',
-                        'name' => 'feedback', 'value' => PEERGRADE_UNSET_FEEDBACK);
-                $peergradehtml .= html_writer::empty_tag('input', $attributes);
-            }
-
-            // Feedback autor.
-            $anonymouspeergrader = $peergrade->settings->remainanonymous;
-            $grader = $anonymouspeergrader ? '[Your peergrade to this post is anonymous]' :
-                    '[Your peergrade to this post is public]';
-
-            // Output submit button.
-            $peergradehtml .= html_writer::start_tag('span', array('class' => "peergradesubmit"));
-
-            $attributes = array('type' => 'submit',
-                    'name' => 'postpeergrademenusubmit' . $peergrade->itemid,
-                    'class' => 'postpeergrademenusubmit',
-                    'id' => 'postpeergradesubmit' . $peergrade->itemid,
-                    'value' => s(get_string('peergrade', 'peerforum')));
-            $peergradehtml .= html_writer::empty_tag('input', $attributes);
-
-            if (!$peergrade->settings->peergradescale->isnumeric) {
-                // If a global scale, try to find current course ID from the context.
-                if (empty($peergrade->settings->peergradescale->courseid) &&
-                        $coursecontext = $peergrade->context->get_course_context(false)) {
-                    $courseid = $coursecontext->instanceid;
                 } else {
-                    $courseid = $peergrade->settings->peergradescale->courseid;
+                    $attributes = array('type' => 'hidden', 'class' => 'peergradeinput',
+                            'name' => 'feedback', 'value' => PEERGRADE_UNSET_FEEDBACK);
+                    $peergradehtml .= html_writer::empty_tag('input', $attributes);
                 }
-                $peergradehtml .= $this->output->help_icon_scale($courseid, $peergrade->settings->peergradescale);
+
+                // Feedback autor.
+                $anonymouspeergrader = $peergrade->settings->remainanonymous;
+                $grader = $anonymouspeergrader ? '[Your peergrade to this post is anonymous]' :
+                        '[Your peergrade to this post is public]';
+
+                // Output submit button.
+                $peergradehtml .= html_writer::start_tag('span', array('class' => "peergradesubmit"));
+
+                $attributes = array('type' => 'submit',
+                        'name' => 'postpeergrademenusubmit' . $peergrade->itemid,
+                        'class' => 'postpeergrademenusubmit',
+                        'id' => 'postpeergradesubmit' . $peergrade->itemid,
+                        'value' => s(get_string('peergrade', 'peerforum')));
+                $peergradehtml .= html_writer::empty_tag('input', $attributes);
+
+                if (!$peergrade->settings->peergradescale->isnumeric) {
+                    // If a global scale, try to find current course ID from the context.
+                    if (empty($peergrade->settings->peergradescale->courseid) &&
+                            $coursecontext = $peergrade->context->get_course_context(false)) {
+                        $courseid = $coursecontext->instanceid;
+                    } else {
+                        $courseid = $peergrade->settings->peergradescale->courseid;
+                    }
+                    $peergradehtml .= $this->output->help_icon_scale($courseid, $peergrade->settings->peergradescale);
+                }
+
+                $confmessage = $peergrade->can_edit() ? 'You can still edit.' : '';
+                // Confirmation for the user.
+                $peergradehtml .= html_writer::span($confmessage, array('id' => 'confirmation' . $peergrade->itemid,
+                        'style' => 'color: #ff6666;'));
+
+                $peergradehtml .= html_writer::end_tag('span');
+
+                $peergradehtml .= html_writer::tag('p', $grader, array('class' => 'author')); // Author.
+
+                $peergradehtml .= html_writer::end_tag('div');
+                $peergradehtml .= html_writer::end_tag('form');
             }
-
-            $confmessage = $peergrade->can_edit() ? 'You can still edit.' : '';
-            // Confirmation for the user.
-            $peergradehtml .= html_writer::span($confmessage, array('id' => 'confirmation' . $peergrade->itemid,
-                    'style' => 'color: #ff6666;'));
-
-            $peergradehtml .= html_writer::end_tag('span');
-
-            $peergradehtml .= html_writer::tag('p', $grader, array('class' => 'author')); // Author.
-
-            $peergradehtml .= html_writer::end_tag('div');
-            $peergradehtml .= html_writer::end_tag('form');
         } else if ($peergrade->is_expired_for_user()) {
             $peergradehtml .= html_writer::tag('p', "Your time to peer grade this post has expired!",
                     array('style' => 'color: #6699ff;'));
@@ -367,7 +370,6 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             $pgsmissing = count($allpeergrades);
 
             foreach ($allpeergrades as $k => $pg) {
-
                 if ($peergrade->user_can_view_peergrades(array($pg))) {
                     $peergradeurl = $peergrade->get_peergrade_url();
                     $inputs = $peergradeurl->params();
@@ -473,7 +475,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                 $peergradehtml .= $expandhtml;
 
                 if ($pgsmissing) {
-                    $peergradehtml .= html_writer::tag('p', "There are still some peer grades hidden.",
+                    $peergradehtml .= html_writer::tag('p',
+                            "There are some peer grades hidden that will be shown when peer grading ends.",
                             array('style' => 'color: #6699ff;'));
                 }
 
@@ -483,7 +486,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             } else if (!$peergrade->can_peergrades_be_shown()) {
                 $peergradehtml .= html_writer::tag('p', "Peer grades will be shown when peer grading ends.",
                         array('style' => 'color: #6699ff;'));
-            } else {
+            } else if (!$peergrade->is_ended()) {
                 $peergradehtml .= html_writer::tag('p', "Peer grading for this item is in progress!",
                         array('style' => 'color: #6699ff;'));
             }
@@ -526,7 +529,15 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             } else {
                 $peersnames = array_map(static function ($assign) use ($peergrade) {
                     $name = fullname($assign->userinfo);
-                    $color = !empty($assign->peergraded) ? '#339966' : '#cc3300';
+                    if (!empty($assign->peergraded)) {
+                        $color = '#339966';
+                    } else if (!empty($assign->expired)) {
+                        $color = '#cc3300';
+                    } else if (!empty($assign->ended)) {
+                        $color = 'grey';
+                    } else {
+                        $color = 'black';
+                    }
                     return html_writer::tag('span', $name, array(
                             'id' => 'peersassigned' . $peergrade->itemid,
                             'style' => 'color: ' . $color . ';'));
