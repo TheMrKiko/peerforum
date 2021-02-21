@@ -34,5 +34,14 @@ $tasks = array(
                 'day' => '*',
                 'month' => '*',
                 'dayofweek' => '*'
+        ),
+        array(
+                'classname' => 'mod_peerforum\task\expire_assignments',
+                'blocking' => 0,
+                'minute' => '*',
+                'hour' => '*',
+                'day' => '*',
+                'month' => '*',
+                'dayofweek' => '*'
         )
 );

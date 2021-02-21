@@ -385,6 +385,7 @@ class peergrade_assignment {
         $data = new stdClass;
         // Insert a new peergrade.
         $data->postid = $this->itemid;
+        $data->itemid = $this->itemid;
         $data->userid = $this->userid;
         $data->courseid = 0; //you want to remove this
         $data->timeassigned = $time;
@@ -684,7 +685,7 @@ class peergrade implements renderable {
 
         $time = time();
         $timeassigned = $this->get_self_assignment()->timeassigned;
-        $timetilexpire = $this->settings->timetoexpire * 60 * 60 * 24;
+        $timetilexpire = $this->settings->timetoexpire * DAYSECS;
         $timewhenexpires = $timeassigned + $timetilexpire;
 
         return get_time_interval_string($time, $timewhenexpires);
@@ -859,7 +860,7 @@ class peergrade implements renderable {
         $time = time();
         // The cron should check this but just in case it does not in time.
         $timeassigned = $this->get_self_assignment()->timeassigned;
-        $timetilexpire = $this->settings->timetoexpire * 60 * 60 * 24;
+        $timetilexpire = $this->settings->timetoexpire * DAYSECS;
         if ($time > $timeassigned + $timetilexpire) {
             $this->get_self_assignment()->expired = true;
             return true;

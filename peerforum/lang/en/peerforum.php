@@ -904,6 +904,7 @@ $string['onlystudentpeergrade'] = 'Only students peergrades';
 $string['professorstudentpeergrade'] = 'Professor(s) and students peergrades';
 $string['professorpercentage'] = 'Percentage for [professor] peer grading';
 $string['studentpercentage'] = 'Percentage for [student] peer grading';
+$string['cronexpiretask'] = 'PeerForum expire and end assignments task';
 $string['public'] = 'Public';
 $string['private'] = 'Private';
 $string['onlyprofessor'] = 'Only professor';
