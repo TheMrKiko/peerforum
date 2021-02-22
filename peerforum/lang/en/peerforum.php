@@ -1117,6 +1117,9 @@ $string['clicktosubscribe'] = "Click to subscribe";
 $string['discussionsubscription'] = "Subscription";
 $string['discussionsubscription_help'] =
         "If you are subscribed to a peerforum it means you will receive notification of new peerforum posts. Usually you can choose whether you wish to be subscribed, though sometimes subscription is forced so that everyone receives notifications.";
+$string['peergradenotifmessage'] = 'A nice user posted in {$a->peerforumname} and you were assigned to peer grade it.
+Complete the training and do your best!';
+$string['messageprovider:peergradeassigns'] = 'Peer grades assigned to you';
 /* Training */
 $string['peerforum:edittraining'] = 'Edit training pages';
 $string['peerforum:submittraining'] = 'Count for the training stats';

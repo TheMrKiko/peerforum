@@ -10397,19 +10397,40 @@ function can_see_peergrades_aggreagate($post, $peerforum) {
 /**
  * Sends a message notifing a user that has a new post to peergrade.
  *
- * @param object $user who is sending the message
  * @param int $userto id of user who is expected to recieve the message
+ * @param \mod_peerforum\local\entities\post|int $post
+ * @param \mod_peerforum\local\entities\peerforum|int $peerforum
+ * @return bool
  */
-function send_peergrade_notification($userto) {
-    global $DB;
-    //TODO:change! to 5
-    $userfrom = $DB->get_record("user", array('id' => 25));
-    $sendto = $DB->get_record("user", array('id' => $userto));
+function send_peergrade_notification($userto, $post, $peerforum) {
+    if (!is_object($post)) {
+        $post = container::get_vault_factory()->get_post_vault()->get_from_id($post);
+    }
+    if (!is_object($peerforum)) {
+        $peerforum = container::get_vault_factory()->get_peerforum_vault()->get_from_id($peerforum);
+    }
+    $discussion = container::get_vault_factory()->get_discussion_vault()->get_from_id($post->get_discussion_id());
 
-    message_post_message($userfrom, $sendto, "You have a new post to peergrade.", FORMAT_HTML);
+    $message = get_string('peergradenotifmessage', 'peerforum', (object) [
+            'user' => fullname($post->get_author_id()),
+            'peerforumname' => format_string($peerforum->get_name(), true) . ": " . $discussion->get_name(),
+    ]);
+    $eventdata = new \core\message\message();
+    $eventdata->courseid = $peerforum->get_course_id();
+    $eventdata->component = 'mod_peerforum';
+    $eventdata->name = 'peergradeassigns';
+    $eventdata->userfrom = core_user::get_noreply_user();
+    $eventdata->userto = $userto;
+    $eventdata->subject = 'You have a new post to peer grade!';
+    $eventdata->fullmessage = $message;
+    $eventdata->fullmessageformat = FORMAT_HTML;
+    $eventdata->fullmessagehtml = $message;
+    $eventdata->notification = 1;
+    $eventdata->smallmessage = $message;
+    $eventdata->contexturl = container::get_url_factory()->get_view_post_url_from_post($post)->out();
+    $eventdata->contexturlname = 'See post';
 
-    return true;
-
+    return message_send($eventdata);
 }
 
 /**

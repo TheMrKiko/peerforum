@@ -33,4 +33,11 @@ $messageproviders = array(
 
     // PeerForum digest messages.
         'digests' => array(),
+
+    // PeerForum post peergrade assigns.
+        'peergradeassigns' => array(
+                'defaults' => array(
+                        'airnotifier' => MESSAGE_FORCED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
+                ),
+        ),
 );
