@@ -250,7 +250,7 @@ class send_user_digests extends \core\task\adhoc_task {
             // This digest has at least one post and should therefore be sent.
             if ($this->send_mail()) {
                 $this->log_finish("Digest sent with {$this->sentcount} messages.");
-                if (get_user_preferences('peerforum_markasreadonnotification', 1, $this->recipient->id) == 1) {
+                if (get_user_preferences('forum_markasreadonnotification', 1, $this->recipient->id) == 1) {
                     peerforum_tp_mark_posts_read($this->recipient, $this->markpostsasread);
                 }
             } else {

@@ -249,7 +249,7 @@ if ($mode) {
     $displaymode = $saveddisplaymode;
 }
 
-if (get_user_preferences('peerforum_useexperimentalui', false)) {
+if (get_user_preferences('forum_useexperimentalui', false)) {
     if ($displaymode == PEERFORUM_MODE_NESTED) {
         $displaymode = PEERFORUM_MODE_NESTED_V2;
     }

@@ -290,7 +290,7 @@ class discussion {
         $select = new single_select(
                 $baseurl,
                 'mode',
-                peerforum_get_layout_modes(get_user_preferences('peerforum_useexperimentalui', false, $user)),
+                peerforum_get_layout_modes(get_user_preferences('forum_useexperimentalui', false, $user)),
                 $displaymode,
                 null,
                 'mode'

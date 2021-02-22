@@ -5480,7 +5480,7 @@ function peerforum_get_discussion_subscription_icon_preloaders() {
  */
 function peerforum_print_mode_form($id, $mode, $peerforumtype = '') {
     global $OUTPUT;
-    $useexperimentalui = get_user_preferences('peerforum_useexperimentalui', false);
+    $useexperimentalui = get_user_preferences('forum_useexperimentalui', false);
     if ($peerforumtype == 'single') {
         $select = new single_select(
                 new moodle_url("/mod/peerforum/view.php",
