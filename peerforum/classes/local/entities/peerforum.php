@@ -1197,6 +1197,7 @@ class peerforum {
             'remainanonymous' => $this->is_remainanonymous(),
             'maxpeergraders' => $this->get_selectpeergraders(),
             'finalgrademode' => $this->get_finalgrademode(),
+            'gradeprofessorpost' => $this->is_gradeprofessorpost(),
         );
     }
 }

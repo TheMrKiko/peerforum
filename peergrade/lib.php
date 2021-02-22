@@ -880,17 +880,19 @@ class peergrade implements renderable {
 
     /**
      * Returns true if the user is able to view the aggregate for this peergrade object.
+     * Probably best used always with @see can_peergrades_be_shown(): when not active.
      *
+     * @param bool $checkpgshown If this function should check for the canpeergradebeshown
      * @param int|null $userid If left empty the current user is assumed.
      * @return bool true if the user is able to view the aggregate for this peergrade object
      */
-    public function user_can_view_aggregate($userid = null) {
+    public function user_can_view_aggregate($checkpgshown = true, $userid = null) {
         if (empty($userid)) {
             global $USER;
             $userid = $USER->id;
         }
 
-        if (!$this->can_peergrades_be_shown()) {
+        if ($checkpgshown && !$this->can_peergrades_be_shown()) {
 
             return false;
         }
@@ -961,6 +963,7 @@ class peergrade implements renderable {
     /**
      * Checks for the whenpeergradevisible setting.
      * Probably best used always with @see user_can_view_peergrades()
+     * and @see user_can_view_aggregate()
      *
      * @return bool
      */
@@ -2181,6 +2184,13 @@ class peergrade_manager {
      */
     public function assign_peergraders($peergradeoptions) {
         global $DB;
+
+        if (!$peergradeoptions->gradeprofessorpost &&
+                has_capability('mod/peerforum:professorpeergrade',
+                        $peergradeoptions->context,
+                        $peergradeoptions->itemuserid)) {
+            return array();
+        }
 
         $users = get_users_by_capability($peergradeoptions->context, 'mod/peerforum:studentpeergrade', 'u.id AS userid');
         // Get the items from the database.
