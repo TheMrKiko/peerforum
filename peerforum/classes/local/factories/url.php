@@ -530,7 +530,7 @@ class url {
      * @throws \moodle_exception
      */
     public function get_training_edit_url(\stdClass $trainingpage): moodle_url {
-        return new moodle_url('build_training.php', [
+        return new moodle_url('buildtraining.php', [
                 'edit' => $trainingpage->id
         ]);
     }
@@ -543,7 +543,7 @@ class url {
      * @throws \moodle_exception
      */
     public function get_training_new_url(peerforum_entity $peerforum): moodle_url {
-        return new moodle_url('build_training.php', [
+        return new moodle_url('buildtraining.php', [
                 'peerforum' => $peerforum->get_id()
         ]);
     }

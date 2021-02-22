@@ -30,7 +30,7 @@ $edit = optional_param('edit', 0, PARAM_INT);
 $delete = optional_param('delete', 0, PARAM_INT);
 $confirm = optional_param('confirm', 0, PARAM_INT);
 
-$PAGE->set_url('/mod/peerforum/build_training.php', array(
+$PAGE->set_url('/mod/peerforum/buildtraining.php', array(
         'peerforum' => $peerforum,
         'edit' => $edit,
         'delete' => $delete,
@@ -321,7 +321,7 @@ if ($peerforum->peergradeassessed) {
 }
 $peergradescaleitems = $pg->settings->peergradescale->peergradescaleitems ?? array();
 
-$mformpage = new mod_peerforum_build_training_form('build_training.php', [
+$mformpage = new mod_peerforum_build_training_form('buildtraining.php', [
         'peerforum' => $peerforum,
         'peergradescaleitems' => $peergradescaleitems,
         'trainingpage' => $trainingpage,
