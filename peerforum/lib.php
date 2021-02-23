@@ -11143,3 +11143,33 @@ function peerforum_submit_training_page($trainingpage, $mform) {
 
     return array($submit, $allcorrect);
 }
+
+/**
+ * @param $fromform
+ * @param $mform
+ * @param $nominationsfull
+ * @return array
+ * @throws coding_exception
+ * @throws dml_exception
+ */
+function peerforum_edit_nominations($data, $mform) {
+    global $DB;
+
+    $nominations = \mod_peerforum\local\vaults\training_page::turn_outside_in($data->nominations, array('nomination', 'n'));
+
+    foreach($nominations as $nomination) {
+        if ($nomination->id) {
+            continue;
+        }
+        $id = $DB->insert_record('peerforum_relationship_nomin', (object) [
+                'n' => $nomination->n,
+                'userid' => $data->userid,
+                'course' => $data->course->id,
+                'otheruserid' => $nomination->otheruser,
+                'nomination' => $nomination->nomination,
+        ]);
+    }
+
+    return true;
+}
+

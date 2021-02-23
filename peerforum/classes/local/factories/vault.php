@@ -32,6 +32,7 @@ use mod_peerforum\local\vaults\discussion as discussion_vault;
 use mod_peerforum\local\vaults\discussion_list as discussion_list_vault;
 use mod_peerforum\local\vaults\peerforum as peerforum_vault;
 use mod_peerforum\local\vaults\post as post_vault;
+use mod_peerforum\local\vaults\relationship_nomination as relationship_nomination_vault;
 use mod_peerforum\local\vaults\training_page as training_page_vault;
 use mod_peerforum\local\vaults\training_submission as training_submission_vault;
 use mod_peerforum\local\vaults\post_attachment as post_attachment_vault;
@@ -183,6 +184,19 @@ class vault {
      */
     public function get_training_submission_vault(): training_submission_vault {
         return new training_submission_vault(
+                $this->db,
+                $this->entityfactory,
+                null
+        );
+    }
+
+    /**
+     * Create a traning submission vault.
+     *
+     * @return relationship_nomination_vault
+     */
+    public function get_relationship_nomination_vault(): relationship_nomination_vault {
+        return new relationship_nomination_vault(
                 $this->db,
                 $this->entityfactory,
                 null

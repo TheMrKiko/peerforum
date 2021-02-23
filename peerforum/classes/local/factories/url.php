@@ -560,4 +560,17 @@ class url {
                 'pf' => $peerforum->get_id()
         ]);
     }
+
+    /**
+     * Generate the nominations form link.
+     *
+     * @param peerforum_entity $peerforum
+     * @return moodle_url
+     * @throws \moodle_exception
+     */
+    public function get_nominations_url(peerforum_entity $peerforum): moodle_url {
+        return new moodle_url('nominations.php', [
+                'peerforum' => $peerforum->get_id()
+        ]);
+    }
 }

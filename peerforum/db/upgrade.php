@@ -330,7 +330,77 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021022102, 'peerforum');
     }
 
+    if ($oldversion < 2021022202) {
 
+        // Define table peerforum_relationship_nomin to be created.
+        $table = new xmldb_table('peerforum_relationship_nomin');
+
+        // Adding fields to table peerforum_relationship_nomin.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('course', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('otheruserid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('nomination', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, null);
+
+        // Adding keys to table peerforum_relationship_nomin.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('course', XMLDB_KEY_FOREIGN, ['course'], 'course', ['id']);
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+        $table->add_key('otheruserid', XMLDB_KEY_FOREIGN, ['otheruserid'], 'user', ['id']);
+
+        // Conditionally launch create table for peerforum_relationship_nomin.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Define table peerforum_relationship_rank to be created.
+        $table = new xmldb_table('peerforum_relationship_rank');
+
+        // Adding fields to table peerforum_relationship_rank.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('course', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('otheruserid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('ranking', XMLDB_TYPE_INTEGER, '4', null, null, null, null);
+
+        // Adding keys to table peerforum_relationship_rank.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('course', XMLDB_KEY_FOREIGN, ['course'], 'course', ['id']);
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+        $table->add_key('otheruserid', XMLDB_KEY_FOREIGN, ['otheruserid'], 'user', ['id']);
+
+        // Conditionally launch create table for peerforum_relationship_rank.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021022202, 'peerforum');
+    }
+
+    if ($oldversion < 2021022203) {
+
+        // Define field n to be added to peerforum_relationship_nomin.
+        $table = new xmldb_table('peerforum_relationship_nomin');
+        $field = new xmldb_field('n', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'otheruserid');
+
+        // Conditionally launch add field n.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define field n to be added to peerforum_relationship_rank.
+        $table = new xmldb_table('peerforum_relationship_rank');
+        $field = new xmldb_field('n', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'otheruserid');
+
+        // Conditionally launch add field n.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021022203, 'peerforum');
+    }
 
 
     return true;

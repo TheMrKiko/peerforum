@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/peerforum/db" VERSION="20210221" COMMENT="XMLDB file for Moodle mod/peerforum"
+<XMLDB PATH="mod/peerforum/db" VERSION="20210222" COMMENT="XMLDB file for Moodle mod/peerforum"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -426,6 +426,38 @@
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+        </TABLE>
+        <TABLE NAME="peerforum_relationship_nomin" COMMENT="Student relationships">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="id of the student responding to the questionnaire"/>
+                <FIELD NAME="otheruserid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="id of the student we talking about"/>
+                <FIELD NAME="n" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="nomination" TYPE="int" LENGTH="4" NOTNULL="true" SEQUENCE="false" COMMENT="1 for positive nom, -1 for negative nom"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id" COMMENT="Relates to course.id"/>
+                <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="Relates to user.id"/>
+                <KEY NAME="otheruserid" TYPE="foreign" FIELDS="otheruserid" REFTABLE="user" REFFIELDS="id" COMMENT="Relates to user.id"/>
+            </KEYS>
+        </TABLE>
+        <TABLE NAME="peerforum_relationship_rank" COMMENT="Student relationships">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="id of the student responding to the questionnaire"/>
+                <FIELD NAME="otheruserid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="id of the student we talking about"/>
+                <FIELD NAME="n" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="ranking" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false" COMMENT="If false, is to be asked"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id" COMMENT="Relates to course.id"/>
+                <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="Relates to user.id"/>
+                <KEY NAME="otheruserid" TYPE="foreign" FIELDS="otheruserid" REFTABLE="user" REFFIELDS="id" COMMENT="Relates to user.id"/>
             </KEYS>
         </TABLE>
         <TABLE NAME="peerforum_training_page" COMMENT="PeerForums training pages">
