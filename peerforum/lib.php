@@ -10457,12 +10457,12 @@ function can_see_peergrades_aggreagate($post, $peerforum) {
  */
 function send_peergrade_notification($userto, $post, $peerforum) {
     if (!is_object($post)) {
-        $post = container::get_vault_factory()->get_post_vault()->get_from_id($post);
+        $post = \mod_peerforum\local\container::get_vault_factory()->get_post_vault()->get_from_id($post);
     }
     if (!is_object($peerforum)) {
-        $peerforum = container::get_vault_factory()->get_peerforum_vault()->get_from_id($peerforum);
+        $peerforum = \mod_peerforum\local\container::get_vault_factory()->get_peerforum_vault()->get_from_id($peerforum);
     }
-    $discussion = container::get_vault_factory()->get_discussion_vault()->get_from_id($post->get_discussion_id());
+    $discussion = \mod_peerforum\local\container::get_vault_factory()->get_discussion_vault()->get_from_id($post->get_discussion_id());
 
     $message = get_string('peergradenotifmessage', 'peerforum', (object) [
             'user' => fullname($post->get_author_id()),
@@ -10480,7 +10480,7 @@ function send_peergrade_notification($userto, $post, $peerforum) {
     $eventdata->fullmessagehtml = $message;
     $eventdata->notification = 1;
     $eventdata->smallmessage = $message;
-    $eventdata->contexturl = container::get_url_factory()->get_view_post_url_from_post($post)->out();
+    $eventdata->contexturl = \mod_peerforum\local\container::get_url_factory()->get_view_post_url_from_post($post)->out();
     $eventdata->contexturlname = 'See post';
 
     return message_send($eventdata);
@@ -11201,7 +11201,7 @@ function peerforum_submit_training_page($trainingpage, $mform) {
  * @param $fromform
  * @param $mform
  * @param $nominationsfull
- * @return array
+ * @return bool
  * @throws coding_exception
  * @throws dml_exception
  */
