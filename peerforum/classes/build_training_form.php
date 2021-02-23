@@ -143,8 +143,9 @@ class mod_peerforum_build_training_form extends moodleform {
             /*-- Feedback strings --*/
             foreach ($peergradescaleitems as $rid => $str) {
                 /* Text */
-                $repeatarray[] = $mform->createElement('text', 'feedback[feedback]['.$rid.']['.$critid.']',
-                        '... a ' . $str . '? (use {'.$rid.'} for repetition)');
+                $repeatarray[] = $mform->createElement('textarea', 'feedback[feedback]['.$rid.']['.$critid.']',
+                        '... a ' . $str . '? id inside exercise: {'.$rid.'}{'.$critid.'}',
+                        array('wrap' => 'off', 'cols' => '70', 'rows' => '1'));
                 $mform->setType('feedback[feedback]['.$rid.']['.$critid.']', PARAM_NOTAGS);
 
                 /* Id */
@@ -170,8 +171,9 @@ class mod_peerforum_build_training_form extends moodleform {
         /*-- Feedback strings --*/
         foreach ($peergradescaleitems as $rid => $str) {
             /* Text */
-            $repeatarray[] = $mform->createElement('text', 'feedback[feedback]['.$rid.'][-1]',
-                    'a ' . $str . '? (use {'.$rid.'} for repetition)');
+            $repeatarray[] = $mform->createElement('textarea', 'feedback[feedback]['.$rid.'][-1]',
+                    '...a ' . $str . '? id inside exercise: {'.$rid.'}{-1}',
+                    array('wrap' => 'off', 'cols' => '70', 'rows' => '1'));
             $mform->setType('feedback[feedback]['.$rid.'][-1]', PARAM_NOTAGS);
 
             /* Id */

@@ -495,6 +495,7 @@ if ($edit) {
 $PAGE->set_title("{$course->shortname}: {$strparentname}: {$titlesubject}");
 $PAGE->set_heading($course->fullname);
 
+core\notification::info(get_string('repetitionids', 'peerforum'));
 echo $OUTPUT->header();
 echo $OUTPUT->heading(format_string($peerforum->name), 2);
 

@@ -97,8 +97,10 @@ class mod_peerforum_training_form extends moodleform {
                     $feedback = trim($trainingpage->feedback['feedback'][$grade][$critid][$n]);
                     if ($feedback[0] === '{' && $feedback[-1] === '}') {
                         $ofid = substr($feedback, 1, -1);
-                        $feedback = $trainingpage->feedback['feedback'][$ofid][$critid][$n];
+                        $ofid = explode('}{', $ofid);
+                        $feedback = $trainingpage->feedback['feedback'][$ofid[0]][$ofid[1]][$n];
                     }
+
                     if ($grade == $correctgrades) {
                         $mform->addElement('html', '<p style="color: var(--success);"><b>Correct</b>: '.$feedback.'</p>');
                     } else {
@@ -121,7 +123,8 @@ class mod_peerforum_training_form extends moodleform {
                 $feedback = trim($trainingpage->feedback['feedback'][$grade][-1][$n]);
                 if ($feedback[0] === '{' && $feedback[-1] === '}') {
                     $ofid = substr($feedback, 1, -1);
-                    $feedback = $trainingpage->feedback['feedback'][$ofid][-1][$n];
+                    $ofid = explode('}{', $ofid);
+                    $feedback = $trainingpage->feedback['feedback'][$ofid[0]][$ofid[1]][$n];
                 }
                 if ($grade == $correctgrades) {
                     $mform->addElement('html', '<p style="color: var(--success);"><b>Correct</b>: '.$feedback.'</p>');
