@@ -312,6 +312,11 @@ class peergrade_assignment {
     public $expired = 0;
 
     /**
+     * @var int The nomination id related to this assignment
+     */
+    public $nomination = 0;
+
+    /**
      * Constructor.
      *
      * @param stdClass $options {
@@ -326,6 +331,7 @@ class peergrade_assignment {
      *            peergraded => If the assignment was already peergraded and the id of the peergrade (if yes) [required]
      *            expired => If the user let the peer grade expire [required]
      *            timemodified  => int The time the peer grade [optional]
+     *            nomination  => int The nomination id related to this assignment [optional]
      * }
      */
     public function __construct($options) {
@@ -351,6 +357,9 @@ class peergrade_assignment {
         }
         if (isset($options->timemodified)) {
             $this->timemodified = $options->timemodified;
+        }
+        if (isset($options->nomination)) {
+            $this->nomination = $options->nomination;
         }
     }
 
@@ -396,6 +405,7 @@ class peergrade_assignment {
         $data->peergraded = $this->peergraded;
         $data->contextid = $this->context->id;
         $data->component = $this->component;
+        $data->nomination = $this->nomination;
         $data->peergradearea = $this->peergradearea;
 
         return $DB->insert_record('peerforum_time_assigned', $data);
@@ -2199,9 +2209,13 @@ class peergrade_manager {
                     return $u->userid;
                 }, $users), SQL_PARAMS_NAMED);
 
+        $coursecontext = $peergradeoptions->context->get_course_context();
+
         $params['contextid'] = $peergradeoptions->context->id;
         $params['component'] = $peergradeoptions->component;
         $params['peergradearea'] = $peergradeoptions->peergradearea;
+        $params['itemuserid'] = $peergradeoptions->itemuserid;
+        $params['courseid'] = $coursecontext->instanceid;
 
         $sql = "SELECT r.userid, r.peergraded, SUM(r.expired) AS sexpied, MAX(r.timeassigned) AS lastassign, COUNT(p.id) AS numpeergrades
                   FROM {peerforum_time_assigned} r
@@ -2214,35 +2228,76 @@ class peergrade_manager {
               ORDER BY numpeergrades ASC, sexpied ASC, lastassign ASC, r.userid";
         $usersassigned = $DB->get_records_sql($sql, $params);
 
+        $sql = "SELECT r.userid, r.peergraded, SUM(r.expired) AS sexpied, MAX(r.timeassigned) AS lastassign, COUNT(p.id) AS numpeergrades,
+                       n.id AS nominationid, n.nomination
+                  FROM {peerforum_time_assigned} r
+             LEFT JOIN {peerforum_relationship_nomin} n ON r.userid = n.userid
+             LEFT JOIN {peerforum_peergrade} p ON r.peergraded = p.id
+                 WHERE r.contextid = :contextid AND
+                       r.component = :component AND
+                       r.peergradearea = :peergradearea AND
+                       n.course = :courseid AND
+                       n.otheruserid = :itemuserid
+              GROUP BY r.userid, r.component, r.peergradearea, r.contextid
+              ORDER BY numpeergrades ASC, sexpied ASC, lastassign ASC, r.userid";
+        $usersnominated = $DB->get_records_sql($sql, $params);
+
         $emptyusers = array_filter($users, function($us) use ($usersassigned) {
             return !isset($usersassigned[$us->userid]) || empty($usersassigned[$us->userid]);
         });
 
-        $usersassigned = $emptyusers + $usersassigned;
+        $lmusers = array();
+        $llusers = array();
+        $nomusersassigned = array();
+        foreach ($usersnominated as $k => $usernominated) {
+            if ($usernominated->nomination == '1') {
+                $lmusers[$k] = $usernominated;
+            } else if ($usernominated->nomination == '-1') {
+                $llusers[$k] = $usernominated;
+            }
+        }
+
+        $nlmusers = count($lmusers);
+        $nllusers = count($llusers);
+        if (random_int(1, 5) <= $nlmusers) {
+            $lmu = $lmusers[array_key_first($lmusers)];
+            $nomusersassigned[$lmu->userid] = $lmu;
+        }
+        if (random_int(1, 5) <= $nllusers) {
+            $llu = $llusers[array_key_first($llusers)];
+            $nomusersassigned[$llu->userid] = $llu;
+        }
+
+        $usersassigned = $nomusersassigned + $emptyusers + $usersassigned;
 
         // $userinfo = $DB->get_record('peerforum_peergrade_users', array('iduser' => $userid)); TODO check block!
-
         $gradersalreadyassigned = array();
         foreach ($usersassigned as $userassigned) {
             if (count($gradersalreadyassigned) == $peergradeoptions->maxpeergraders) {
                 break;
             }
-
+            if (isset($gradersalreadyassigned[$userassigned->userid])) {
+                continue;
+            }
             if ($userassigned->userid == $peergradeoptions->itemuserid) {
                 continue;
             }
+            $userid = $userassigned->userid;
+
+            $nominationid = $usersnominated[$userid]->nominationid ?? 0;
 
             $assignoptions = new stdClass();
-            $assignoptions->userid = $userassigned->userid;
+            $assignoptions->userid = $userid;
             $assignoptions->itemid = $peergradeoptions->itemid;
             $assignoptions->ended = 0;
             $assignoptions->expired = 0;
             $assignoptions->blocked = 0;
+            $assignoptions->nomination = $nominationid;
             $assignoptions->peergraded = 0;
             $assignoptions->peergradeoptions = $peergradeoptions;
             $assign = new peergrade_assignment($assignoptions);
             if ($assign->assign()) {
-                $gradersalreadyassigned[] = $userassigned->userid;
+                $gradersalreadyassigned[$userid] = $userid;
             }
         }
         return $gradersalreadyassigned;

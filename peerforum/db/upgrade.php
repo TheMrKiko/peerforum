@@ -402,6 +402,27 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021022203, 'peerforum');
     }
 
+    if ($oldversion < 2021022302) {
+
+        // Define field nomination to be added to peerforum_time_assigned.
+        $table = new xmldb_table('peerforum_time_assigned');
+        $field = new xmldb_field('nomination', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'peergraded');
+
+        // Conditionally launch add field nomination.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define key nomination (foreign) to be added to peerforum_time_assigned.
+        $table = new xmldb_table('peerforum_time_assigned');
+        $key = new xmldb_key('nomination', XMLDB_KEY_FOREIGN, ['nomination'], 'peerforum_relationship_nomin', ['id']);
+
+        // Launch add key nomination.
+        $dbman->add_key($table, $key);
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021022302, 'peerforum');
+    }
 
     return true;
 }

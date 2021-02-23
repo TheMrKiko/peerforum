@@ -353,6 +353,7 @@
                 <FIELD NAME="blocked" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="If the user is blocked from this post"/>
                 <FIELD NAME="ended" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="If this peergrade ended"/>
                 <FIELD NAME="peergraded" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="If the user peergraded and which"/>
+                <FIELD NAME="nomination" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="timeassigned" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
             </FIELDS>
@@ -361,6 +362,7 @@
                 <KEY NAME="contextid" TYPE="foreign" FIELDS="contextid" REFTABLE="context" REFFIELDS="id" COMMENT="Relates to context.id"/>
                 <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="Relates to user.id"/>
                 <KEY NAME="peergraded" TYPE="foreign" FIELDS="peergraded" REFTABLE="peerforum_peergrade" REFFIELDS="id"/>
+                <KEY NAME="nomination" TYPE="foreign" FIELDS="nomination" REFTABLE="peerforum_relationship_nomin" REFFIELDS="id"/>
             </KEYS>
             <INDEXES>
                 <INDEX NAME="uniqueuserpeergrade" UNIQUE="false" FIELDS="component, peergradearea, contextid, itemid"

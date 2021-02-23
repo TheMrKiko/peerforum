@@ -94,6 +94,24 @@ class relationship_nomination extends db_table_vault {
      *
      * @param int $id
      * @param int $courseid
+     * @return array
+     */
+    public function get_from_otheruser_id(int $id, int $courseid): array {
+        $alias = $this->get_table_alias();
+        list($insql1, $params1) = $this->get_db()->get_in_or_equal($id, SQL_PARAMS_NAMED);
+        list($insql2, $params2) = $this->get_db()->get_in_or_equal($courseid, SQL_PARAMS_NAMED);
+        $wheresql = $alias . '.otheruserid ' . $insql1 . ' AND ' . $alias . '.course ' . $insql2;
+        $sql = $this->generate_get_records_sql($wheresql);
+        $records = $this->get_db()->get_records_sql($sql, $params1 + $params2);
+
+        return training_page::turn_inside_out($records, array('nomination', 'n'));
+    }
+
+    /**
+     * Count the list of all records for a user and course.
+     *
+     * @param int $id
+     * @param int $courseid
      */
     public function count_from_user_id(int $id, int $courseid) {
         $table = self::TABLE;
