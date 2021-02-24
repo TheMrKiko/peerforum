@@ -136,7 +136,11 @@ if ($mform->is_cancelled()) {
     $data->fullinfo = $nominationsfull;
 
     if (peerforum_edit_nominations($data, $mform)) {
-        redirect($urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity));
+        redirect($urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity),
+        'Submitted, thank you! You can now peer grade.',
+        null,
+        \core\notification::SUCCESS,
+        );
 
     } else {
         print_error("couldnotadd", "peerforum", $errordestination);
