@@ -31,11 +31,10 @@
  * @copyright 2009 Sam Hemelryk
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  **/
-require_once($CFG->dirroot . '/peergrading/peer_ranking.php');
 
 class mod_peerforum_renderer extends plugin_renderer_base {
 
-    //----------- New renders of PeerForum --------------//
+    /*----------- New renders of PeerForum --------------*/
 
     /**
      * Produces the html that represents this rating in the UI
@@ -179,8 +178,6 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         if ($peergrade->settings->aggregationmethod == PEERGRADE_AGGREGATE_NONE) {
             return null; // Peergrades are turned off.
         }
-        $edititemid = optional_param('id', 0, PARAM_INT);
-
         $peergrademanager = new peergrade_manager();
         // Initialise the JavaScript so peergrades can be done by AJAX.
         $peergrademanager->initialise_peergrade_javascript($this->page);
@@ -324,12 +321,13 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                 // Output submit button.
                 $peergradehtml .= html_writer::start_tag('span', array('class' => "peergradesubmit"));
 
-                $attributes = array('type' => 'submit',
+                $attributes = array(
+                        'type' => 'submit',
                         'name' => 'postpeergrademenusubmit' . $peergrade->itemid,
-                        'class' => 'postpeergrademenusubmit',
-                        'id' => 'postpeergradesubmit' . $peergrade->itemid,
-                        'value' => s(get_string('peergrade', 'peerforum')));
-                $peergradehtml .= html_writer::empty_tag('input', $attributes);
+                        'class' => 'btn btn-primary postpeergrademenusubmit',
+                        'id' => 'postpeergradesubmit' . $peergrade->itemid);
+                $peergradehtml .= html_writer::tag('button',
+                        get_string('peergrade', 'peerforum'), $attributes);
 
                 if (!$peergrade->settings->peergradescale->isnumeric) {
                     // If a global scale, try to find current course ID from the context.
@@ -344,7 +342,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
                 $confmessage = $peergrade->can_edit() ? 'You can still edit.' : '';
                 // Confirmation for the user.
-                $peergradehtml .= html_writer::span($confmessage, array('id' => 'confirmation' . $peergrade->itemid,
+                $peergradehtml .= html_writer::span($confmessage, '', array('id' => 'confirmation' . $peergrade->itemid,
                         'style' => 'color: #ff6666;'));
 
                 $peergradehtml .= html_writer::end_tag('span');
@@ -371,27 +369,6 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
             foreach ($allpeergrades as $k => $pg) {
                 if ($peergrade->user_can_view_peergrades(array($pg))) {
-                    $peergradeurl = $peergrade->get_peergrade_url();
-                    $inputs = $peergradeurl->params();
-
-                    // Start the peergrade form.
-                    $formattrs = array(
-                            'id' => "postpeergrade{$peergrade->itemid}",
-                            'class' => 'postpeergradeform',
-                            'method' => 'post',
-                            'action' => $peergradeurl->out_omit_querystring()
-                    );
-
-                    /*[FORM - postpeergradeform*/
-                    $expandhtml .= html_writer::start_tag('form', $formattrs);
-
-                    // Add the hidden inputs.
-                    foreach ($inputs as $name => $value) {
-                        $attributes =
-                                array('type' => 'hidden', 'class' => 'peergradeinput', 'name' => $name, 'value' => $value);
-                        $expandhtml .= html_writer::empty_tag('input', $attributes);
-                    }
-
                     /*[DIV - peergradeform_feedbacks*/
                     $expandhtml .= html_writer::start_tag('div', array('class' => 'peergradeform_feedbacks'));
                     /*[DIV - peerforumpostseefeedback*/
@@ -448,7 +425,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                                 array('type' => 'submit', 'name' => 'editpeergrade' . $peergrade->itemid,
                                         'class' => 'editpeergrade',
                                         'id' => 'editpeergrade' . $peergrade->itemid,
-                                        'value' => s(get_string('editpeergrade', 'peerforum')));
+                                        'value' => get_string('editpeergrade', 'peerforum'));
                         $expandhtml .= html_writer::empty_tag('input', $editbutton);
                     }
 
@@ -456,8 +433,6 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     $expandhtml .= html_writer::end_tag('div');
                     /*DIV - peergradeform_feedbacks]*/
                     $expandhtml .= html_writer::end_tag('div');
-                    /*FORM - postpeergradeform]*/
-                    $expandhtml .= html_writer::end_tag('form');
 
                     $pgsmissing--;
                 }
@@ -474,7 +449,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                                 'data-content' => 'peergrade-list-content'));
                 $peergradehtml .= $expandhtml;
 
-                if ($pgsmissing) {
+                if ($pgsmissing && !$peergrade->is_ended()) {
                     $peergradehtml .= html_writer::tag('p',
                             "There are some peer grades hidden that will be shown when peer grading ends.",
                             array('style' => 'color: #6699ff;'));
