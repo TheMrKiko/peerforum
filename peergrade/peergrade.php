@@ -92,7 +92,7 @@ $peergradeoptions->peergradescaleid = $peergradescaleid;
 $peergradeoptions->userid = $USER->id;
 
 $peergrade = new peergrade($peergradeoptions);
-$peergrade->update_peergrade($userpeergrade);
+$peergrade->update_peergrade($userpeergrade, $feedback);
 
 if (!empty($cm) && $context->contextlevel == CONTEXT_MODULE) {
     // Tell the module that its grades have changed.

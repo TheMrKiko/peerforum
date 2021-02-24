@@ -6,7 +6,7 @@ M.core_peergrade = {
 
     init: function (Y) {
         this.Y = Y;
-        Y.all('input.postpeergrademenusubmit').each(this.attach_peergrade_events, this);
+        Y.all('button.postpeergrademenusubmit').each(this.attach_peergrade_events, this);
     },
 
     attach_peergrade_events: function (selectnode) {
