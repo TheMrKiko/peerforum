@@ -555,7 +555,6 @@ class peergrade implements renderable {
         $this->itemid = $options->itemid;
         $this->peergradescaleid = $options->peergradescaleid;
         $this->userid = $options->userid;
-        $this->timecreated = $options->timecreated;
 
         if (isset($options->settings)) {
             $this->settings = $options->settings;
@@ -574,6 +573,9 @@ class peergrade implements renderable {
         }
         if (isset($options->feedback)) {
             $this->feedback = $options->feedback;
+        }
+        if (isset($options->timecreated)) {
+            $this->timecreated = $options->timecreated;
         }
         if (isset($options->usersassigned)) {
             $this->usersassigned = $options->usersassigned;
@@ -686,9 +688,10 @@ class peergrade implements renderable {
     /**
      * Returns the time until the post expires.
      *
+     * @param bool $formatted
      * @return string
      */
-    public function get_time_to_expire() {
+    public function get_time_to_expire($formatted = true) {
         if ($this->get_self_assignment() === null) {
             return null;
         }
@@ -697,8 +700,8 @@ class peergrade implements renderable {
         $timeassigned = $this->get_self_assignment()->timeassigned;
         $timetilexpire = $this->settings->timetoexpire * DAYSECS;
         $timewhenexpires = $timeassigned + $timetilexpire;
+        return $formatted ? get_time_interval_string($time, $timewhenexpires) : $time - $timewhenexpires;
 
-        return get_time_interval_string($time, $timewhenexpires);
     }
 
     /**
