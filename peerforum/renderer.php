@@ -196,7 +196,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $peerforumentity = $vaultfactory->get_peerforum_vault()->get_from_post_id($postentity->get_id());
         $correcttrainings = $vaultfactory->get_training_submission_vault()
             ->get_from_discussion_id_and_user_id($peerforumentity->get_id(), $postentity->get_discussion_id(), $USER->id);
-        $shouldcompletetraining = !empty($correcttrainings) && !$correcttrainings[$USER->id]->corrects;
+        $shouldcompletetraining = !empty($correcttrainings) && isset($correcttrainings[$USER->id])
+                && !$correcttrainings[$USER->id]->corrects;
 
         $strpeergrade = get_string("peergrade", "peerforum");
         $peergradehtml = ''; // The string we'll return.
