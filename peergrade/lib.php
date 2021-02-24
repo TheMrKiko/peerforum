@@ -946,7 +946,7 @@ class peergrade implements renderable {
         }
 
         foreach ($peergrades as $pg) {
-            if ($pg->userid == $userid) {
+            if ($pg->userid == $userid || $this->settings->permissions->professor) {
                 return true; // If the user is the author, it can at least see some.
             }
         }

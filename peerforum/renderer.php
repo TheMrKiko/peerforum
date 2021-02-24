@@ -369,20 +369,19 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
             foreach ($allpeergrades as $k => $pg) {
                 if ($peergrade->user_can_view_peergrades(array($pg))) {
-                    /*[DIV - peergradeform_feedbacks*/
-                    $expandhtml .= html_writer::start_tag('div', array('class' => 'peergradeform_feedbacks'));
                     /*[DIV - peerforumpostseefeedback*/
-                    $expandhtml .= html_writer::start_tag('div', array('class' => 'peerforumpostseefeedback clearfix',
+                    $expandhtml .= html_writer::start_tag('div', array(
+                            'class' => 'peerforumpostseefeedback border clearfix d-flex flex-column w-100 p-1 bg-light',
                             'role' => 'region',
                             'aria-label' => get_string('givefeedback', 'peerforum')));
 
                     /*[DIV - row header*/
-                    $expandhtml .= html_writer::start_tag('div', array('class' => 'row header'));
-                    /*[DIV - topic*/
-                    $expandhtml .= html_writer::start_tag('div', array('class' => 'topic'));
+                    $expandhtml .= html_writer::start_tag('div', array('class' => 'd-flex header mb-2 row'));
+                    $expandhtml .= html_writer::start_tag('div', array('class' => 'mr-2'));
 
                     // Feedback author.
-                    if (!$peergrade->settings->remainanonymous || $pg->userid == $USER->id) {
+                    if (!$peergrade->settings->remainanonymous || $pg->userid == $USER->id
+                            || $peergrade->settings->permissions->professor) {
                         $userfields = user_picture::unalias($pg, ['deleted'], 'userid');
                         $authorentity = $entityfactory->get_author_from_stdclass($userfields);
 
@@ -395,28 +394,33 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
                         $name = 'Grader ' . $k;
                     }
+                    /*DIV - mr-2]*/
+                    $expandhtml .= html_writer::end_tag('div');
                     $authorshipstring = ['name' => $name, 'date' => userdate($pg->timemodified)];
 
+                    $expandhtml .= html_writer::start_tag('div', array('class' => 'd-flex flex-column'));
                     $expandhtml .= html_writer::tag('div', get_string('bynameondate', 'peerforum', $authorshipstring),
-                            array('class' => 'author', 'role' => 'heading', 'aria-level' => '2',
-                                    'style' => 'position: relative; top: 8px; left: 3px;'));
+                            array('class' => 'author', 'role' => 'heading', 'aria-level' => '2'));
 
-                    $expandhtml .= html_writer::tag('span', 'Peer grade: ',
-                            array('id' => 'outfeedback', 'class' => 'outfeedback', 'style' => 'font-weight: bold'));
-                    $expandhtml .= html_writer::tag('span', $pg->peergrade,
+                    $expandhtml .= html_writer::span(html_writer::span('Peer grade: ', 'bold') .
+                            $pg->peergrade, '',
                             array('id' => 'outfeedback', 'class' => 'outfeedback'));
+                    /*DIV - d-flex flex-column]*/
+                    $expandhtml .= html_writer::end_tag('div');
+                    /*DIV - row header]*/
+                    $expandhtml .= html_writer::end_tag('div'); // Row.
 
+                    /*[DIV - topic*/
+                    $expandhtml .= html_writer::start_tag('div', array('class' => 'topic pl-3'));
                     if ($peergrade->settings->enablefeedback) {
                         $expandhtml .= html_writer::tag('span', 'Feedback: ',
                                 array('id' => 'outfeedback', 'class' => 'outfeedback', 'style' => "font-weight:bold"));
                         $expandhtml .= html_writer::tag('span', $pg->feedback,
                                 array('id' => 'outfeedback', 'class' => 'outfeedback'));
                     }
-
                     /*DIV - topic]*/
                     $expandhtml .= html_writer::end_tag('div');
-                    /*DIV - row header]*/
-                    $expandhtml .= html_writer::end_tag('div'); // Row.
+
 
                     // Edit peergrade.
                     if ($peergrade->can_edit()) {
@@ -430,8 +434,6 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     }
 
                     /*DIV - peerforumpostseefeedback]*/
-                    $expandhtml .= html_writer::end_tag('div');
-                    /*DIV - peergradeform_feedbacks]*/
                     $expandhtml .= html_writer::end_tag('div');
 
                     $pgsmissing--;
