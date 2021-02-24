@@ -6056,6 +6056,8 @@ function peerforum_add_new_post($post, $mform, $unused = null) {
     // Let Moodle know that assessable content is uploaded (eg for plagiarism detection)
     peerforum_trigger_content_uploaded_event($post, $cm, 'peerforum_add_new_post');
 
+    $postvault = \mod_peerforum\local\container::get_vault_factory()->get_post_vault();
+    $posthierarchy = $postvault->get_post_parents_for_post_id($post->id);
     $peerforumvault = \mod_peerforum\local\container::get_vault_factory()->get_peerforum_vault();
     $peerforumentity = $peerforumvault->get_from_id($peerforum->id);
 
@@ -6064,6 +6066,7 @@ function peerforum_add_new_post($post, $mform, $unused = null) {
     $peergradeoptions = (object) ([
                     'itemuserid' => $USER->id,
                     'itemid' => $post->id,
+                    'itemfamily' => $posthierarchy,
             ] + $peerforumentity->get_peergrade_options());
     $peergraders = $pgm->assign_peergraders($peergradeoptions);
 

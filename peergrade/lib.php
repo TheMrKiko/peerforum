@@ -2249,6 +2249,20 @@ class peergrade_manager {
             return !isset($usersassigned[$us->userid]) || empty($usersassigned[$us->userid]);
         });
 
+        $assignedbefore = array();
+        if ($peergradeoptions->autoassignreplies && isset($peergradeoptions->itemfamily) && !empty($peergradeoptions->itemfamily)) {
+            $parentitem = null;
+            foreach ($peergradeoptions->itemfamily as $olditem) {
+                if ($peergradeoptions->itemuserid == $olditem->userid && $olditem->id != $peergradeoptions->itemid) {
+                    $parentitem = $olditem->id;
+                    break;
+                }
+            }
+            if ($parentitem) {
+                $assignedbefore = $DB->get_records('peerforum_time_assigned', array('itemid' => $parentitem));
+            }
+        }
+
         $lmusers = array();
         $llusers = array();
         $nomusersassigned = array();
@@ -2271,7 +2285,7 @@ class peergrade_manager {
             $nomusersassigned[$llu->userid] = $llu;
         }
 
-        $usersassigned = $nomusersassigned + $emptyusers + $usersassigned;
+        $usersassigned = $assignedbefore + $nomusersassigned + $emptyusers + $usersassigned;
 
         // $userinfo = $DB->get_record('peerforum_peergrade_users', array('iduser' => $userid)); TODO check block!
         $gradersalreadyassigned = array();

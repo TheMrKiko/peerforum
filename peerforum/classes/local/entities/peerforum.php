@@ -1198,6 +1198,7 @@ class peerforum {
             'maxpeergraders' => $this->get_selectpeergraders(),
             'finalgrademode' => $this->get_finalgrademode(),
             'gradeprofessorpost' => $this->is_gradeprofessorpost(),
+            'autoassignreplies' => $this->is_autoassignreplies(),
         );
     }
 }

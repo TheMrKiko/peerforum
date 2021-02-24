@@ -548,4 +548,29 @@ class post extends db_table_vault {
 
         return $this->transform_db_records_to_entities($records);
     }
+
+    /**
+     * Returns an array of orderer ancestors from the post, until the first from the discussion.
+     *
+     * @param int $postid
+     * @return array
+     */
+    public function get_post_parents_for_post_id(int $postid): array {
+        $table = self::TABLE;
+        $alias = $this->get_table_alias();
+        list($insql, $params) = $this->get_db()->get_in_or_equal($postid);
+        $sql = "
+         WITH RECURSIVE parents AS (
+                         SELECT id, userid, parent, 0 AS depth
+                           FROM {{$table}}
+                          WHERE id {$insql}
+                          UNION ALL
+                         SELECT {$alias}.id, {$alias}.userid, {$alias}.parent, f.depth + 1
+                           FROM {{$table}} {$alias}, parents f
+                          WHERE {$alias}.id = f.parent
+                )
+                         SELECT id, userid, depth FROM parents
+                         ORDER BY depth ASC";
+        return $this->get_db()->get_records_sql($sql, $params);
+    }
 }
