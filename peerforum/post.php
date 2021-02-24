@@ -938,18 +938,6 @@ if ($mformpost->is_cancelled()) {
                 $completion->update_state($cm, COMPLETION_COMPLETE);
             }
 
-            // Assign posts for user to peergrade.
-            $pgm = \mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
-            $peergradeoptions = (object) ([
-                            'itemuserid' => $USER->id,
-                            'itemid' => $postentity->get_id(),
-                    ] + $peerforumentity->get_peergrade_options());
-            $peergraders = $pgm->assign_peergraders($peergradeoptions);
-
-            foreach ($peergraders as $peergrader) {
-                send_peergrade_notification($peergrader, $postentity, $peerforumentity);
-            }
-
             redirect(
                     peerforum_go_back_to($discussionurl),
                     $message . $subscribemessage,
