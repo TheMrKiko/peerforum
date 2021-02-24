@@ -139,12 +139,15 @@ class mod_peerforum_build_training_form extends moodleform {
             $mform->setType('correctgrades[id]['.$critid.']', PARAM_INT);
 
             $repeatarray[] = $mform->createElement('html', '<h4>What to show if student grades as:</h4>');
+            $repeatarray[] = $mform->createElement('html',
+                    '<p><b>Tip</b>: If you want to reuse the same message for a different value, just paste its <i>id</i>
+                    into that other text value field! <i>(only valid inside the same exercise)</i></p>');
 
             /*-- Feedback strings --*/
             foreach ($peergradescaleitems as $rid => $str) {
                 /* Text */
                 $repeatarray[] = $mform->createElement('textarea', 'feedback[feedback]['.$rid.']['.$critid.']',
-                        '... a ' . $str . '? id inside exercise: {'.$rid.'}{'.$critid.'}',
+                        '... a ' . $str . '? id: {'.$rid.'}{'.$critid.'}',
                         array('wrap' => 'off', 'cols' => '70', 'rows' => '1'));
                 $mform->setType('feedback[feedback]['.$rid.']['.$critid.']', PARAM_NOTAGS);
 
@@ -167,12 +170,15 @@ class mod_peerforum_build_training_form extends moodleform {
         $mform->setType('correctgrades[id][-1]', PARAM_INT);
 
         $repeatarray[] = $mform->createElement('html', '<h4>What to show if student grades as:</h4>');
+        $repeatarray[] = $mform->createElement('html',
+                '<p><b>Tip</b>: If you want to reuse the same message for a different value, just paste its <i>id</i>
+                    into that other text value field! <i>(only valid inside the same exercise)</i></p>');
 
         /*-- Feedback strings --*/
         foreach ($peergradescaleitems as $rid => $str) {
             /* Text */
             $repeatarray[] = $mform->createElement('textarea', 'feedback[feedback]['.$rid.'][-1]',
-                    '...a ' . $str . '? id inside exercise: {'.$rid.'}{-1}',
+                    '...a ' . $str . '? id: {'.$rid.'}{-1}',
                     array('wrap' => 'off', 'cols' => '70', 'rows' => '1'));
             $mform->setType('feedback[feedback]['.$rid.'][-1]', PARAM_NOTAGS);
 

@@ -94,7 +94,7 @@ class mod_peerforum_training_form extends moodleform {
                 if ($submitted) {
                     $grade = $trainingsubmission->grades['grade'][$critid][$exid];
                     $correctgrades = $trainingpage->correctgrades['grade'][$critid][$n];
-                    $feedback = trim($trainingpage->feedback['feedback'][$grade][$critid][$n]);
+                    $feedback = trim($trainingpage->feedback['feedback'][$grade][$critid][$n] ?? '');
                     if ($feedback[0] === '{' && $feedback[-1] === '}') {
                         $ofid = substr($feedback, 1, -1);
                         $ofid = explode('}{', $ofid);
@@ -120,7 +120,7 @@ class mod_peerforum_training_form extends moodleform {
             if ($submitted) {
                 $grade = $trainingsubmission->grades['grade'][-1][$exid];
                 $correctgrades = $trainingpage->correctgrades['grade'][-1][$n];
-                $feedback = trim($trainingpage->feedback['feedback'][$grade][-1][$n]);
+                $feedback = trim($trainingpage->feedback['feedback'][$grade][-1][$n] ?? '');
                 if ($feedback[0] === '{' && $feedback[-1] === '}') {
                     $ofid = substr($feedback, 1, -1);
                     $ofid = explode('}{', $ofid);
