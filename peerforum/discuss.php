@@ -69,6 +69,15 @@ if (!$capabilitymanager->can_view_discussions($USER)) {
     throw new moodle_exception('noviewdiscussionspermission', 'mod_peerforum');
 }
 
+if ($capabilitymanager->must_nominate($USER, $course->id)) {
+    redirect(
+            $urlfactory->get_nominations_url($peerforum),
+            'You must nominate some peers to start your peer grading journey!',
+            null,
+            \core\output\notification::NOTIFY_INFO
+    );
+}
+
 $datamapperfactory = mod_peerforum\local\container::get_legacy_data_mapper_factory();
 $peerforumdatamapper = $datamapperfactory->get_peerforum_data_mapper();
 $peerforumrecord = $peerforumdatamapper->to_legacy_object($peerforum);
