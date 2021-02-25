@@ -80,3 +80,4 @@ $string['add'] = "Add";
 $string['managerelations'] = "Student Relationships";
 $string['managetraining'] = "Training";
 $string['edit'] = "Edit";
+$string['postsassigned'] = "Posts Assigned";

@@ -9,7 +9,7 @@
 require_once('../../config.php');
 
 // Careful when changing. Repeated in lf/lib.php.
-define('MANAGEPOSTS_MODE_SEEALL', 1);
+/*define('MANAGEPOSTS_MODE_SEEALL', 1);
 define('MANAGEPOSTS_MODE_SEEGRADED', 2);
 define('MANAGEPOSTS_MODE_SEENOTGRADED', 3);
 define('MANAGEPOSTS_MODE_SEENOTEXPIRED', 4);
@@ -26,7 +26,7 @@ define('VIEWPEERGRADES_MODE_SEEWARNINGS', 2);
 define('VIEWPEERGRADES_MODE_SEEOUTLIERS', 3);
 
 define('RELATIONSHIPS_MODE_NOMINATIONS', 1);
-define('RELATIONSHIPS_MODE_RANKINGS', 2);
+define('RELATIONSHIPS_MODE_RANKINGS', 2);*/
 
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
@@ -52,13 +52,11 @@ if (!has_capability('mod/peerforum:professorpeergrade', $context)) {
     $canviewalltabs = false;
 }
 
-$url = new moodle_url('/blocks/peerblock/summary.php');
-$urlparams = array(
-        'display' => $display,
+$url = new moodle_url('/blocks/peerblock/summary.php', array(
         'userid' => $userid,
         'courseid' => $courseid,
-);
-$PAGE->set_url($url, $urlparams);
+));
+$PAGE->set_url($url, array('display' => $display, ));
 
 // Output the page.
 $pagetitle = get_string('pluginname', 'block_peerblock');
@@ -75,6 +73,7 @@ $postspeergraded = get_string('postspeergraded', 'block_peerblock');
 $postsexpired = get_string('postsexpired', 'block_peerblock');
 $viewpeergrades = get_string('viewpeergrades', 'block_peerblock');
 $manageposts = get_string('manageposts', 'block_peerblock');
+$postsassigned = get_string('postsassigned', 'block_peerblock');
 $manageconflicts = get_string('manageconflicts', 'block_peerblock');
 $managegradersposts = get_string('managegraders_posts', 'block_peerblock');
 $viewgradersstats = get_string('viewgradersstats', 'block_peerblock');
@@ -82,38 +81,51 @@ $managerelations = get_string('managerelations', 'block_peerblock');
 $threadingstats = get_string('threadingstats', 'block_peerblock');
 $peerranking = get_string('peer_ranking', 'block_peerblock');
 $managetraining = get_string('managetraining', 'block_peerblock');
+echo $OUTPUT->box_start('posts-list');
 
-echo $OUTPUT->box_start();
+$row[] = new tabobject('manageposts',
+        new moodle_url($url, array('display' => MANAGEPOSTS_MODE_SEEALL)), $postsassigned);
+$row[] = new tabobject('peerranking',
+        new moodle_url($url, array('display' => MANAGEPOSTS_MODE_SEEGRADED)), $peerranking);
 
-$row[] = new tabobject('topeergrade',
-        new moodle_url($url, array('display' => MANAGEPOSTS_MODE_SEEALL) + $urlparams), $poststopeergrade);
-$row[] = new tabobject('peergraded',
-        new moodle_url($url, array('display' => MANAGEPOSTS_MODE_SEEGRADED) + $urlparams), $postspeergraded);
-$row[] = new tabobject('expired',
-        new moodle_url($url, array('display' => MANAGEPOSTS_MODE_SEEEXPIRED) + $urlparams), $postsexpired);
+$options = array(
+        MANAGEPOSTS_MODE_SEEALL => get_string('managepostsmodeseeall', 'peerforum'),
+        MANAGEPOSTS_MODE_SEENOTGRADED => get_string('managepostsmodeseenotgraded', 'peerforum'),
+        MANAGEPOSTS_MODE_SEEGRADED => get_string('managepostsmodeseegraded', 'peerforum'),
+        MANAGEPOSTS_MODE_SEEEXPIRED => get_string('managepostsmodeseeexpired', 'peerforum'),
+);
 
 $userfilter = $userid ? array('userid' => $userid) : array();
 
 if ($display == MANAGEPOSTS_MODE_SEEALL) {
+    // All posts.
+    $filters = $userfilter;
+
+} else if ($display == MANAGEPOSTS_MODE_SEENOTGRADED) {
     // Posts to peer grade.
-    $tabtitle = $poststopeergrade;
     $filters = array('ended' => 0) + $userfilter;
 
 } else if ($display == MANAGEPOSTS_MODE_SEEGRADED) {
     // Posts peergraded.
-    $tabtitle = $postspeergraded;
     $filters = array('peergradednot' => 0) + $userfilter;
 
 } else if ($display == MANAGEPOSTS_MODE_SEEEXPIRED) {
     // Posts expired.
-    $tabtitle = $postsexpired;
     $filters = array('expired' => 1) + $userfilter;
 
 }
+echo $OUTPUT->tabtree($row, 'manageposts');
+echo $OUTPUT->render(new single_select($url, 'display', $options, $display, false));
+
+$PAGE->requires->js_amd_inline("
+    require(['jquery', 'mod_peerforum/posts_list'], function($, View) {
+        View.init($('.posts-list'));
+    });"
+);
+
 
 // TODO Peers to Rank!
 
-echo $OUTPUT->tabtree($row, $display);
 
 $entityfactory = mod_peerforum\local\container::get_entity_factory();
 $rendererfactory = mod_peerforum\local\container::get_renderer_factory();
@@ -130,9 +142,7 @@ if (empty($items)) {
         return $item->itemid;
     }, $items);
     $postvault = $vaultfactory->get_post_vault();
-    $posts = array_map(static function($postid) use ($postvault){
-        return $postvault->get_from_id($postid);
-    }, array_unique($postids));
+    $posts = $postvault->get_from_ids(array_unique($postids));
 
     $discussionids = array_reduce($posts, function($carry, $post) {
         $did = $post->get_discussion_id();
@@ -160,7 +170,7 @@ if (empty($items)) {
             $posts
     );
 }
-echo $OUTPUT->heading(format_string($tabtitle), 2);
+
 echo $postoutput;
 echo $OUTPUT->box_end();
 echo $OUTPUT->footer();
