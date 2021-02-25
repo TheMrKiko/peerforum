@@ -517,7 +517,7 @@ class url {
      */
     public function get_training_url(\stdClass $trainingpage, $submitid = null): moodle_url {
         $submit = ($submitid) ? array('submitid' => $submitid) : array();
-        return new moodle_url('training.php', array_merge([
+        return new moodle_url('/mod/peerforum/training.php', array_merge([
                 'page' => $trainingpage->id
         ], $submit));
     }
@@ -530,7 +530,7 @@ class url {
      * @throws \moodle_exception
      */
     public function get_training_edit_url(\stdClass $trainingpage): moodle_url {
-        return new moodle_url('buildtraining.php', [
+        return new moodle_url('/mod/peerforum/buildtraining.php', [
                 'edit' => $trainingpage->id
         ]);
     }
@@ -543,7 +543,7 @@ class url {
      * @throws \moodle_exception
      */
     public function get_training_new_url(peerforum_entity $peerforum): moodle_url {
-        return new moodle_url('buildtraining.php', [
+        return new moodle_url('/mod/peerforum/buildtraining.php', [
                 'peerforum' => $peerforum->get_id()
         ]);
     }
@@ -556,7 +556,7 @@ class url {
      * @throws \moodle_exception
      */
     public function get_training_manager_url(peerforum_entity $peerforum): moodle_url {
-        return new moodle_url('trainingpages.php', [
+        return new moodle_url('/mod/peerforum/trainingpages.php', [
                 'pf' => $peerforum->get_id()
         ]);
     }
@@ -569,7 +569,7 @@ class url {
      * @throws \moodle_exception
      */
     public function get_nominations_url(peerforum_entity $peerforum): moodle_url {
-        return new moodle_url('nominations.php', [
+        return new moodle_url('/mod/peerforum/nominations.php', [
                 'peerforum' => $peerforum->get_id()
         ]);
     }
