@@ -435,8 +435,12 @@ if ($mformpage->is_cancelled()) {
             print_error("couldnotupdate", "peerforum", $errordestination);
         }
 
-        $returnurl = isset($fromform->submitbutton) ? $urlfactory->get_training_url($updatetrainingpage) :
-                $urlfactory->get_training_edit_url($updatetrainingpage);
+        $returnurl = $urlfactory->get_training_url($updatetrainingpage);
+        if (isset($fromform->submitbutton2)) {
+            $returnurl = $urlfactory->get_training_edit_url($updatetrainingpage);
+        } else if (isset($fromform->submitbutton3)) {
+            $returnurl = $urlfactory->get_training_manager_url($peerforumentity);
+        }
 
         redirect(
                 peerforum_go_back_to($returnurl),
@@ -455,8 +459,12 @@ if ($mformpage->is_cancelled()) {
             $trainingpageentity = $trainingpagevault->get_from_id($fromform->id);
             $fromform->deleted = 0;
 
-            $returnurl = isset($fromform->submitbutton) ? $urlfactory->get_training_url($addtrainingpage) :
-                    $urlfactory->get_training_edit_url($addtrainingpage);
+            $returnurl = $urlfactory->get_training_url($addtrainingpage);
+            if (isset($fromform->submitbutton2)) {
+                $returnurl = $urlfactory->get_training_edit_url($addtrainingpage);
+            } else if (isset($fromform->submitbutton3)) {
+                $returnurl = $urlfactory->get_training_manager_url($peerforumentity);
+            }
 
             redirect(
                     peerforum_go_back_to($returnurl),
@@ -495,7 +503,6 @@ if ($edit) {
 $PAGE->set_title("{$course->shortname}: {$strparentname}: {$titlesubject}");
 $PAGE->set_heading($course->fullname);
 
-core\notification::info(get_string('repetitionids', 'peerforum'));
 echo $OUTPUT->header();
 echo $OUTPUT->heading(format_string($peerforum->name), 2);
 

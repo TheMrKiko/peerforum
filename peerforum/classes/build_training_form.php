@@ -208,6 +208,7 @@ class mod_peerforum_build_training_form extends moodleform {
 
         // Elements in a row need a group.
         $buttonarray = array();
+        $buttonarray[] = &$mform->createElement('submit', 'submitbutton3', 'Save and manage');
         $buttonarray[] = &$mform->createElement('submit', 'submitbutton2', 'Save and continue edit');
         $buttonarray[] = &$mform->createElement('submit', 'submitbutton', 'Save and view');
         $buttonarray[] = &$mform->createElement('cancel');
