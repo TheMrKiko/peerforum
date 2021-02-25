@@ -142,13 +142,10 @@ class block_peerblock extends block_list {
         }*/
 
 
-        $this->content->icons[] = $OUTPUT->render(new pix_icon('icon', 'logo', 'block_peerblock'));
-        $this->content->items[] = html_writer::link(
-                new moodle_url($CFG->wwwroot . '/peergrading/index.php',
-                array('courseid' => $this->page->course->id,
-                        'userid' => $USER->id, 'display' => 1, 'peerforum' => $peerforumid)),
-                get_string('viewpanel', 'block_peerblock'),
-                array('title' => get_string('viewpanel', 'block_peerblock')));
+        $this->content->items[] = html_writer::span(
+                $OUTPUT->render(new pix_icon('icon', 'logo', 'block_peerblock')) .
+                '<h5>Summary</h5>',
+                'd-flex align-items-center');
 
         //student view
 
@@ -178,6 +175,16 @@ class block_peerblock extends block_list {
         } else if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
             $this->content->items[] = html_writer::tag('span', 'No posts to peergrade.', array('style' => 'color:black'));
         }*/
+        if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
+            $this->content->items[] = html_writer::empty_tag('br');
+            $this->content->items[] = html_writer::link(
+                    new moodle_url($CFG->wwwroot . '/peergrading/index.php',
+                            array('courseid' => $this->page->course->id,
+                                    'userid' => $USER->id, 'display' => 1, 'peerforum' => $peerforumid)),
+                    'View old peer grade panel only for professors...',
+                    array('title' => get_string('viewpanel', 'block_peerblock')));
+            $this->content->items[] = 'Pls dont press action buttons while there. only navigate.';
+        }
 
         return $this->content;
     }
