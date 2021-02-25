@@ -227,5 +227,3 @@ echo html_writer::empty_tag('div', array('id' => 'e'));
 $mformpage->display();
 
 echo $OUTPUT->footer();
-
-// usar tabtree para o grading

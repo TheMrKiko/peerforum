@@ -86,9 +86,9 @@ class mod_peerforum_training_form extends moodleform {
                 $critid = $trainingpage->criteria['id'][$c];
 
                 /* Grade */
-                $mform->addElement('select', 'grades[grade]['.$critid.']['.$exid.']',
+                $gradegroup = array();
+                $gradegroup[] =& $mform->createElement('select', 'grades[grade]['.$critid.']['.$exid.']',
                         $trainingpage->criteria['name'][$c], $scalearray);
-                $mform->addRule('grades[grade]['.$critid.']['.$exid.']', get_string('error'), 'required');
 
                 /* Feedback */
                 if ($submitted) {
@@ -100,21 +100,24 @@ class mod_peerforum_training_form extends moodleform {
                         $ofid = explode('}{', $ofid);
                         $feedback = $trainingpage->feedback['feedback'][$ofid[0]][$ofid[1]][$n];
                     }
-
                     if ($grade == $correctgrades) {
-                        $mform->addElement('html', '<p style="color: var(--success);"><b>Correct</b>: '.$feedback.'</p>');
+                        $html = '<span class="text-success"><b>Correct</b>: '.$feedback.'</span>';
                     } else {
-                        $mform->addElement('html', '<p style="color: var(--danger);"><b>Wrong</b>: '.$feedback.'</p>');
+                        $html = '<span class="text-danger"><b>Wrong</b>: '.$feedback.'</span>';
                     }
+                    $gradegroup[] =& $mform->createElement('html', $html);
                 }
+                $mform->addGroup($gradegroup, 'group[grade]['.$critid.']['.$exid.']',
+                        $trainingpage->criteria['name'][$c], '', false);
+                $mform->addGroupRule('group[grade]['.$critid.']['.$exid.']', get_string('error'), 'required');
             }
 
             /*-------- OVERALL EXERCISE --------*/
             $mform->addElement('html', '<h4>How would you grade the exercise?</h4>');
 
             /* Grade */
-            $mform->addElement('select', 'grades[grade][-1]['.$exid.']', 'Overall grade', $scalearray);
-            $mform->addRule('grades[grade][-1]['.$exid.']', get_string('error'), 'required');
+            $gradegroup = array();
+            $gradegroup[] =& $mform->createElement('select', 'grades[grade][-1]['.$exid.']', 'Overall grade', $scalearray);
 
             /* Feedback */
             if ($submitted) {
@@ -127,11 +130,14 @@ class mod_peerforum_training_form extends moodleform {
                     $feedback = $trainingpage->feedback['feedback'][$ofid[0]][$ofid[1]][$n];
                 }
                 if ($grade == $correctgrades) {
-                    $mform->addElement('html', '<p style="color: var(--success);"><b>Correct</b>: '.$feedback.'</p>');
+                    $html = '<span class="text-success"><b>Correct</b>: '.$feedback.'</span>';
                 } else {
-                    $mform->addElement('html', '<p style="color: var(--danger);"><b>Wrong</b>: '.$feedback.'</p>');
+                    $html = '<span class="text-danger"><b>Wrong</b>: '.$feedback.'</span>';
                 }
+                $gradegroup[] =& $mform->createElement('html', $html);
             }
+            $mform->addGroup($gradegroup, 'group[grade][-1]['.$exid.']', 'Overall grade', '', false);
+            $mform->addGroupRule('group[grade][-1]['.$exid.']', get_string('error'), 'required');
         }
 
         /*--------------------------------------- HIDDEN VARS ---------------------------------------*/
@@ -180,6 +186,7 @@ class mod_peerforum_training_form extends moodleform {
         foreach ($grades as $critid => $g) {
             foreach ($g as $exid => $v) {
                 if ($v == PEERGRADE_UNSET_PEERGRADE) {
+                    $errors['group[grade][' . $critid . '][' . $exid . ']'] = 'You gotta give a grade to this!';
                     $errors['grades[grade][' . $critid . '][' . $exid . ']'] = 'You gotta give a grade to this!';
                 }
             }
