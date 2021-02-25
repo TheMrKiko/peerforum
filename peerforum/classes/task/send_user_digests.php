@@ -398,7 +398,7 @@ class send_user_digests extends \core\task\adhoc_task {
         // And the content of the header in body.
         $headerdata = (object) [
                 'sitename' => format_string($site->fullname, true),
-                'userprefs' => (new \moodle_url('/user/peerforum.php', [
+                'userprefs' => (new \moodle_url('/user/forum.php', [
                         'id' => $this->recipient->id,
                         'course' => $site->id,
                 ]))->out(false),
