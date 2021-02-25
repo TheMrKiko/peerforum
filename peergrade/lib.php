@@ -2353,6 +2353,39 @@ class peergrade_manager {
         }
         return $peergradessince;
     }
+
+    /**
+     * @param array $filters
+     * @return array
+     */
+    public function get_items_from_filters(array $filters): array {
+        global $DB;
+        $where = [];
+        $alias = 's';
+        if (isset($filters['userid'])) {
+            $userid = $filters['userid'];
+            $where[] = "{$alias}.userid = {$userid}";
+        }
+        if (isset($filters['ended'])) {
+            $ended = $filters['ended'];
+            $where[] = "{$alias}.ended = {$ended}";
+        }
+        if (isset($filters['expired'])) {
+            $expired = $filters['expired'];
+            $where[] = "{$alias}.expired = {$expired}";
+        }
+        if (isset($filters['peergradednot'])) {
+            $peergraded = $filters['peergradednot'];
+            $where[] = "{$alias}.peergraded <> {$peergraded}";
+        }
+        $wheres = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $sql = "SELECT {$alias}.*
+                  FROM {peerforum_time_assigned} {$alias}
+                       {$wheres}
+              ORDER BY {$alias}.timeassigned DESC";
+        return $DB->get_records_sql($sql);
+    }
 } // End peergrade_manager class definition.
 
 /**
