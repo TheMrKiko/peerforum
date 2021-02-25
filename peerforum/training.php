@@ -101,10 +101,6 @@ if (!empty($page)) {
     $trainingpage->course = $course->id;
     $trainingpage->peerforum = $peerforum->id;
 
-    if (empty($submitid)) {
-        $SESSION->fromurl = get_local_referer(false);
-    }
-
 } else {
     print_error('unknowaction');
 }
@@ -178,6 +174,7 @@ if (empty($SESSION->fromurl)) {
 }
 
 if ($mformpage->is_cancelled()) {
+    unset($SESSION->fromurl);
     redirect($gobackdestination);
 
 } else if ($mformpage->is_submitted() && $fromform = $mformpage->get_data()) {
@@ -205,6 +202,10 @@ if ($mformpage->is_cancelled()) {
 
     print_error("couldnotupdate", "peerforum", $gobackdestination);
     exit;
+}
+
+if (empty($SESSION->fromurl)) {
+    $SESSION->fromurl = get_local_referer(false);
 }
 
 // This section is only shown after all checks are in place, and the peerforumentity and any relevant discussion and post

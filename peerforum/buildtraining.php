@@ -80,8 +80,6 @@ if (!empty($peerforum)) {
         print_error('nopostpeerforum', 'peerforum');
     }
 
-    $SESSION->fromurl = get_local_referer(false);
-
     // Load up the $trainingpage variable.
     $trainingpage = new stdClass();
     $trainingpage->course = $course->id;
@@ -97,9 +95,6 @@ if (!empty($peerforum)) {
     $trainingpage->criteria = array();
     $trainingpage->feedback = array();
     $trainingpage->correctgrades = array();
-
-    // Unsetting this will allow the correct return URL to be calculated later.
-    unset($SESSION->fromdiscussion);
 
 } else if (!empty($edit)) {
     // Editing the page.
@@ -142,9 +137,6 @@ if (!empty($peerforum)) {
     $trainingpage->exercise['description'] = array_map(function ($ex) use ($modcontext) {
         return trusttext_pre_edit($ex, 'description', $modcontext);
     }, $trainingpage->exercise['description']);
-
-    // Unsetting this will allow the correct return URL to be calculated later.
-    unset($SESSION->fromdiscussion);
 
 } else if (!empty($delete)) {
     // User is deleting a page.
@@ -302,6 +294,10 @@ if (isguestuser()) {
     print_error('noguest');
 }
 
+if (empty($SESSION->fromurl)) {
+    $SESSION->fromurl = get_local_referer(false);
+}
+
 if ($peerforum->peergradeassessed) {
     $peergradeoptions = (object) [
             'context' => $modcontext,
@@ -377,6 +373,7 @@ $mformpage->set_data(
 
 if ($mformpage->is_cancelled()) {
 
+    unset($SESSION->fromurl);
     redirect($urlfactory->get_training_manager_url($peerforumentity));
 
 } else if ($mformpage->is_submitted() && $fromform = $mformpage->get_data()) {
@@ -386,6 +383,7 @@ if ($mformpage->is_cancelled()) {
     } else {
         $errordestination = $SESSION->fromurl;
     }
+    unset($SESSION->fromurl);
 
     $fromform->itemid = $fromform->description['itemid'];
     $fromform->descriptionformat = $fromform->description['format'];
@@ -443,7 +441,7 @@ if ($mformpage->is_cancelled()) {
         }
 
         redirect(
-                peerforum_go_back_to($returnurl),
+                $returnurl,
                 $description,
                 null,
                 \core\output\notification::NOTIFY_SUCCESS
@@ -467,7 +465,7 @@ if ($mformpage->is_cancelled()) {
             }
 
             redirect(
-                    peerforum_go_back_to($returnurl),
+                    $returnurl,
                     $description,
                     null,
                     \core\output\notification::NOTIFY_SUCCESS

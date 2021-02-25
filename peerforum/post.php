@@ -802,6 +802,7 @@ if ($mformpost->is_cancelled()) {
     } else {
         $errordestination = $SESSION->fromurl;
     }
+    unset($SESSION->fromurl);
 
     $fromform->itemid = $fromform->message['itemid'];
     $fromform->messageformat = $fromform->message['format'];
