@@ -76,9 +76,9 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
         // Permissions check - can they view the aggregate?
         if ($rating->user_can_view_aggregate()) {
+            $aggregatelabel = $ratingmanager->get_aggregate_label($rating->settings->aggregationmethod);
+            $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'rating-aggregate-label'));
             if ($canshowafterpeergrade) {
-                $aggregatelabel = $ratingmanager->get_aggregate_label($rating->settings->aggregationmethod);
-                $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'rating-aggregate-label'));
                 $aggregatestr = $rating->get_aggregate_string();
 
                 $aggregatehtml = html_writer::tag('span', $aggregatestr,
@@ -103,8 +103,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                 $ratinghtml .= html_writer::tag('span', $aggregatelabel . $aggregatehtml,
                         array('class' => 'rating-aggregate-container'));
             } else {
-                $ratinghtml .= html_writer::tag('p', "Rating will be shown when peer grading ends.",
-                        array('style' => 'color: #6699ff;'));
+                $ratinghtml .= html_writer::span($aggregatelabel, 'dimmed_text');
+                $ratinghtml .= $this->output->help_icon('showratingafterpg', 'peerforum');
             }
         }
 
@@ -210,10 +210,10 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
         // Permissions check - can they view the aggregate?
         if ($peergrade->user_can_view_aggregate(false)) {
-            if ($peergrade->can_peergrades_be_shown()) {
 
-                $aggregatelabel = $peergrademanager->get_aggregate_label($peergrade->settings->aggregationmethod);
-                $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'peergrade-aggregate-label'));
+            $aggregatelabel = $peergrademanager->get_aggregate_label($peergrade->settings->aggregationmethod);
+            $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'peergrade-aggregate-label'));
+            if ($peergrade->can_peergrades_be_shown()) {
                 $aggregatestr = $peergrade->get_aggregate_string();
 
                 $aggregatehtml = html_writer::tag('span', $aggregatestr,
@@ -238,8 +238,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                 $peergradehtml .= html_writer::tag('span', $aggregatelabel . $aggregatehtml,
                         array('class' => 'peergrade-aggregate-container'));
             } else {
-                $peergradehtml .= html_writer::tag('p', "There is a peer grading activity in progress.",
-                        array('style' => 'color: #6699ff;'));
+                $peergradehtml .= html_writer::span($aggregatelabel, 'dimmed_text');
+                $peergradehtml .= $this->output->help_icon('showpgafterpg', 'peerforum');
             }
         }
 
@@ -250,9 +250,9 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         if ($peergrade->user_can_peergrade() || $peergrade->can_edit()) {
             if ($shouldcompletetraining) {
                 $peergradehtml .= html_writer::tag('p', "You are assigned to peer grade this BUT
-                you have to complete the training first. Okay? ".
+                you have to complete the training first. ".
                         html_writer::link($urlfactory->get_training_url($correcttrainings[$USER->id]), 'Let\'s go!'),
-                        array('style' => 'color: #6699ff;'));
+                        array('class' => 'bg-warning warning'));
 
             } else {
                 $peergradeurl = $peergrade->get_peergrade_url();
@@ -289,10 +289,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                 // Time left to peergrade.
                 $timeleft = $peergrade->get_time_to_expire();
                 $peergradehtml .= html_writer::empty_tag('br');
-                $peergradehtml .= html_writer::tag('span', 'Time left to peergrade: ' . $timeleft,
-                        array('style' => 'color: #ff6666;')); // Or color: #6699ff; .
-                $peergradehtml .= html_writer::tag('hr', '',
-                        array('style' => 'height: 2px; width: 98%; background-color: #e3e3e3;'));
+                $peergradehtml .= html_writer::tag('p', 'Time left to peergrade: ' . $timeleft,
+                        array('class' => 'text-info warning'));
 
                 $peergradehtml .= html_writer::tag('span', 'Select a grade: ',
                         array('style' => 'color: black;')); // Or color: #6699ff; .
@@ -343,22 +341,22 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
                 $confmessage = $peergrade->can_edit() ? 'You can still edit.' : '';
                 // Confirmation for the user.
-                $peergradehtml .= html_writer::span($confmessage, '', array('id' => 'confirmation' . $peergrade->itemid,
-                        'style' => 'color: #ff6666;'));
+                $peergradehtml .= html_writer::span($confmessage, 'text-success',
+                        array('id' => 'confirmation' . $peergrade->itemid));
 
                 $peergradehtml .= html_writer::end_tag('span');
 
-                $peergradehtml .= html_writer::tag('p', $grader, array('class' => 'author')); // Author.
+                $peergradehtml .= html_writer::tag('p', $grader, array('class' => 'dimmed_text'));
 
                 $peergradehtml .= html_writer::end_tag('div');
                 $peergradehtml .= html_writer::end_tag('form');
             }
         } else if ($peergrade->is_expired_for_user()) {
-            $peergradehtml .= html_writer::tag('p', "Your time to peer grade this post has expired!",
-                    array('style' => 'color: #6699ff;'));
+            $peergradehtml .= html_writer::tag('p',"Your time to peer grade this post has expired! ",
+                    array('class' => 'text-warning mb-2'));
         } else if ($peergrade->get_self_assignment()) {
-            $peergradehtml .= html_writer::tag('p', "The activity of peer grading this post has ended for you.",
-                    array('style' => 'color: #6699ff;'));
+            $peergradehtml .= html_writer::tag('p', "All set! This peer grading has ended for you, thanks. ",
+                    array('class' => 'text-success mb-2'));
         }
 
         /*--------------- DISPLAY PEERGRADE ------------- */
@@ -391,7 +389,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                         $name = html_writer::link($profileurl, $authorentity->get_full_name());
                     } else {
                         $expandhtml .= $this->output->pix_icon('user', 'user_anonymous', 'mod_peerforum',
-                                array('style' => 'width: 32px; height: 32px;', 'class' => 'icon', 'align' => 'left'));
+                                array('style' => 'width: 35px; height: 35px;', 'class' => 'defaultuserpic userpicture'));
 
                         $name = 'Grader ' . $k;
                     }
@@ -425,13 +423,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
                     // Edit peergrade.
                     if ($peergrade->can_edit()) {
-                        $expandhtml .= html_writer::empty_tag('br');
-                        $editbutton =
-                                array('type' => 'submit', 'name' => 'editpeergrade' . $peergrade->itemid,
-                                        'class' => 'editpeergrade',
-                                        'id' => 'editpeergrade' . $peergrade->itemid,
-                                        'value' => get_string('editpeergrade', 'peerforum'));
-                        $expandhtml .= html_writer::empty_tag('input', $editbutton);
+                        $expandhtml .= html_writer::span('');
                     }
 
                     /*DIV - peerforumpostseefeedback]*/
@@ -442,7 +434,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             }
 
             if (!empty($expandhtml)) {
-                $expandstr = 'Expand all peergrades';
+                $expandstr = 'Show peer grades';
                 $peergradehtml .= html_writer::link('#', $expandstr, array('data-action' => 'peergrade-collapsible-link'));
 
                 $peergradehtml .= html_writer::start_tag('div',
@@ -462,11 +454,11 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                 $peergradehtml .= html_writer::end_tag('div');
 
             } else if (!$peergrade->can_peergrades_be_shown()) {
-                $peergradehtml .= html_writer::tag('p', "Peer grades will be shown when peer grading ends.",
-                        array('style' => 'color: #6699ff;'));
+                // They cannot be shown because it has not ended.
+                $peergradehtml .= html_writer::span("Peer grading in progress!", 'bg-gray');
             } else if (!$peergrade->is_ended()) {
-                $peergradehtml .= html_writer::tag('p', "Peer grading for this item is in progress!",
-                        array('style' => 'color: #6699ff;'));
+                // They can be shown but there are none.
+                $peergradehtml .= html_writer::span("Waiting for our peer graders...", 'bg-pulse-grey');
             }
         }
 

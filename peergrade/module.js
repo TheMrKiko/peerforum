@@ -20,13 +20,19 @@ M.core_peergrade = {
         var thedata = [];
 
         var inputssize = theinputs.size();
+        var itemid = '';
         for (var i = 0; i < inputssize; i++) {
             if (theinputs.item(i).get("name") != "returnurl") { // Dont include return url for ajax requests.
                 thedata[theinputs.item(i).get("name")] = theinputs.item(i).get("value");
             }
+            if (theinputs.item(i).get("name") == "itemid") {
+                itemid = theinputs.item(i).get("value");
+            }
         }
-
         var scope = this;
+        var node = scope.Y.one('#confirmation' + itemid);
+        node.set('innerHTML', "Sending...");
+
         var cfg = {
             method: 'POST',
             on: {

@@ -1120,6 +1120,13 @@ $string['discussionsubscription_help'] =
 $string['peergradenotifmessage'] = 'A nice user posted in {$a->peerforumname} and you were assigned to peer grade it.
 Complete the training and do your best!';
 $string['messageprovider:peergradeassigns'] = 'Peer grades assigned to you';
+$string['showratingafterpg'] = 'Hidden ratings with peer grading';
+$string['showratingafterpg_help'] =
+        'Ratings will be shown when peer grading ends.';
+$string['showpgafterpg'] = 'Hidden peer grades';
+$string['showpgafterpg_help'] =
+        'Peer grades will be shown when peer grading ends.';
+
 /* Training */
 $string['peerforum:edittraining'] = 'Edit training pages';
 $string['peerforum:submittraining'] = 'Count for the training stats';
