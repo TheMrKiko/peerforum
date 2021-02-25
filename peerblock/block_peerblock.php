@@ -70,7 +70,7 @@ class block_peerblock extends block_list {
             $courseid = null;
         }
 
-        // TODO ver /user.php for inspiraçao!
+        $url = new moodle_url('/blocks/peerblock/summary.php', array('courseid' => $courseid));
         $contextid = context_course::instance($COURSE->id);
         $peerforumid = $contextid->instanceid; // is courseid
         $userid = $USER->id;
@@ -144,14 +144,18 @@ class block_peerblock extends block_list {
 
         $this->content->items[] = html_writer::span(
                 $OUTPUT->render(new pix_icon('icon', 'logo', 'block_peerblock')) .
-                '<h5>Summary</h5>',
-                'd-flex align-items-center');
+                'Summary',
+                'd-flex align-items-center bold');
 
         //student view
 
         if (!has_capability('mod/peerforum:viewpanelpeergrades', $PAGE->context)) {
-            $this->content->items[] = html_writer::tag('span',
-                    'Number of posts to grade: ' . $poststopeergrade, array('style' => 'color:black'));
+            $this->content->items[] = html_writer::span('Posts to grade: ' .
+                    html_writer::link(new moodle_url($url, array(
+                            'userid' => $userid,
+                            'display' => MANAGEPOSTS_MODE_SEENOTGRADED,
+                    )),
+                    $poststopeergrade . ' post(s)'));
         }
 
         if ($poststopeergrade > 0 && !has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
@@ -185,6 +189,12 @@ class block_peerblock extends block_list {
                     array('title' => get_string('viewpanel', 'block_peerblock')));
             $this->content->items[] = 'Pls dont press action buttons while there. only navigate.';
         }
+
+        $this->content->items[] = html_writer::tag('p', html_writer::link(new moodle_url($url, array(
+                        'display' => MANAGEPOSTS_MODE_SEEALL,
+                )),
+                html_writer::span('Full summary...', 'mark')),
+                array('class' => 'm-0 mt-3'));
 
         return $this->content;
     }
