@@ -11175,16 +11175,32 @@ function peerforum_update_training_page($trainingpage, $mform) {
  * Update a training page.
  *
  * @param stdClass $trainingpage The page to update
+ * @return int
+ */
+function peerforum_enter_training_page($trainingpage) {
+    global $USER, $DB;
+
+    return $DB->insert_record('peerforum_training_submit', (object) [
+            'userid' => $USER->id,
+            'pageid' => $trainingpage->id,
+            'opened' => time(),
+            'submitted' => null,
+            'previous' => $trainingpage->submitid ?? 0,
+    ]);
+}
+
+/**
+ * Submit a training page.
+ *
+ * @param stdClass $trainingpage The page to update
  * @param mixed $mform The submitted form
  * @return array
  */
 function peerforum_submit_training_page($trainingpage, $mform) {
-    global $USER, $CFG, $DB;
-
-    $cm = get_coursemodule_from_instance('peerforum', $trainingpage->peerforum);
-    $context = context_module::instance($cm->id);
+    global $USER, $DB;
 
     $allcorrect = true;
+    $submit = 0;
     $correctgrades = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->correctgrades, array('criteriaid', 'n'));
     $correctgrades = \mod_peerforum\local\vaults\training_page::turn_inside_out($correctgrades, array('criteriaid', 'exid'))['grade'];
 
@@ -11197,14 +11213,19 @@ function peerforum_submit_training_page($trainingpage, $mform) {
         }
     }
 
-    $submit = $DB->insert_record('peerforum_training_submit', (object) [
-                'userid' => $USER->id,
-                'pageid' => $trainingpage->id,
-                'opened' => $trainingpage->open,
+    $openid = $trainingpage->openid;
+    if (empty($openid)) {
+        $openid = peerforum_enter_training_page($trainingpage);
+    }
+
+    if ($DB->update_record('peerforum_training_submit', (object) [
+                'id' => $openid,
                 'submitted'=> time(),
                 'previous' => $trainingpage->previous,
                 'allcorrect' => $allcorrect,
-        ]);
+        ])) {
+        $submit = $openid;
+    }
 
     $grades = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->grades, array('criteriaid', 'exid'));
     foreach ($grades as $grade) {

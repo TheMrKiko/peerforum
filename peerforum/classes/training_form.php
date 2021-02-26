@@ -153,8 +153,8 @@ class mod_peerforum_training_form extends moodleform {
         $mform->addElement('hidden', 'exercises');
         $mform->setType('exercises', PARAM_INT);
 
-        $mform->addElement('hidden', 'open');
-        $mform->setType('open', PARAM_INT);
+        $mform->addElement('hidden', 'openid');
+        $mform->setType('openid', PARAM_INT);
 
         $mform->addElement('hidden', 'previous');
         $mform->setType('previous', PARAM_INT);

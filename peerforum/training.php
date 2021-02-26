@@ -28,10 +28,12 @@ require_once('./classes/training_form.php');
 
 $page = optional_param('page', 0, PARAM_INT);
 $submitid = optional_param('submitid', null, PARAM_INT);
+$openid = optional_param('openid', null, PARAM_INT);
 
 $PAGE->set_url('/mod/peerforum/training.php', array(
         'page' => $page,
         'submitid' => $submitid,
+        'openid' => $openid
 ));
 // These page_params will be passed as hidden variables later in the form.
 $pageparams = array('page' => $page, 'submitid' => $submitid);
@@ -101,6 +103,14 @@ if (!empty($page)) {
     $trainingpage->course = $course->id;
     $trainingpage->peerforum = $peerforum->id;
 
+    if (empty($openid)) {
+        // Store a new empty submission on the database.
+        $openid = peerforum_enter_training_page($trainingpage);
+        if (empty($submitid)) {
+            unset($SESSION->fromurl);
+        }
+    }
+
 } else {
     print_error('unknowaction');
 }
@@ -113,8 +123,6 @@ if (isguestuser()) {
     // Just in case.
     print_error('noguest');
 }
-
-// TODO store a new empty submission on the database!
 
 $trainingpage->description = file_rewrite_pluginfile_urls($trainingpage->description, 'pluginfile.php',
         $modcontext->id, 'mod_peerforum', 'training', $trainingpage->id);
@@ -160,7 +168,7 @@ $mformpage->set_data(
                 'peerforum' => $peerforum->name,
                 'course' => $course->id,
                 'exercises' => $trainingpage->exercises,
-                'open' => time(),
+                'openid' => $openid,
                 'grades' => $grades,
                 'previous' => $submitid ?: 0,
         ) +
@@ -179,11 +187,9 @@ if ($mformpage->is_cancelled()) {
 
 } else if ($mformpage->is_submitted() && $fromform = $mformpage->get_data()) {
 
-    // TODO remove the empty submission from the database! (and add a new one below).
-
     $trainingexercise = $fromform;
     $trainingpage->grades = $fromform->grades ?? array();
-    $trainingpage->open = $fromform->open;
+    $trainingpage->openid = $fromform->openid;
     $trainingpage->previous = $fromform->previous;
 
     list($submitid, $allcorrect) = peerforum_submit_training_page($trainingpage, $mformpage);
