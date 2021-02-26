@@ -55,7 +55,8 @@ class expire_assignments extends \core\task\scheduled_task {
         global $DB;
 
         $this->log_start("Fetching active assignments.");
-        if (!$assigns = $this->get_active_assignments()) {
+        $assigns = $this->get_active_assignments();
+        if (empty($assigns)) {
             $this->log_finish("No active assignments found.", 1);
             return false;
         }
@@ -118,6 +119,11 @@ class expire_assignments extends \core\task\scheduled_task {
             }
         }
         $this->log_finish("Assignments processed");
+
+        if (empty($assignsshouldend)) {
+            $this->log("No assignments should end.");
+            return false;
+        }
 
         $this->log_start("Writing to database");
         // Mark assigns as ended.
