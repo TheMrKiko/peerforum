@@ -2358,7 +2358,7 @@ class peergrade_manager {
      * @param array $filters
      * @return array
      */
-    public function get_items_from_filters(array $filters): array {
+    public function get_items_from_filters(array $filters = array()): array {
         global $DB;
         $where = [];
         $alias = 's';

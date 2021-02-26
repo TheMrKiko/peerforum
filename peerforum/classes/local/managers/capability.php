@@ -779,7 +779,7 @@ class capability {
      * @return bool
      */
     public function can_submit_training_pages(stdClass $user) {
-        return has_capability('mod/peerforum:submittraining', $this->get_context(), $user);
+        return has_capability('mod/peerforum:submittraining', $this->get_context(), $user, false);
     }
 
     /**
@@ -790,7 +790,7 @@ class capability {
      * @return bool
      */
     public function must_nominate(stdClass $user, int $courseid): bool {
-        if (!has_capability('mod/peerforum:studentpeergrade', $this->get_context(), $user)) {
+        if (!has_capability('mod/peerforum:studentpeergrade', $this->get_context(), $user, false)) {
             return false;
         }
         $nomvault = container::get_vault_factory()->get_relationship_nomination_vault();

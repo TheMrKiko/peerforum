@@ -33,6 +33,7 @@ use mod_peerforum\local\vaults\discussion_list as discussion_list_vault;
 use mod_peerforum\local\vaults\peerforum as peerforum_vault;
 use mod_peerforum\local\vaults\post as post_vault;
 use mod_peerforum\local\vaults\relationship_nomination as relationship_nomination_vault;
+use mod_peerforum\local\vaults\relationship_ranking as relationship_ranking_vault;
 use mod_peerforum\local\vaults\training_page as training_page_vault;
 use mod_peerforum\local\vaults\training_submission as training_submission_vault;
 use mod_peerforum\local\vaults\post_attachment as post_attachment_vault;
@@ -191,12 +192,25 @@ class vault {
     }
 
     /**
-     * Create a traning submission vault.
+     * Create a relationship nomination vault.
      *
      * @return relationship_nomination_vault
      */
     public function get_relationship_nomination_vault(): relationship_nomination_vault {
         return new relationship_nomination_vault(
+                $this->db,
+                $this->entityfactory,
+                null
+        );
+    }
+
+    /**
+     * Create a relationship ranking vault.
+     *
+     * @return relationship_ranking_vault
+     */
+    public function get_relationship_ranking_vault(): relationship_ranking_vault {
+        return new relationship_ranking_vault(
                 $this->db,
                 $this->entityfactory,
                 null
