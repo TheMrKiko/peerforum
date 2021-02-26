@@ -14,6 +14,41 @@ if (is_file($CFG->dirroot . '/mod/peerforum/lib.php')) {
     return;
 }
 
+function get_peerblock_tabs(array $params = array()) {
+    $postsassigned = get_string('postsassigned', 'block_peerblock');
+    $peerranking = get_string('peer_ranking', 'block_peerblock');
+
+    $row[] = new tabobject('manageposts', new moodle_url('/blocks/peerblock/summary.php',
+                    $params + array('display' => MANAGEPOSTS_MODE_SEEALL)), $postsassigned);
+    $row[] = new tabobject('peerranking',
+            new moodle_url('/blocks/peerblock/rankings.php',
+                    $params), $peerranking);
+    return $row;
+}
+
+/**
+ * @param $fromform
+ * @param $mform
+ * @param $nominationsfull
+ * @return bool
+ * @throws coding_exception
+ * @throws dml_exception
+ */
+function peerblock_edit_rankings($data, $mform) {
+    global $DB;
+
+    $rankings = \mod_peerforum\local\vaults\training_page::turn_outside_in($data->rankings, array('userid'));
+
+    foreach ($rankings as $ranking) {
+        if (!$ranking->id) {
+            continue;
+        }
+        $DB->set_field('peerforum_relationship_rank', 'ranking', $ranking->ranking, array('id' => $ranking->id));
+    }
+
+    return true;
+}
+
 /**
  * Return the number of posts a user has to grade in a course
  *

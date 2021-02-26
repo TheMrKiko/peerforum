@@ -7,6 +7,7 @@
  */
 
 require_once('../../config.php');
+require_once('./lib.php');
 
 // Careful when changing. Repeated in lf/lib.php.
 /*define('MANAGEPOSTS_MODE_SEEALL', 1);
@@ -52,10 +53,11 @@ if (!has_capability('mod/peerforum:professorpeergrade', $context)) {
     $canviewalltabs = false;
 }
 
-$url = new moodle_url('/blocks/peerblock/summary.php', array(
+$urlparams = array(
         'userid' => $userid,
         'courseid' => $courseid,
-));
+);
+$url = new moodle_url('/blocks/peerblock/summary.php', $urlparams);
 $PAGE->set_url($url, array('display' => $display, ));
 
 // Output the page.
@@ -83,11 +85,6 @@ $peerranking = get_string('peer_ranking', 'block_peerblock');
 $managetraining = get_string('managetraining', 'block_peerblock');
 echo $OUTPUT->box_start('posts-list');
 
-$row[] = new tabobject('manageposts',
-        new moodle_url($url, array('display' => MANAGEPOSTS_MODE_SEEALL)), $postsassigned);
-$row[] = new tabobject('peerranking',
-        new moodle_url($url, array('display' => MANAGEPOSTS_MODE_SEEGRADED)), $peerranking);
-
 $options = array(
         MANAGEPOSTS_MODE_SEEALL => get_string('managepostsmodeseeall', 'peerforum'),
         MANAGEPOSTS_MODE_SEENOTGRADED => get_string('managepostsmodeseenotgraded', 'peerforum'),
@@ -114,6 +111,7 @@ if ($display == MANAGEPOSTS_MODE_SEEALL) {
     $filters = array('expired' => 1) + $userfilter;
 
 }
+$row = get_peerblock_tabs($urlparams);
 echo $OUTPUT->tabtree($row, 'manageposts');
 echo $OUTPUT->render(new single_select($url, 'display', $options, $display, false));
 
