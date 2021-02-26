@@ -382,7 +382,7 @@ class peergrade_assignment {
                   FROM {peerforum_time_assigned} r
                  WHERE r.contextid = :contextid AND
                        r.userid = :userid AND
-                       r.postid = :itemid AND
+                       r.itemid = :itemid AND
                        r.component = :component AND
                        r.peergradearea = :peergradearea";
         $records = $DB->get_records_sql($sql, $params);
@@ -1380,11 +1380,11 @@ class peergrade_manager {
         $aggregatepeergrades = $DB->get_records_sql($sql, $params);
 
         $userfields = user_picture::fields('u', ['deleted'], 'userid');
-        $sql = "SELECT r.id, r.postid, r.userid, r.peergraded, r.ended, r.expired, r.blocked, r.timeassigned, r.timemodified, $userfields
+        $sql = "SELECT r.id, r.itemid, r.userid, r.peergraded, r.ended, r.expired, r.blocked, r.timeassigned, r.timemodified, $userfields
                   FROM {peerforum_time_assigned} r
              LEFT JOIN {user} u ON r.userid = u.id
                  WHERE r.contextid = :contextid AND
-                       r.postid {$itemidtest} AND
+                       r.itemid {$itemidtest} AND
                        r.component = :component AND
                        r.peergradearea = :peergradearea"; // TODO change postid to itemid!
         $usersassigned = $DB->get_records_sql($sql, $params);
@@ -1438,7 +1438,7 @@ class peergrade_manager {
             if (!empty($usersassigned)) {
                 $usersopts = array();
                 foreach ($usersassigned as $userassign) {
-                    if ($item->{$itemidcol} != $userassign->postid) {
+                    if ($item->{$itemidcol} != $userassign->itemid) {
                         continue;
                     }
                     $assignoptions = new stdClass();

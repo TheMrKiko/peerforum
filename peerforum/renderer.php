@@ -239,6 +239,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                         array('class' => 'peergrade-aggregate-container'));
             } else {
                 $peergradehtml .= html_writer::span($aggregatelabel, 'dimmed_text');
+                $peergradehtml .= html_writer::span('', '', array('id' => "peergradeaggregate{$peergrade->itemid}"));
+                $peergradehtml .= html_writer::span('', '', array('id' => "peergradecount{$peergrade->itemid}"));
                 $peergradehtml .= $this->output->help_icon('showpgafterpg', 'peerforum');
             }
         }
