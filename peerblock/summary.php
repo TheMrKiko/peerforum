@@ -121,10 +121,6 @@ $PAGE->requires->js_amd_inline("
     });"
 );
 
-
-// TODO Peers to Rank!
-
-
 $entityfactory = mod_peerforum\local\container::get_entity_factory();
 $rendererfactory = mod_peerforum\local\container::get_renderer_factory();
 $vaultfactory = mod_peerforum\local\container::get_vault_factory();

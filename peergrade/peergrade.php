@@ -90,6 +90,7 @@ $peergradeoptions->peergradearea = $peergradearea;
 $peergradeoptions->itemid = $itemid;
 $peergradeoptions->peergradescaleid = $peergradescaleid;
 $peergradeoptions->userid = $USER->id;
+$peergradeoptions->itemuserid = $peergradeduserid;
 
 $peergrade = new peergrade($peergradeoptions);
 $peergrade->update_peergrade($userpeergrade, $feedback);

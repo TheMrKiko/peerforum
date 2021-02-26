@@ -503,7 +503,7 @@ class peergrade implements renderable {
     public $itemtimecreated = null;
 
     /**
-     * @var int The id of the user who submitted the peergrade
+     * @var int The id of the user made the item
      */
     public $itemuserid = null;
 
@@ -577,6 +577,9 @@ class peergrade implements renderable {
         if (isset($options->timecreated)) {
             $this->timecreated = $options->timecreated;
         }
+        if (isset($options->itemuserid)) {
+            $this->itemuserid = $options->itemuserid;
+        }
         if (isset($options->usersassigned)) {
             $this->usersassigned = $options->usersassigned;
             if (!empty($this->usersassigned)) {
@@ -599,7 +602,7 @@ class peergrade implements renderable {
      * @param int $peergrade the integer value of this peergrade
      */
     public function update_peergrade($peergrade, $feedback = null) {
-        global $DB;
+        global $DB, $COURSE;
 
         $time = time();
 
@@ -644,6 +647,22 @@ class peergrade implements renderable {
 
             $id = $DB->insert_record('peerforum_peergrade', $data);
             $firstitem->get_self_assignment($this->userid)->update_peergrade($id);
+            $rank = $DB->get_records('peerforum_relationship_rank', array(
+                    'userid' => $this->userid,
+                    'otheruserid' => $this->itemuserid,
+                    ));
+            $noms = $DB->get_records('peerforum_relationship_nomin', array(
+                    'userid' => $this->userid,
+                    'otheruserid' => $this->itemuserid,
+            ));
+            if (empty($rank) && empty($noms)) {
+                $DB->insert_record('peerforum_relationship_rank', (object) array(
+                        'n' => 0,
+                        'course' => $COURSE->id,
+                        'userid' => $this->userid,
+                        'otheruserid' => $this->itemuserid,
+                ));
+            }
         } else {
             // Update the peergrade.
             $data->id = $firstitem->id;
@@ -2125,6 +2144,7 @@ class peergrade_manager {
         $peergradeoptions->peergradescaleid = $peergradescaleid;
         $peergradeoptions->feedback = $feedback;
         $peergradeoptions->userid = $USER->id;
+        $peergradeoptions->itemuserid = $peergradeduserid;
 
         $peergrade = new peergrade($peergradeoptions);
         $peergrade->update_peergrade($userpeergrade, $feedback);
