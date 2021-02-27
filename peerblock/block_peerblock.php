@@ -46,12 +46,11 @@ class block_peerblock extends block_list {
         if ($this->content !== null) {
             return $this->content;
         }
+        global $USER, $CFG, $DB, $OUTPUT;
 
         if (empty($this->config)) {
             $this->config = new stdClass();
         }
-
-        global $USER, $PAGE, $CFG, $COURSE, $DB, $OUTPUT;
 
         // Create empty content.
         $this->content = new stdClass();
@@ -59,37 +58,40 @@ class block_peerblock extends block_list {
         $this->content->items = array();
         $this->content->footer = '';
 
-        if (!empty($CFG->enablepeergrade)) {
+        if (!empty($CFG->enablepeergrade)) { // TODO check pf settings.
             $this->content->text .= get_string('enablepeergrade', 'block_peerblock');
             return $this->content;
         }
 
         $peerforumvault = \mod_peerforum\local\container::get_vault_factory()->get_peerforum_vault();
+        $rankingvault = \mod_peerforum\local\container::get_vault_factory()->get_relationship_ranking_vault();
+        $pgmanager = \mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
+
+        $userid = $USER->id;
         $courseid = $this->page->course->id;
-        if ($courseid == SITEID) {
-            $courseid = null;
+        if ($courseid == SITEID) { // SITEID is frontpage.
+            return '';
+        }
+        $sumurl = new moodle_url('/blocks/peerblock/summary.php', array('courseid' => $courseid));
+        $rankurl = new moodle_url('/blocks/peerblock/rankings.php', array('courseid' => $courseid));
+
+        $viewgeneral = has_capability('mod/peerforum:viewpanelpeergrades', $this->page->context);
+
+        /*------- Get the peergrading data -------*/
+        if (!$viewgeneral) {
+            $filters = array('ended' => 0, 'userid' => $userid);
+        } else {
+            $filters = array('ended' => 0);
         }
 
-        $url = new moodle_url('/blocks/peerblock/summary.php', array('courseid' => $courseid));
-        $contextid = context_course::instance($COURSE->id);
-        $peerforumid = $contextid->instanceid; // is courseid
-        $userid = $USER->id;
+        $itemsdb = $pgmanager->get_items_from_filters($filters);
 
-        $sql = "SELECT a.*
-                  FROM {peerforum_time_assigned} a
-                 WHERE a.ended = 0 AND
-                       a.userid = {$userid}";
-        $notended = $DB->get_records_sql($sql);
-
-        // Array of PeerForum Ids.
-        $items = array();
-        $contextids = array();
-        $peergrades = array();
-        $poststopeergrade = 0;
-        $timetoexpire = 0;
-        $pgexpiring = null;
-        foreach ($notended as $n) {
-            $contextids[$n->contextid][] = $n;
+        /*------- Instance the peergrade objects -------*/
+        $items = array(); // Obj items.
+        $contextids = array(); // Items grouped by context.
+        $peergrades = array(); // All the pergrades objs.
+        foreach ($itemsdb as $it) {
+            $contextids[$it->contextid][] = $it;
         }
         foreach ($contextids as $id => $cont) {
             $instanceid = context::instance_by_id($id)->instanceid;
@@ -110,12 +112,17 @@ class block_peerblock extends block_list {
                             'userid' => $userid,
                     ] + $peerforumentity->get_peergrade_options());
 
-            $rm = \mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
-            $items = $rm->get_peergrades($peergradeoptions);
+            $items = $pgmanager->get_peergrades($peergradeoptions);
             foreach ($items as $item) {
                 $peergrades[$item->id] = $item->peergrade;
             }
+        }
 
+        /*------- Compute data -------*/
+        if (!$viewgeneral) {
+            $poststopeergrade = 0;
+            $timetoexpire = 0;
+            $pgexpiring = null;
             foreach ($peergrades as $peergrade) {
                 if ($peergrade->user_can_peergrade()) {
                     $poststopeergrade++;
@@ -126,73 +133,70 @@ class block_peerblock extends block_list {
                     }
                 }
             }
+            $rankings = $rankingvault->get_from_user_id($userid, $courseid);
+            $nrankings = count($rankings) ?: 0;
+        } else {
+            $postspeergrading = 0;
+            $indpgexpiringsoon = 0;
+            $pgexpiringsoon = 0;
+            foreach ($peergrades as $peergrade) {
+                if (!$peergrade->is_ended()) {
+                    $postspeergrading++;
+                    $expsoon = $peergrade->get_expiring_soon();
+                    if ($expsoon) {
+                        $indpgexpiringsoon += $expsoon;
+                        $pgexpiringsoon++;
+                    }
+                }
+            }
         }
 
-        /*$num_posts = get_num_posts_to_grade($USER->id, $COURSE->id);
-        $time_old_post = get_time_old_post($USER->id, $COURSE->id);
-        $peers_to_rank = get_num_peers_to_rank($USER->id, $COURSE->id);
-
-        $posts_not_expired = get_active_peergrading_posts($COURSE->id);
-        $posts_expiring = get_posts_about_to_expire($COURSE->id, $peerforumid);
-
-        if (!($DB->get_record('peerforum', array('course' => $peerforumid)))) {
-            $rankings = false;
-        } else {
-            $rankings = ($DB->get_record('peerforum', array('course' => $peerforumid)))->peerrankings;
-        }*/
-
-
+        /*------- Render data -------*/
         $this->content->items[] = html_writer::span(
                 $OUTPUT->render(new pix_icon('icon', 'logo', 'block_peerblock')) .
                 'Summary',
                 'd-flex align-items-center bold');
 
-        //student view
-
-        if (!has_capability('mod/peerforum:viewpanelpeergrades', $PAGE->context)) {
+        if (!$viewgeneral) {
+            // Student view.
             $this->content->items[] = html_writer::span('Posts to grade: ' .
-                    html_writer::link(new moodle_url($url, array(
+                    html_writer::link(new moodle_url($sumurl, array(
                             'userid' => $userid,
                             'display' => MANAGEPOSTS_MODE_SEENOTGRADED,
-                    )),
-                    $poststopeergrade . ' post(s)'));
-        }
+                    )), $poststopeergrade . ' post(s)'));
 
-        if ($poststopeergrade > 0 && !has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
-            $this->content->items[] = html_writer::tag('span',
-                    'Time to expire: ' . $pgexpiring->get_time_to_expire(), array('style' => 'color:black'));
-        }
-        /*if (!has_capability('mod/peerforum:viewallpeergrades', $PAGE->context) && $rankings) {
-            $this->content->items[] = html_writer::tag('span', 'Number of peers available to rank: ' . $peers_to_rank,
-                    array('style' => 'color:black'));
-        }*/
-
-        //teacher view
-
-        /*if ($posts_not_expired > 0 && has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
-            $this->content->items[] =
-                    html_writer::tag('span', $posts_not_expired . ' active peergrade posts', array('style' => 'color:black'));
-            if ($posts_expiring > 0) {
-                $this->content->items[] =
-                        html_writer::tag('span', $posts_expiring . ' posts about to expire', array('style' => 'color:black'));
+            if ($poststopeergrade > 0) {
+                $this->content->items[] = html_writer::span(
+                        'Time to expire: ' . $pgexpiring->get_time_to_expire());
             }
-        } else if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
-            $this->content->items[] = html_writer::tag('span', 'No posts to peergrade.', array('style' => 'color:black'));
-        }*/
-        if (has_capability('mod/peerforum:viewallpeergrades', $PAGE->context)) {
-            $this->content->items[] = html_writer::empty_tag('br');
+
+            if ($nrankings >= 5) {
+                $this->content->items[] = html_writer::span('Peers to rank: ' .
+                        html_writer::link(new moodle_url($rankurl, array(
+                                'userid' => $userid,
+                        )), $nrankings . ' peers'));
+            }
+
+        } else {
+            // Professor view.
+            $this->content->items[] = html_writer::span(
+                    'In progress: ' . $postspeergrading . ' post peer grading');
+
+            $this->content->items[] = html_writer::span(
+                'Expiring soon: ' .
+                $pgexpiringsoon . ' posts (' . $indpgexpiringsoon . ' individual graders)');
+
             $this->content->items[] = html_writer::link(
                     new moodle_url($CFG->wwwroot . '/peergrading/index.php',
-                            array('courseid' => $this->page->course->id,
-                                    'userid' => $USER->id, 'display' => 1, 'peerforum' => $peerforumid)),
+                            array('courseid' => $courseid,
+                                    'userid' => $userid, 'display' => 1, 'peerforum' => $courseid)),
                     'View old peer grade panel only for professors...',
                     array('title' => get_string('viewpanel', 'block_peerblock')));
             $this->content->items[] = 'Pls dont press action buttons while there. only navigate.';
         }
 
-        $this->content->items[] = html_writer::tag('p', html_writer::link(new moodle_url($url, array(
-                        'display' => MANAGEPOSTS_MODE_SEEALL,
-                )),
+        $this->content->items[] = html_writer::tag('p', html_writer::link(new moodle_url($sumurl, array(
+                        'display' => MANAGEPOSTS_MODE_SEEALL)),
                 html_writer::span('Full summary...', 'mark')),
                 array('class' => 'm-0 mt-3'));
 
@@ -200,7 +204,7 @@ class block_peerblock extends block_list {
     }
 
     public function instance_config_save($data, $nolongerused = false) {
-        if (get_config('peerblock', 'Allow_HTML') == '1') {
+        if (get_config('peerblock', 'Allow_HTML') == '1') { // Check this.
             $data->text = strip_tags($data->text);
         }
 
@@ -212,19 +216,5 @@ class block_peerblock extends block_list {
         $attributes = parent::html_attributes(); // Get default values
         $attributes['class'] .= ' block_' . $this->name(); // Append our class to class attribute
         return $attributes;
-    }
-
-    public function cron() {
-        global $DB; // Global database object
-        // Get the instances of the block
-        $instances = $DB->get_records('block_instances', array('blockname' => 'peerblock'));
-        // Iterate over the instances
-        foreach ($instances as $instance) {
-            // Recreate block object
-            $block = block_instance('peerblock', $instance);
-            // $block is now the equivalent of $this in 'normal' block
-            // usage, e.g.
-            $someconfigitem = $block->config->item2;
-        }
     }
 }
