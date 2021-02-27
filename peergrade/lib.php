@@ -737,6 +737,23 @@ class peergrade implements renderable {
         return $this->usersassigned[$userid] ?? null;
     }
 
+    public function get_expiring_soon($howsoon = 3 * HOURSECS) {
+        if (empty($this->usersassigned)) {
+            return 0;
+        }
+
+        $time = time();
+        $willexpiresoon = 0;
+        $timetilalmostexpire = $this->settings->timetoexpire * DAYSECS - $howsoon;
+        $timewhenstartsexpiring = $time - $timetilalmostexpire; // This makes sense when reordered.
+        foreach ($this->usersassigned as $userassign) {
+            if ($userassign->timeassigned < $timewhenstartsexpiring) {
+                $willexpiresoon++;
+            }
+        }
+        return $willexpiresoon;
+    }
+
     /**
      * If there is any peer grade activity for this item.
      *
