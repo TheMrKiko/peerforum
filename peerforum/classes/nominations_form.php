@@ -114,12 +114,13 @@ class mod_peerforum_nominations_form extends moodleform {
      */
     function validation($data, $files) {
         $errors = parent::validation($data, $files);
+        $emptymessage = 'You kinda have to select someone.';
         $lmnominations = $data['nominations']['1'];
         $llnominations = $data['nominations']['-1'];
         $noms = array();
         foreach ($lmnominations as $k => $lm) {
             if (!$lm) {
-                $errors['nominations']['1'][$k] = get_string('erroremptymessage', 'peerforum');
+                $errors['nominations']['1'][$k] = $emptymessage;
             } else if (isset($noms[$lm])) {
                 $errors['nominations']['1'][$k] = 'Cannot repeat';
             }
@@ -127,7 +128,7 @@ class mod_peerforum_nominations_form extends moodleform {
         }
         foreach ($llnominations as $k => $ll) {
             if (!$ll) {
-                $errors['nominations[-1]['.$k.']'] = get_string('erroremptymessage', 'peerforum');
+                $errors['nominations[-1]['.$k.']'] = $emptymessage;
             } else if (isset($noms[$ll])) {
                 $errors['nominations[-1]['.$k.']'] = 'Cannot repeat';
             }
