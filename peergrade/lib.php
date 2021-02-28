@@ -292,6 +292,11 @@ class peergrade_assignment {
     public $peergradeoptions;
 
     /**
+     * @var stdclass settings for this peergrade. Necessary to render the peergrade.
+     */
+    public $settings = null;
+
+    /**
      * @var int If the assignment was already peergraded and the id of the peergrade (if yes)
      */
     public $peergraded = 0;
@@ -361,6 +366,9 @@ class peergrade_assignment {
         if (isset($options->nomination)) {
             $this->nomination = $options->nomination;
         }
+        if (isset($this->peergradeoptions->settings)) {
+            $this->settings = $this->peergradeoptions->settings;
+        }
     }
 
     /**
@@ -422,6 +430,15 @@ class peergrade_assignment {
         $data->timemodified = $time;
         $data->ended = 1;
         $DB->update_record('peerforum_time_assigned', $data);
+    }
+
+    public function get_time_to_expire($formatted = true) {
+        $time = time();
+        $timeassigned = $this->timeassigned;
+        $timetilexpire = $this->settings->timetoexpire * DAYSECS;
+        $timewhenexpires = $timeassigned + $timetilexpire;
+        return $formatted ? get_time_interval_string($timewhenexpires, $time) : $timewhenexpires - $time;
+
     }
 } // End peergrade assignment class definition.
 
@@ -715,12 +732,21 @@ class peergrade implements renderable {
             return null;
         }
 
-        $time = time();
-        $timeassigned = $this->get_self_assignment()->timeassigned;
-        $timetilexpire = $this->settings->timetoexpire * DAYSECS;
-        $timewhenexpires = $timeassigned + $timetilexpire;
-        return $formatted ? get_time_interval_string($time, $timewhenexpires) : $time - $timewhenexpires;
+        return $this->get_self_assignment()->get_time_to_expire($formatted);
+    }
 
+    /**
+     * Returns the max of time till all expires.
+     *
+     * @return int
+     */
+    public function get_max_time_to_expire() {
+        $mtt = 0;
+        foreach ($this->usersassigned as $assign) {
+            $tte = $assign->get_time_to_expire(false);
+            $mtt = max($mtt, $tte);
+        }
+        return $mtt;
     }
 
     /**
@@ -737,7 +763,13 @@ class peergrade implements renderable {
         return $this->usersassigned[$userid] ?? null;
     }
 
-    public function get_expiring_soon($howsoon = 3 * HOURSECS) {
+    /**
+     * Count number of assignments that will expire soon
+     *
+     * @param int $howsoon in seconds
+     * @return int
+     */
+    public function get_expiring_soon($howsoon = 3 * HOURSECS): int {
         if (empty($this->usersassigned)) {
             return 0;
         }
@@ -747,7 +779,7 @@ class peergrade implements renderable {
         $timetilalmostexpire = $this->settings->timetoexpire * DAYSECS - $howsoon;
         $timewhenstartsexpiring = $time - $timetilalmostexpire; // This makes sense when reordered.
         foreach ($this->usersassigned as $userassign) {
-            if ($userassign->timeassigned < $timewhenstartsexpiring) {
+            if (!$userassign->expired && $userassign->timeassigned < $timewhenstartsexpiring) {
                 $willexpiresoon++;
             }
         }
@@ -1118,7 +1150,7 @@ class peergrade_manager {
      * @global moodle_database $DB
      */
     public function delete_peergrades($options) {
-        global $DB, $COURSE;
+        global $DB;
 
         if (empty($options->contextid)) {
             throw new coding_exception('The context option is a required option when deleting peergrades.');
