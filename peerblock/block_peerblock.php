@@ -63,6 +63,7 @@ class block_peerblock extends block_list {
             return $this->content;
         }
 
+        $urlfactory = \mod_peerforum\local\container::get_url_factory();
         $peerforumvault = \mod_peerforum\local\container::get_vault_factory()->get_peerforum_vault();
         $rankingvault = \mod_peerforum\local\container::get_vault_factory()->get_relationship_ranking_vault();
         $pgmanager = \mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
@@ -90,12 +91,14 @@ class block_peerblock extends block_list {
         $items = array(); // Obj items.
         $contextids = array(); // Items grouped by context.
         $peergrades = array(); // All the pergrades objs.
+        $shouldnominate = null;
         foreach ($itemsdb as $it) {
             $contextids[$it->contextid][] = $it;
         }
         foreach ($contextids as $id => $cont) {
             $instanceid = context::instance_by_id($id)->instanceid;
             $peerforumentity = $peerforumvault->get_from_course_module_id($instanceid);
+            $capabilitymanager = \mod_peerforum\local\container::get_manager_factory()->get_capability_manager($peerforumentity);
 
             foreach ($cont as $item) {
                 $itemid = $item->itemid;
@@ -111,6 +114,10 @@ class block_peerblock extends block_list {
                             'items' => $items,
                             'userid' => $userid,
                     ] + $peerforumentity->get_peergrade_options());
+
+            if ($capabilitymanager->must_nominate($USER, $courseid)) {
+                $shouldnominate = $peerforumentity;
+            }
 
             $items = $pgmanager->get_peergrades($peergradeoptions);
             foreach ($items as $item) {
@@ -157,6 +164,10 @@ class block_peerblock extends block_list {
                 'Summary',
                 'd-flex align-items-center bold');
 
+        if ($shouldnominate) {
+            $sumurl = $rankurl = $urlfactory->get_nominations_url($shouldnominate);
+        }
+
         if (!$viewgeneral) {
             // Student view.
             $this->content->items[] = html_writer::span('Posts to grade: ' .
@@ -179,8 +190,10 @@ class block_peerblock extends block_list {
 
         } else {
             // Professor view.
-            $this->content->items[] = html_writer::span(
-                    'In progress: ' . $postspeergrading . ' post peer grading');
+            $this->content->items[] = html_writer::span('In progress: ' .
+                    html_writer::link(new moodle_url($sumurl, array(
+                            'display' => MANAGEPOSTS_MODE_SEENOTGRADED,
+                    )), $postspeergrading .  ' post peer grading'));
 
             $this->content->items[] = html_writer::span(
                 'Expiring soon: ' .

@@ -1,8 +1,8 @@
 <?php
-$plugin->component = 'block_peerblock';  // Recommended since 2.0.2 (MDL-26035). Required since 3.0 (MDL-48494)
-$plugin->version = 2020022502;  // YYYYMMDDHH (year, month, day, 24-hr time)
-$plugin->requires = 2013110500; // YYYYMMDDHH (This is the release version for Moodle 2.0)
+$plugin->component = 'block_peerblock';  // Full name of the block (used for diagnostics)
+$plugin->version = 2021022801;  // The current block version (Date: YYYYMMDDXX)
+$plugin->requires = 2020110300; // Requires this Moodle version
 
 $plugin->dependencies = array(
-        'mod_peerforum' => 2016080600,
+        'mod_peerforum' => 2021022801,
 );
