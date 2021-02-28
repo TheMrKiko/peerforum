@@ -111,7 +111,7 @@ if ($display == MANAGEPOSTS_MODE_SEEALL) {
     $filters = array('expired' => 1) + $userfilter;
 
 }
-$row = get_peerblock_tabs($urlparams);
+$row = get_peerblock_tabs($urlparams, $canviewalltabs);
 echo $OUTPUT->tabtree($row, 'manageposts');
 echo $OUTPUT->render(new single_select($url, 'display', $options, $display, false));
 

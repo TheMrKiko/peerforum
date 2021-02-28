@@ -14,15 +14,22 @@ if (is_file($CFG->dirroot . '/mod/peerforum/lib.php')) {
     return;
 }
 
-function get_peerblock_tabs(array $params = array()) {
+/**
+ * @param array $params
+ * @param bool $isprofessor
+ * @return array
+ */
+function get_peerblock_tabs(array $params = array(), $isprofessor = false): array {
     $postsassigned = get_string('postsassigned', 'block_peerblock');
     $peerranking = get_string('peer_ranking', 'block_peerblock');
 
     $row[] = new tabobject('manageposts', new moodle_url('/blocks/peerblock/summary.php',
                     $params + array('display' => MANAGEPOSTS_MODE_SEEALL)), $postsassigned);
-    $row[] = new tabobject('peerranking',
-            new moodle_url('/blocks/peerblock/rankings.php',
-                    $params), $peerranking);
+    if (!$isprofessor) {
+        $row[] = new tabobject('peerranking',
+                new moodle_url('/blocks/peerblock/rankings.php',
+                        $params), $peerranking);
+    }
     return $row;
 }
 
