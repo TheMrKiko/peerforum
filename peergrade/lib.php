@@ -1547,7 +1547,7 @@ class peergrade_manager {
         // Can submit peergrades as professor.
         $settings->permissions->professor = has_capability('mod/peerforum:professorpeergrade', $options->context);
         // Can submit peergrades as student.
-        $settings->permissions->student = has_capability('mod/peerforum:studentpeergrade', $options->context);
+        $settings->permissions->student = has_capability('mod/peerforum:studentpeergrade', $options->context, null, false);
 
         // Check module capabilities
         // This is mostly for backwards compatability with old modules that previously implemented their own peergrades.

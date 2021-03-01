@@ -1998,7 +1998,7 @@ function peerforum_peergrade_permissions($contextid, $component, $gradingarea) {
             'viewany' => has_capability('mod/peerforum:viewanypeergrade', $context),
             'viewsome' => has_capability('mod/peerforum:viewsomepeergrades', $context),
             'viewall' => has_capability('mod/peerforum:viewallpeergrades', $context),
-            'student' => has_capability('mod/peerforum:studentpeergrade', $context),
+            'student' => has_capability('mod/peerforum:studentpeergrade', $context, null, false),
             'professor' => has_capability('mod/peerforum:professorpeergrade', $context),
             'peergrade' => has_capability('mod/peerforum:peergrade', $context), // Hack! DELETE!
     );
