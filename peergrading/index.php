@@ -111,6 +111,12 @@ $nominations = $pf->peernominations;
 $rankings = $pf->peerrankings;
 $training = $pf->training;
 
+\core\notification::warning('Dear professor, attention. These set of pages are extremely old and will ASAP be deprecated.
+They were made avaliable to you while an alternative is in the oven (you can already see the new version, that looks like this
+but only has one tab. It\'s the "Full summary..." button). But, here, please, do not press any buttons
+besides navigation. DO NOT PRESS ACTION BUTTONS, as they have the power to damage our data in unknown ways.
+Thank you and happy teaching!');
+
 if ($isStudent == 1 && $nominations) {
     if ($questionnairedone == 0) {
         $url_select = new moodle_url('/peergrading/peer_nominations.php',
