@@ -253,7 +253,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         if ($peergrade->user_can_peergrade() || $peergrade->can_edit()) {
             if ($shouldcompletetraining) {
                 $peergradehtml .= html_writer::tag('p', "You are assigned to peer grade this BUT
-                you have to complete the training first. ".
+                you have to complete the training first and get them ALL CORRECT. You can try several times, don't worry. ".
                         html_writer::link($urlfactory->get_training_url($correcttrainings[$USER->id]), 'Let\'s go!'),
                         array('class' => 'bg-warning warning'));
 

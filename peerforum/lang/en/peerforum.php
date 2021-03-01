@@ -1074,12 +1074,18 @@ $string['typestoattribute_help'] =
         "Select 'specified topic' if you want this topic to be peer graded by a defined number of students. 'Randomized topic' will make this topic available to peer grade to any student.";
 $string['specifictopic'] = "Specified topic";
 $string['randomtopic'] = "Randomised topic";
-$string['favstudents'] = "Favorite Peers";
+$string['favstudents'] = "Most Favorite Peers";
 $string['choosefavstudents'] = "Select one of your peers";
 $string['leastfavstudents'] = "Least Favorite Peers";
 $string['relquest'] = "Peer Relations Questionnaire";
 $string['questionnaire_instructions'] =
-        "In order to be able to peer grade your peers, you need to provide five peers which you like the most and four peers which you like the least in this course.";
+        "Welcome! As you may know, Skill Tree submissions will also be graded by you and your peers. In order to better understand
+        how that has worked, we need some data from you! It's simple: we ask you to choose some peers you like most, and some you
+        like least, from the ones that are enroled in the course. The order is not important and you can select as many as you want
+        (the more the merrier), but there is a minimum for you to continue to the submission and peer grading process. Once you
+        submit, you will be able to come back later and add more peers, if you want (you won't be able to edit those already submitted, tho).
+        Do not worry! This data is private and only for this purpose. It will NOT be shared, SPECIALLY with the people you select.
+        We appreciate a lot your contribution.";
 $string['topicsattrinstructions'] = "Discussion Topics: Select the topic you want to change its peergrading type.";
 $string['autoassignreplies'] = "Auto assign replies";
 $string['autoassignreplies_help'] =

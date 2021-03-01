@@ -27,7 +27,7 @@ require_once('../../config.php');
 
 $peerforumid = required_param('peerforum', PARAM_INT);
 
-$PAGE->set_url('/mod/nominations.php', array(
+$PAGE->set_url('/mod/peerforum/nominations.php', array(
         'peerforum' => $peerforumid,
 ));
 // These page_params will be passed as hidden variables later in the form.

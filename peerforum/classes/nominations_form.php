@@ -59,7 +59,7 @@ class mod_peerforum_nominations_form extends moodleform {
         $inilmfields = $iniilmfields ?: $inifields;
         $repeateloptions = array();
         $this->repeat_elements($lmgroupitems, $inilmfields, $repeateloptions,
-                'repeatlm', 'addfieldslm', $addfields, null, true);
+                'repeatlm', 'addfieldslm', $addfields, 'Add {no} more field', true);
 
 
         // Like least students.
@@ -74,7 +74,7 @@ class mod_peerforum_nominations_form extends moodleform {
 
         $inillfields = $iniillfields ?: $inifields;
         $this->repeat_elements($llgroupitems, $inillfields, $repeateloptions,
-                'repeatll', 'addfieldsll', $addfields, null, true);
+                'repeatll', 'addfieldsll', $addfields, 'Add {no} more field', true);
 
         $mform->setType('ids[1]', PARAM_INT);
         $mform->setDefault('ids[1]', 0);
@@ -102,7 +102,7 @@ class mod_peerforum_nominations_form extends moodleform {
         $mform->addElement('hidden', 'courseid');
         $mform->setType('courseid', PARAM_INT);
 
-        $this->add_action_buttons();
+        $this->add_action_buttons(true, 'Submit peers');
     }
 
     /**
@@ -115,6 +115,7 @@ class mod_peerforum_nominations_form extends moodleform {
     function validation($data, $files) {
         $errors = parent::validation($data, $files);
         $emptymessage = 'You kinda have to select someone.';
+        $repeatmessage = 'You cannot repeat someone.';
         $lmnominations = $data['nominations']['1'];
         $llnominations = $data['nominations']['-1'];
         $noms = array();
@@ -122,7 +123,7 @@ class mod_peerforum_nominations_form extends moodleform {
             if (!$lm) {
                 $errors['nominations']['1'][$k] = $emptymessage;
             } else if (isset($noms[$lm])) {
-                $errors['nominations']['1'][$k] = 'Cannot repeat';
+                $errors['nominations']['1'][$k] = $repeatmessage;
             }
             $noms[$lm] = true;
         }
@@ -130,7 +131,7 @@ class mod_peerforum_nominations_form extends moodleform {
             if (!$ll) {
                 $errors['nominations[-1]['.$k.']'] = $emptymessage;
             } else if (isset($noms[$ll])) {
-                $errors['nominations[-1]['.$k.']'] = 'Cannot repeat';
+                $errors['nominations[-1]['.$k.']'] = $repeatmessage;
             }
             $noms[$ll] = true;
         }
