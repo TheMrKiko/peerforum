@@ -130,7 +130,10 @@ class discussion extends exporter {
                                 'training' => [
                                         'optional' => true,
                                         'type' => [
-                                                'url' => ['type' => PARAM_URL],
+                                                'url' => [
+                                                        'type' => PARAM_URL,
+                                                        'null' => NULL_ALLOWED,
+                                                        ],
                                                 'title' => ['type' => PARAM_TEXT],
                                         ],
                                 ],
