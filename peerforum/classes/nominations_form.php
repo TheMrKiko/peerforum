@@ -121,9 +121,9 @@ class mod_peerforum_nominations_form extends moodleform {
         $noms = array();
         foreach ($lmnominations as $k => $lm) {
             if (!$lm) {
-                $errors['nominations']['1'][$k] = $emptymessage;
+                $errors['nominations[1]['.$k.']'] = $emptymessage;
             } else if (isset($noms[$lm])) {
-                $errors['nominations']['1'][$k] = $repeatmessage;
+                $errors['nominations[1]['.$k.']'] = $repeatmessage;
             }
             $noms[$lm] = true;
         }
