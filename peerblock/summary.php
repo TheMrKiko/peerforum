@@ -44,13 +44,12 @@ if (isset($userid) && empty($courseid)) {
 }
 $PAGE->set_context($context);
 
-$courseid = (empty($courseid)) ? SITEID : $courseid;
-require_login($courseid);
+$logcourseid = (empty($courseid)) ? SITEID : $courseid;
+require_login($logcourseid);
 
-$canviewalltabs = true;
-if (!has_capability('mod/peerforum:professorpeergrade', $context)) {
-    $userid = $USER->id;
-    $canviewalltabs = false;
+$canviewalltabs = false;
+if (has_capability('mod/peerforum:professorpeergrade', $context, null, false)) {
+    $canviewalltabs = true;
 }
 
 $urlparams = array(
@@ -111,7 +110,7 @@ if ($display == MANAGEPOSTS_MODE_SEEALL) {
     $filters = array('expired' => 1) + $userfilter;
 
 }
-$row = get_peerblock_tabs($urlparams, $canviewalltabs);
+$row = get_peerblock_tabs($urlparams, $canviewalltabs, $userid == $USER->id);
 echo $OUTPUT->tabtree($row, 'manageposts');
 echo $OUTPUT->render(new single_select($url, 'display', $options, $display, false));
 
@@ -128,10 +127,7 @@ $vaultfactory = mod_peerforum\local\container::get_vault_factory();
 $pgmanager = mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
 $items = $pgmanager->get_items_from_filters($filters);
 
-if (empty($items)) {
-    $postoutput = 'No posts to show.';
-} else {
-
+if (!empty($items)) {
     $postids = array_map(static function($item) {
         return $item->itemid;
     }, $items);
@@ -156,15 +152,28 @@ if (empty($items)) {
     }, array());
     $peerforums = $vaultfactory->get_peerforum_vault()->get_from_ids($peerforumids);
 
-    $postsrenderer = $rendererfactory->get_user_peerforum_posts_report_renderer(true);
-    $postoutput = $postsrenderer->render(
-            $USER,
-            $peerforums,
-            $discussions,
-            $posts
-    );
+    foreach ($peerforums as $peerforum) {
+        $pfcontext = $peerforum->get_context();
+        if ($userid != $USER->id && $peerforum->is_remainanonymous() &&
+                !has_capability('mod/peerforum:professorpeergrade', $pfcontext, null, false)) {
+            $posts = array_filter($posts, function($post) use ($peerforum, $discussions) {
+                $did = $post->get_discussion_id();
+                return $discussions[$did]->get_peerforum_id() != $peerforum->get_id();
+            });
+        }
+    }
+
+    if (!empty($posts)) {
+        $postsrenderer = $rendererfactory->get_user_peerforum_posts_report_renderer(true);
+        $postoutput = $postsrenderer->render(
+                $USER,
+                $peerforums,
+                $discussions,
+                $posts
+        );
+    }
 }
 
-echo $postoutput;
+echo $postoutput = !empty($postoutput) ? $postoutput : 'No posts to show.';
 echo $OUTPUT->box_end();
 echo $OUTPUT->footer();

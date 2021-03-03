@@ -1,6 +1,6 @@
 <?php
 $plugin->component = 'block_peerblock';  // Full name of the block (used for diagnostics)
-$plugin->version = 2021022801;  // The current block version (Date: YYYYMMDDXX)
+$plugin->version = 2021030301;  // The current block version (Date: YYYYMMDDXX)
 $plugin->requires = 2020110300; // Requires this Moodle version
 
 $plugin->dependencies = array(
