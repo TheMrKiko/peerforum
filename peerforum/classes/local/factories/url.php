@@ -573,4 +573,19 @@ class url {
                 'peerforum' => $peerforum->get_id()
         ]);
     }
+
+    /**
+     * Generate the user summary link.
+     *
+     * @param \stdClass $userinfo
+     * @return moodle_url
+     * @throws \moodle_exception
+     */
+    public function get_user_summary_url(\stdClass $userinfo): moodle_url {
+        return new moodle_url('/blocks/peerblock/summary.php',
+                array(
+                        'display' => MANAGEPOSTS_MODE_SEEALL,
+                        'userid' => $userinfo->id)
+        );
+    }
 }

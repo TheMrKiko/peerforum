@@ -483,7 +483,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     'style' => 'display: none;'));
 
             $peersnames = array_map(static function ($assign) use ($peergrade) {
-                $name = fullname($assign->userinfo);
+                $name = html_writer::span(fullname($assign->userinfo), 'bold');
+                $userinfolink = \mod_peerforum\local\container::get_url_factory()->get_user_summary_url($assign->userinfo);
                 $tte = '';
                 if (!empty($assign->peergraded)) {
                     $color = '#339966';
@@ -495,7 +496,9 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     $color = 'black';
                     $tte = ' (' . $assign->get_time_to_expire() . ')';
                 }
-                return html_writer::tag('span', $name . $tte, array(
+                $name .= html_writer::link($userinfolink, '...');
+                $nom = $assign->nomination ? '[N]' : '';
+                return html_writer::tag('span', $name . $tte . $nom, array(
                         'id' => 'peersassigned' . $peergrade->itemid,
                         'style' => 'color: ' . $color . ';'));
             }, $peergrade->usersassigned);
@@ -504,7 +507,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     html_writer::tag('span', '; ', array('style' => 'color: grey;'))
             );
 
-            $peergradehtml .= html_writer::tag('span', "Students assigned to peer grade this post: ",
+            $peergradehtml .= html_writer::tag('span', "Students assigned to peer grade: ",
                     array('style' => 'color: grey;')); // Color: #6699ff;.
 
             $peergradehtml .= html_writer::tag('span', $peersnames, array('id' => 'peersassigned' . $peergrade->itemid));

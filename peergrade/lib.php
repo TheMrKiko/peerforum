@@ -1349,7 +1349,7 @@ class peergrade_manager {
         $aggregatepeergrades = $DB->get_records_sql($sql, $params);
 
         $userfields = user_picture::fields('u', ['deleted'], 'userid');
-        $sql = "SELECT r.id, r.itemid, r.userid, r.peergraded, r.ended, r.expired, r.blocked, r.timeassigned, r.timemodified, $userfields
+        $sql = "SELECT r.id, r.itemid, r.userid, r.peergraded, r.ended, r.expired, r.blocked, r.nomination, r.timeassigned, r.timemodified, $userfields
                   FROM {peerforum_time_assigned} r
              LEFT JOIN {user} u ON r.userid = u.id
                  WHERE r.contextid = :contextid AND
@@ -1419,6 +1419,7 @@ class peergrade_manager {
                     $assignoptions->expired = $userassign->expired;
                     $assignoptions->blocked = $userassign->blocked;
                     $assignoptions->peergraded = $userassign->peergraded;
+                    $assignoptions->nomination = $userassign->nomination;
                     $assignoptions->timeassigned = $userassign->timeassigned;
                     $assignoptions->timemodified = $userassign->timemodified;
                     $assignoptions->peergradeoptions = $peergradeoptions;
