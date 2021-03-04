@@ -68,7 +68,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             ) + $peerforum->get_peergrade_options();
             $peergrade = $peergrademanager->get_peergrades((object) $peergradeoptions)[0]->peergrade;
 
-            $canshowafterpeergrade = $peergrade->is_ended() || !$peergrade->exists();
+            $canshowafterpeergrade = !$peergrade->exists() || $peergrade->can_peergrades_be_shown();
         }
 
         $strrate = get_string("rate", "rating");

@@ -877,10 +877,11 @@ $string['peergradesvisibility'] = 'Peergrades visibility';
 $string['peergradesvisibility_help'] =
         'Select \'private\' if you do not want the peergrades of PeerForum posts to be public. Only the user whose post was peergraded can see the peergrades';
 $string['always'] = 'Always';
-$string['afterpeergradeends'] = 'After peergrade ends';
+$string['whenmingraders'] = 'When has min peer grades';
+$string['afterpeergradeends'] = 'After peer grade ends';
 $string['whenpeergrades_help'] =
         'Select when you want the peergrades to appear. If \'Always\' is chosen, the peergrades will be always visible and public. If \'After peergrade ends\' is chosen, the peergrades will only be visible when a minimum number of peergraders submit a peergrade to a post in the PeerForum.';
-$string['when'] = 'Visible when:';
+$string['when'] = 'Visible when';
 $string['when_help'] =
         'Select when you want the written feedback to appear. If \'Always\' is chosen, the feedback will be always visible and public. If \'After peergrade ends\' is chosen, the feedback will only be visible when a minimum number of peergraders submit a feedback to a post in the PeerForum.';
 $string['enablefeedback'] = 'Enable written feedback';
@@ -1036,7 +1037,7 @@ $string['showafterrating_help'] =
         "Select 'yes' if you want to show final peer grade only after rating ends (the ratings assessed type must be set to yes)";
 $string['showratings'] = "Show final rating";
 $string['showratings_help'] = "Select 'no' if you want the final rating to be hidden. Only professors can see the grade";
-$string['showafterpeergrade'] = "Show after peer grade ends";
+$string['showafterpeergrade'] = "Hide until peer grade visible";
 $string['showafterpeergrade_help'] =
         "Select 'yes' if you want to show final rating only after peer grade ends (the peer grade assessed type must be set to yes)";
 $string['showpostid'] = 'Show post id';
@@ -1087,10 +1088,10 @@ $string['questionnaire_instructions'] =
         Do not worry! This data is private and only for this purpose. It will NOT be shared, SPECIALLY with the people you select.
         We appreciate a lot your contribution.";
 $string['topicsattrinstructions'] = "Discussion Topics: Select the topic you want to change its peergrading type.";
-$string['autoassignreplies'] = "Auto assign replies";
+$string['autoassignreplies'] = "Assign replies to parent's graders";
 $string['autoassignreplies_help'] =
         "Select 'yes' if you want the same students to be assigned to a reply of a previous post made by the same student.";
-$string['hidereplies'] = "Hide replies to student posts";
+$string['hidereplies'] = "Hide replies until peer grade visible";
 $string['hidereplies_help'] =
         "Select 'yes' if you want the reply given by a teacher to be hidden from students until the peergrading activity of the parent post has not ended.";
 $string['managerealtionshipsmodenominations'] = "See Peer Nominations";

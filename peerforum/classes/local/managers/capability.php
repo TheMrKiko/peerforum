@@ -462,7 +462,7 @@ class capability {
         );
         $peergrade = $pgm->get_peergrades((object) $peergradeoptions)[0]->peergrade;
 
-        return $peergrade->is_ended();
+        return $peergrade->can_peergrades_be_shown();
     }
 
     /**

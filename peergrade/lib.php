@@ -902,8 +902,7 @@ class peergrade implements renderable {
         // If it should be finished at min graders.
         // The cron should check this but just in case it does not in time.
         if ($this->settings->finishpeergrade) {
-            $numendspeergrade = $this->settings->minpeergraders;
-            if ($this->count >= $numendspeergrade) {
+            if ($this->has_min_grades()) {
                 $this->ended = true;
                 return $this->ended;
             }
@@ -932,8 +931,7 @@ class peergrade implements renderable {
 
         // If it should be finished at min graders.
         if ($this->settings->finishpeergrade) {
-            $numendspeergrade = $this->settings->minpeergraders;
-            if ($this->count >= $numendspeergrade) {
+            if ($this->has_min_grades()) {
                 return false;
             }
         }
@@ -957,6 +955,15 @@ class peergrade implements renderable {
      */
     public function is_ended_for_user() {
         return $this->get_self_assignment()->ended ?? false;
+    }
+
+    /**
+     * If the minimun of peer grades were given to this item.
+     *
+     * @return bool
+     */
+    public function has_min_grades(): bool {
+        return $this->count >= $this->settings->minpeergraders ?? false;
     }
 
     /**
@@ -1049,8 +1056,11 @@ class peergrade implements renderable {
      * @return bool
      */
     public function can_peergrades_be_shown(): bool {
-        return $this->settings->whenpeergradevisible !== PEERFORUM_GRADEVISIBLE_AFTERPGENDS ||
-                $this->is_ended() || ($this->get_peergrade() && !$this->can_edit());
+        return $this->settings->whenpeergradevisible === PEERFORUM_GRADEVISIBLE_ALWAYS
+                || ($this->get_peergrade() && !$this->can_edit())
+                || ($this->settings->whenpeergradevisible === PEERFORUM_GRADEVISIBLE_MINGRADERS &&
+                        $this->has_min_grades() && !$this->get_self_assignment())
+                || $this->is_ended();
     }
 
     /**
