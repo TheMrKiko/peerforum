@@ -8628,6 +8628,10 @@ function peerforum_extend_settings_navigation(settings_navigation $settingsnav, 
         $url = $urlfactory->get_training_manager_url($peerforumentity);
         $peerforumnode->add("Training pages", $url, navigation_node::TYPE_SETTING);
     }
+    if (has_capability('mod/peerforum:studentpeergrade', $PAGE->cm->context)) {
+        $url = $urlfactory->get_nominations_url($peerforumentity);
+        $peerforumnode->add("Edit peer nominations", $url, navigation_node::TYPE_SETTING);
+    }
 }
 
 /**
@@ -11250,16 +11254,22 @@ function peerforum_edit_nominations($data, $mform) {
     $nominations = \mod_peerforum\local\vaults\training_page::turn_outside_in($data->nominations, array('nomination', 'n'));
 
     foreach($nominations as $nomination) {
-        if ($nomination->id) {
-            continue;
+        if (empty($nomination->id)) {
+            $id = $DB->insert_record('peerforum_relationship_nomin', (object) [
+                    'n' => $nomination->n,
+                    'userid' => $data->userid,
+                    'course' => $data->course->id,
+                    'otheruserid' => $nomination->otheruser,
+                    'nomination' => $nomination->nomination,
+                    'confidence' => $nomination->confidence,
+            ]);
+        } else {
+            $id = $nomination->id;
+            $DB->update_record('peerforum_relationship_nomin', (object) [
+                    'id' => $id,
+                    'confidence' => $nomination->confidence,
+            ]);
         }
-        $id = $DB->insert_record('peerforum_relationship_nomin', (object) [
-                'n' => $nomination->n,
-                'userid' => $data->userid,
-                'course' => $data->course->id,
-                'otheruserid' => $nomination->otheruser,
-                'nomination' => $nomination->nomination,
-        ]);
     }
 
     return true;

@@ -424,5 +424,21 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021022302, 'peerforum');
     }
 
+    if ($oldversion < 2021030401) {
+
+        // Define field confidence to be added to peerforum_relationship_nomin.
+        $table = new xmldb_table('peerforum_relationship_nomin');
+        $field = new xmldb_field('confidence', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '2', 'nomination');
+
+        // Conditionally launch add field confidence.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021030401, 'peerforum');
+    }
+
+
     return true;
 }

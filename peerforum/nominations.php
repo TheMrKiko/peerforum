@@ -64,10 +64,6 @@ if (!empty($peerforumid)) {
     $modcontext = $peerforumentity->get_context();
     $coursecontext = context_course::instance($course->id);
 
-    /*if (!has_capability('mod/peerforum:studentpeergrade', $modcontext)) {
-        print_error('cannoteditposts', 'peerforum');
-    }*/
-
     $userid = $USER->id;
     $nominationvault = $vaultfactory->get_relationship_nomination_vault();
     $nominationsfull = $nominationvault->get_from_user_id($userid, $course->id);
@@ -77,6 +73,9 @@ if (!empty($peerforumid)) {
     $ids = $nominationsfull['id'] ?? array();
     $ids['1'] = $ids['1'] ?? array();
     $ids['-1'] = $ids['-1'] ?? array();
+    $confidence = $nominationsfull['confidence'] ?? array();
+    $confidence['1'] = $confidence['1'] ?? array();
+    $confidence['-1'] = $confidence['-1'] ?? array();
 
     $PAGE->set_cm($cm, $course, $peerforum);
 
@@ -111,6 +110,7 @@ $mform = new mod_peerforum_nominations_form('nominations.php', [
 $mform->set_data(
         array(
                 'nominations' => $nominations,
+                'confidence' => $confidence,
                 'ids' => $ids,
         ) +
 
@@ -126,6 +126,7 @@ if ($mform->is_cancelled()) {
 
     $noms = array();
     $noms['otheruser'] = $fromform->nominations;
+    $noms['confidence'] = $fromform->confidence;
     $noms['id'] = $fromform->ids;
 
     $data = new stdClass();

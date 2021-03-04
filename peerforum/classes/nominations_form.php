@@ -50,12 +50,24 @@ class mod_peerforum_nominations_form extends moodleform {
         $mform->addElement('header', 'hlikemost', get_string('favstudents', 'peerforum'));
         $mform->setExpanded('hlikemost');
 
-        $lmgroupitems = array();
-        $lmgroupitems[] =& $mform->createElement('select', 'nominations[1]',
-                get_string('choosefavstudents', 'peerforum'),
-                $allstudents);
-        $lmgroupitems[] =& $mform->createElement('hidden', 'ids[1]');
+        $confscale = array(
+                2 => 'Totally my feelings',
+                1 => 'A solid decision',
+                0 => 'Totally random',
+        );
 
+        $lmgroupitem = array();
+        $lmgroupitem[] =& $mform->createElement('select', 'nominations[1]',
+                '',
+                $allstudents);
+        $lmgroupitem[] =& $mform->createElement('select', 'confidence[1]',
+                '',
+                $confscale);
+
+        $lmgroupitems = array();
+        $lmgroupitems[] =& $mform->createElement('group', 'group[1]',
+                get_string('choosefavstudents', 'peerforum'), $lmgroupitem, ', which is', false);
+        $lmgroupitems[] =& $mform->createElement('hidden', 'ids[1]');
         $inilmfields = $iniilmfields ?: $inifields;
         $repeateloptions = array();
         $this->repeat_elements($lmgroupitems, $inilmfields, $repeateloptions,
@@ -66,10 +78,17 @@ class mod_peerforum_nominations_form extends moodleform {
         $mform->addElement('header', 'hlikeleast', get_string('leastfavstudents', 'peerforum'));
         $mform->setExpanded('hlikeleast');
 
-        $llgroupitems = array();
-        $llgroupitems[] =& $mform->createElement('select', 'nominations[-1]',
-                get_string('choosefavstudents', 'peerforum'),
+        $llgroupitem = array();
+        $llgroupitem[] =& $mform->createElement('select', 'nominations[-1]',
+                '',
                 $allstudents);
+        $llgroupitem[] =& $mform->createElement('select', 'confidence[-1]',
+                '',
+                $confscale);
+
+        $llgroupitems = array();
+        $llgroupitems[] =& $mform->createElement('group', 'group[-1]',
+                get_string('choosefavstudents', 'peerforum'), $llgroupitem, ', which is', false);
         $llgroupitems[] =& $mform->createElement('hidden', 'ids[-1]');
 
         $inillfields = $iniillfields ?: $inifields;
@@ -121,17 +140,17 @@ class mod_peerforum_nominations_form extends moodleform {
         $noms = array();
         foreach ($lmnominations as $k => $lm) {
             if (!$lm) {
-                $errors['nominations[1]['.$k.']'] = $emptymessage;
+                $errors['group[1]['.$k.']'] = $emptymessage;
             } else if (isset($noms[$lm])) {
-                $errors['nominations[1]['.$k.']'] = $repeatmessage;
+                $errors['group[1]['.$k.']'] = $repeatmessage;
             }
             $noms[$lm] = true;
         }
         foreach ($llnominations as $k => $ll) {
             if (!$ll) {
-                $errors['nominations[-1]['.$k.']'] = $emptymessage;
+                $errors['group[-1]['.$k.']'] = $emptymessage;
             } else if (isset($noms[$ll])) {
-                $errors['nominations[-1]['.$k.']'] = $repeatmessage;
+                $errors['group[-1]['.$k.']'] = $repeatmessage;
             }
             $noms[$ll] = true;
         }
