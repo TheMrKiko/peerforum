@@ -7012,6 +7012,91 @@ function peerforum_user_can_see_post($peerforum, $discussion, $post, $user = nul
 }
 
 /**
+ * Check whether a user can see the reply.
+ *
+ * @param \stdClass $peerforum The peerforum to check
+ * @param \stdClass $post The post in question
+ * @param \stdClass $user The user to test - if not specified, the current user is checked.
+ * @param \stdClass $cm The Course Module that the peerforum is in (required).
+ * @return  bool
+ */
+function peerforum_user_can_see_reply($peerforum, $post, $user = null, $cm = null) {
+    global $CFG, $USER, $DB;
+
+    // retrieve objects (yuk)
+    if (is_numeric($peerforum)) {
+        debugging('missing full peerforum', DEBUG_DEVELOPER);
+        if (!$peerforum = $DB->get_record('peerforum', array('id' => $peerforum))) {
+            return false;
+        }
+    }
+    if (is_numeric($post)) {
+        debugging('missing full post', DEBUG_DEVELOPER);
+        if (!$post = $DB->get_record('peerforum_posts', array('id' => $post))) {
+            return false;
+        }
+    }
+
+    if (!isset($post->id) && isset($post->parent)) {
+        $post->id = $post->parent;
+    }
+
+
+    if (!$cm) {
+        debugging('missing cm', DEBUG_DEVELOPER);
+        if (!$cm = get_coursemodule_from_instance('peerforum', $peerforum->id, $peerforum->course)) {
+            print_error('invalidcoursemodule');
+        }
+    }
+
+    // Context used throughout function.
+    $modcontext = context_module::instance($cm->id);
+
+    if (empty($user) || empty($user->id)) {
+        $user = $USER;
+    }
+
+    if (!$peerforum->hidereplies || has_capability('mod/peerforum:professorpeergrade', $modcontext, $user)) {
+        return true;
+    }
+    // We are professors, a omnipresent force. or we dont care.
+
+    $parentpostid = $post->parent ?? 0;
+    if (!$parentpostid) {
+        return true;
+    }
+    // This is a reply.
+
+    $postauthor = $post->userid;
+    if (!has_capability('mod/peerforum:professorpeergrade', $modcontext, $postauthor)) {
+        return true;
+    }
+    // This is a reply by the professor.
+
+    $postparent = $DB->get_record('peerforum_posts', array('id' => $parentpostid));
+    $postparentauthor = $postparent->userid;
+    if (has_capability('mod/peerforum:professorpeergrade', $modcontext, $postparentauthor)) {
+        return true;
+    }
+    // This is a reply by the professor to a student.
+
+    require_once($CFG->dirroot . '/peergrade/lib.php');
+    $pgm = new peergrade_manager();
+    $peergradeoptions = array(
+            'userid' => $user->id,
+            'context' => $modcontext,
+            'component' => 'mod_peerforum',
+            'peergradearea' => 'post',
+            'peergradescaleid' => $peerforum->peergradescale,
+            'items' => array($postparent),
+            'aggregate' => $peerforum->peergradeassessed,
+    );
+    $peergrade = $pgm->get_peergrades((object) $peergradeoptions)[0]->peergrade;
+
+    return $peergrade->can_peergrades_be_shown();
+}
+
+/**
  * Returns all peerforum posts since a given time in specified peerforum.
  *
  * @todo Document this functions args

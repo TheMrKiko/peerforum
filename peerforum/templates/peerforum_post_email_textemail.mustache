@@ -37,6 +37,7 @@
     * message
     * attachments
     * canreply
+    * canseereply
     * replylink
     * unsubscribepeerforumlink
     * unsubscribediscussionlink
@@ -54,7 +55,12 @@
     {{# str }} postisprivatereply, peerforum {{/ str }}
 {{/ isprivatereply }}
 ---------------------------------------------------------------------
-{{{ message }}}
+{{# canseereply }}
+    {{{ message }}}
+{{/ canseereply }}
+{{^ canseereply }}
+    (Sorry, you can only see this reply after the parent peer grade is over.)
+{{/ canseereply }}
 
 {{{ attachments }}}
 ---------------------------------------------------------------------

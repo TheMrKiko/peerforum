@@ -78,6 +78,13 @@ class peerforum_post implements \renderable, \templatable {
      */
     protected $canreply = false;
 
+    /**
+     * Whether the user can see this reply because of peer grade.
+     *
+     * @var boolean $canseereply
+     */
+    protected $canseereply = true;
+
     protected $canpeergrade = false;
 
     /**
@@ -121,8 +128,11 @@ class peerforum_post implements \renderable, \templatable {
      * @param object $author Author of the post
      * @param object $recipient Recipient of the email
      * @param bool $canreply True if the user can reply to the post
+     * @param bool $canseereply True if the user can see this reply because of peer grade
      */
-    public function __construct($course, $cm, $peerforum, $discussion, $post, $author, $recipient, $canreply, $canpeergrade) {
+    public function __construct($course, $cm, $peerforum, $discussion, $post, $author, $recipient, $canreply,
+            $canseereply = true,
+            $canpeergrade = false) {
         $this->course = $course;
         $this->cm = $cm;
         $this->peerforum = $peerforum;
@@ -131,6 +141,7 @@ class peerforum_post implements \renderable, \templatable {
         $this->author = $author;
         $this->userto = $recipient;
         $this->canreply = $canreply;
+        $this->canseereply = $canseereply;
         $this->canpeergrade = $canpeergrade;
     }
 
@@ -173,6 +184,7 @@ class peerforum_post implements \renderable, \templatable {
                         'attachments' => html_entity_decode($renderer->format_message_attachments($this->cm, $this->post)),
 
                         'canreply' => $this->canreply,
+                        'canseereply' => $this->canseereply,
                         'permalink' => $this->get_permalink(),
                         'firstpost' => $this->get_is_firstpost(),
                         'replylink' => $this->get_replylink(),
@@ -220,12 +232,13 @@ class peerforum_post implements \renderable, \templatable {
      * Export this data so it can be used as the context for a mustache template.
      *
      * @param \mod_peerforum_renderer $renderer The render to be used for formatting the message and attachments
-     * @return stdClass Data ready for use in a mustache template
+     * @return array Data ready for use in a mustache template
      */
     protected function export_for_template_shared(\mod_peerforum_renderer $renderer) {
         return array(
                 'canreply' => $this->canreply,
                 'canpeergrade' => $this->canpeergrade,
+                'canseereply' => $this->canseereply,
                 'permalink' => $this->get_permalink(),
                 'firstpost' => $this->get_is_firstpost(),
                 'replylink' => $this->get_replylink(),
@@ -416,8 +429,7 @@ class peerforum_post implements \renderable, \templatable {
             return null;
         }
         $link = new \moodle_url(
-                // '/mod/peerforum/subscribe.php', array(
-                '/mod/discussion/subscribe.php', array(
+                '/mod/peerforum/subscribe.php', array(
                         'id' => $this->peerforum->id,
                         'd' => $this->discussion->id,
                 )

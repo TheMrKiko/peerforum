@@ -430,39 +430,10 @@ class capability {
      */
     public function can_view_reply(stdClass $user, post_entity $post): bool {
         $peerforum = $this->get_peerforum();
-        if (!$peerforum->is_hidereplies() || has_capability('mod/peerforum:professorpeergrade', $this->context, $user)) {
-            return true;
-        }
-        // We are professors, a omnipresent force. or we dont care.
-
-        $parentpostid = $post->get_parent_id();
-        if (!$parentpostid) {
-            return true;
-        }
-        // This is a reply.
-
-        $postauthor = $post->get_author_id();
-        if (!has_capability('mod/peerforum:professorpeergrade', $this->context, $postauthor)) {
-            return true;
-        }
-        // This is a reply by the professor.
-
-        $postparent = container::get_vault_factory()->get_post_vault()->get_from_id($parentpostid);
-        $postparentauthor = $postparent->get_author_id();
-        if (has_capability('mod/peerforum:professorpeergrade', $this->context, $postparentauthor)) {
-            return true;
-        }
-        // This is a reply by the professor to a student.
-
-        $pgm = $this->peergrademanager;
-        $peergradeoptions = $peerforum->get_peergrade_options();
-        $peergradeoptions += array(
-                'userid' => $user->id,
-                'items' => array($this->postdatamapper->to_legacy_object($postparent)),
-        );
-        $peergrade = $pgm->get_peergrades((object) $peergradeoptions)[0]->peergrade;
-
-        return $peergrade->can_peergrades_be_shown();
+        $peerforumrecord = $this->get_peerforum_record();
+        $postrecord = $this->get_post_record($post);
+        $coursemodule = $peerforum->get_course_module_record();
+        return peerforum_user_can_see_reply($peerforumrecord, $postrecord, $user, $coursemodule);
     }
 
     /**

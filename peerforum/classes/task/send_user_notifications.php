@@ -298,7 +298,8 @@ class send_user_notifications extends \core\task\adhoc_task {
                 $post,
                 $author,
                 $this->recipient,
-                $this->can_post($course, $peerforum, $discussion, $post, $cm, $context)
+                $this->can_post($course, $peerforum, $discussion, $post, $cm, $context),
+                $this->can_see_reply($peerforum, $post, $cm),
         );
         $data->viewfullnames = $this->can_view_fullnames($course, $peerforum, $discussion, $post, $cm, $context);
 
@@ -516,6 +517,18 @@ class send_user_notifications extends \core\task\adhoc_task {
                     peerforum_user_can_post($peerforum, $discussion, $this->recipient, $cm, $course, $context);
         }
         return $this->canpostto[$discussion->id];
+    }
+
+    /**
+     * Check whether the user can see this reply.
+     *
+     * @param \stdClass $peerforum
+     * @param \stdClass $post
+     * @param \stdClass $cm
+     * @return  bool
+     */
+    protected function can_see_reply($peerforum, $post, $cm) {
+        return peerforum_user_can_see_reply($peerforum, $post, $this->recipient, $cm);
     }
 
     /**

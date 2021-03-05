@@ -479,19 +479,7 @@ class send_user_digests extends \core\task\adhoc_task {
         global $CFG;
 
         $canreply = $this->canpostto[$discussion->id];
-
-        try {
-            $peerforumentity = \mod_peerforum\local\container::get_entity_factory()
-                ->get_peerforum_from_stdclass($peerforum, $cm->context, $cm->get_course_module_record(), $course);
-            $postentity = \mod_peerforum\local\container::get_entity_factory()->get_post_from_stdclass($post);
-            $canseereply = \mod_peerforum\local\container::get_manager_factory()
-                ->get_capability_manager($peerforumentity)->can_view_reply($this->recipient, $postentity);
-            if (!$canseereply) {
-                $post->message = 'INFO: This reply will only be shown after peer grading to the parent post ends.';
-            }
-        } catch (\Exception $e) {
-            $this->log('Some error while checking for can_view_reply in post id ' . $post->id);
-        }
+        $canseereply = peerforum_user_can_see_reply($peerforum, $post, $this->recipient, $cm);
 
         $data = new \mod_peerforum\output\peerforum_post_email(
                 $course,
@@ -501,7 +489,8 @@ class send_user_digests extends \core\task\adhoc_task {
                 $post,
                 $author,
                 $this->recipient,
-                $canreply
+                $canreply,
+                $canseereply
         );
 
         // Override the viewfullnames value.
