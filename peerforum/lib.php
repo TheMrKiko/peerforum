@@ -6070,11 +6070,7 @@ function peerforum_add_new_post($post, $mform, $unused = null) {
                     'itemid' => $post->id,
                     'itemfamily' => $posthierarchy,
             ] + $peerforumentity->get_peergrade_options());
-    $peergraders = $pgm->assign_peergraders($peergradeoptions);
-
-    foreach ($peergraders as $peergrader) {
-        send_peergrade_notification($peergrader, $post->id, $peerforumentity);
-    }
+    $pgm->assign_peergraders($peergradeoptions);
 
     return $post->id;
 }

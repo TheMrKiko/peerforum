@@ -81,6 +81,11 @@ class cron_task extends \core\task\scheduled_task {
     protected $adhocdata = [];
 
     /**
+     * @var The list of adhoc peergrade data for sending.
+     */
+    protected $adhocpgdata = [];
+
+    /**
      * Get a descriptive name for this task (shown to admins).
      *
      * @return string
@@ -112,8 +117,15 @@ class cron_task extends \core\task\scheduled_task {
         }
         $this->log_finish("Done");
 
+        $this->log_start("Fetching unmailed peergrades.");
+        if (!$peergrades = $this->get_unmailed_peergrades($posts)) {
+            $this->log_finish("No peergrades found.", 1);
+            $peergrades = array();
+        }
+        $this->log_finish("Done");
+
         // Process post data and turn into adhoc tasks.
-        $this->process_post_data($posts);
+        $this->process_post_data($posts, $peergrades);
 
         // Mark posts as read.
         list($in, $params) = $DB->get_in_or_equal(array_keys($posts));
@@ -124,8 +136,9 @@ class cron_task extends \core\task\scheduled_task {
      * Process all posts and convert to appropriated hoc tasks.
      *
      * @param \stdClass[] $posts
+     * @param \stdClass[] $peergrades
      */
-    protected function process_post_data($posts) {
+    protected function process_post_data($posts, $peergrades) {
         $discussionids = [];
         $peerforumids = [];
         $courseids = [];
@@ -139,6 +152,9 @@ class cron_task extends \core\task\scheduled_task {
             $courseids[$post->course] = true;
             $this->add_data_for_post($post);
             $this->posts[$id] = $post;
+        }
+        foreach ($peergrades as $id => $peergrade) {
+            $this->add_data_for_peergrade($peergrade);
         }
         $this->log_finish(sprintf("Processed %s posts", count($this->posts)));
 
@@ -283,6 +299,19 @@ class cron_task extends \core\task\scheduled_task {
     }
 
     /**
+     * Add dsta for the current peerforum peergrade to the structure of adhoc data.
+     *
+     * @param \stdClass $peergrade
+     */
+    protected function add_data_for_peergrade($peergrade) {
+        if (!isset($this->adhocpgdata[$peergrade->itemid])) {
+            $this->adhocpgdata[$peergrade->itemid] = [];
+        }
+
+        $this->adhocpgdata[$peergrade->itemid][$peergrade->userid] = $peergrade->id;
+    }
+
+    /**
      * Fill the cache of user subscriptions.
      */
     protected function fill_user_subscription_cache() {
@@ -321,19 +350,21 @@ class cron_task extends \core\task\scheduled_task {
                 'users' => 0,
                 'ignored' => 0,
                 'messages' => 0,
+                'assigns' => 0,
         ];
         $this->log("Processing " . count($this->users) . " users", 1);
         foreach ($this->users as $user) {
             $usercounts = [
                     'digests' => 0,
                     'messages' => 0,
+                    'assigns' => 0,
             ];
 
             $send = false;
             // Setup this user so that the capabilities are cached, and environment matches receiving user.
             cron_setup_user($user);
 
-            list($individualpostdata, $digestpostdata) = $this->fetch_posts_for_user($user);
+            list($individualpostdata, $digestpostdata, $assignmentspostdata) = $this->fetch_posts_for_user($user);
 
             if (!empty($digestpostdata)) {
                 // Insert all of the records for the digest.
@@ -366,27 +397,42 @@ class cron_task extends \core\task\scheduled_task {
                 $send = true;
             }
 
+            if (!empty($assignmentspostdata)) {
+                $usercounts['assigns'] += count($assignmentspostdata);
+
+                $task = new \mod_peerforum\task\send_user_assignments();
+                $task->set_userid($user->id);
+                $task->set_custom_data($assignmentspostdata);
+                $task->set_component('mod_peerforum');
+                \core\task\manager::queue_adhoc_task($task);
+                $counts['individuals']++;
+                $send = true;
+            }
+
             if ($send) {
                 $counts['users']++;
                 $counts['messages'] += $usercounts['messages'];
                 $counts['digests'] += $usercounts['digests'];
+                $counts['assigns'] += $usercounts['assigns'];
             } else {
                 $counts['ignored']++;
             }
 
-            $this->log(sprintf("Queued %d digests and %d messages for %s",
+            $this->log(sprintf("Queued %d digests, %d messages and %d assigns for %s",
                     $usercounts['digests'],
                     $usercounts['messages'],
+                    $usercounts['assigns'],
                     $user->id
             ), 2);
         }
         $this->log(
                 sprintf(
-                        "Queued %d digests, and %d individual tasks for %d post mails. " .
+                        "Queued %d digests, %d individual tasks for %d post mails, and %d assigns. " .
                         "Unique users: %d (%d ignored)",
                         $counts['digests'],
                         $counts['individuals'],
                         $counts['messages'],
+                        $counts['assigns'],
                         $counts['users'],
                         $counts['ignored']
                 ), 1);
@@ -401,6 +447,7 @@ class cron_task extends \core\task\scheduled_task {
         // We maintain a mapping of user groups for each peerforum.
         $usergroups = [];
         $digeststructure = [];
+        $assignmentstosend = [];
 
         $poststructure = $this->adhocdata;
         $poststosend = [];
@@ -450,6 +497,9 @@ class cron_task extends \core\task\scheduled_task {
 
                     foreach ($postids as $postid) {
                         $post = $this->posts[$postid];
+                        if (isset($this->adhocpgdata[$postid][$user->id])) {
+                            $assignmentstosend[] = $this->adhocpgdata[$postid][$user->id];
+                        }
                         if ($subscriptiontime) {
                             // Skip posts if the user subscribed to the discussion after it was created.
                             $subscribedafter = isset($subscriptiontime[$post->discussion]);
@@ -490,7 +540,7 @@ class cron_task extends \core\task\scheduled_task {
             }
         }
 
-        return [$poststosend, $digeststructure];
+        return [$poststosend, $digeststructure, $assignmentstosend];
     }
 
     /**
@@ -537,6 +587,24 @@ class cron_task extends \core\task\scheduled_task {
                    AND (p.created < :ptimeend OR p.mailnow = :mailnow)
                 $timedsql
                  ORDER BY p.modified ASC",
+                $params);
+    }
+
+    /**
+     * Returns a list of all new peergrades for the posts.
+     *
+     * @param $posts
+     * @return array
+     */
+    protected function get_unmailed_peergrades($posts) {
+        global $DB;
+
+        list($insql, $params) = $DB->get_in_or_equal(array_keys($posts));
+
+        return $DB->get_records_sql(
+                "SELECT p.id, p.userid, p.itemid
+                       FROM {peerforum_time_assigned} p
+                      WHERE p.itemid $insql",
                 $params);
     }
 }
