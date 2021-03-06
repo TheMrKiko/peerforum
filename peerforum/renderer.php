@@ -202,10 +202,16 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $entityfactory = \mod_peerforum\local\container::get_entity_factory();
         $postentity = $vaultfactory->get_post_vault()->get_from_id($peergrade->itemid);
         $peerforumentity = $vaultfactory->get_peerforum_vault()->get_from_post_id($postentity->get_id());
-        $correcttrainings = $vaultfactory->get_training_submission_vault()
+        $trainingvault = $vaultfactory->get_training_submission_vault();
+        $correcttrainings = $trainingvault
             ->get_from_discussion_id_and_user_id($peerforumentity->get_id(), $postentity->get_discussion_id(), $USER->id);
+        $authorcorrecttrainings = $trainingvault
+            ->get_from_discussion_id_and_user_id($peerforumentity->get_id(), $postentity->get_discussion_id(),
+                        $postentity->get_author_id());
         $shouldcompletetraining = !empty($correcttrainings) && isset($correcttrainings[$USER->id])
                 && !$correcttrainings[$USER->id]->corrects;
+        $authordidtraining = !empty($authorcorrecttrainings) && isset($authorcorrecttrainings[$postentity->get_author_id()])
+                && $authorcorrecttrainings[$postentity->get_author_id()]->corrects;
 
         /*------------------- SHOW AGGREGATE -----------------------------------*/
 
@@ -523,6 +529,12 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     $this->output->single_select($assignremurl, 'assigneduserid', $assignedopt,
                     0, array(0 => 'choosedots')),
                     '', array('style' => 'color: grey;')
+            );
+            $peergradehtml .= html_writer::tag('p',
+                    'FYI: The author of this post did ' .
+                    (!$authordidtraining ? 'not ' : '') .
+                    'do the training with all correct replies.',
+                    array('class' => !$authordidtraining ? 'text-warning' : 'text-info')
             );
             // Show options about assign/remove peers.
             if (false) {
