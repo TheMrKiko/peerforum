@@ -1127,6 +1127,43 @@ class peergrade implements renderable {
         return new moodle_url('/peergrade/peergrade.php', $args);
     }
 
+    /**
+     * Returns a URL that can be used to peergrade the associated item.
+     *
+     * @param int|null $peergrade The peergrade to give the item, if null then no peergrade param is added.
+     * @param string|null $feedback The feedback to give the item, if null then no feedback param is added.
+     * @param moodle_url|string $returnurl The URL to return to.
+     * @return moodle_url can be used to peergrade the associated item.
+     */
+    public function get_assign_url($action = null, $assigneduserid = null, $returnurl = null) {
+        if (empty($returnurl)) {
+            if (!empty($this->settings->returnurl)) {
+                $returnurl = $this->settings->returnurl;
+            } else {
+                global $PAGE;
+                $returnurl = $PAGE->url;
+            }
+        }
+
+        $args = array(
+                'contextid' => $this->context->id,
+                'component' => $this->component,
+                'peergradearea' => $this->peergradearea,
+                'itemid' => $this->itemid,
+                'returnurl' => $returnurl,
+                'sesskey' => sesskey()
+        );
+        if ($action !== null) {
+            $args['action'] = $action;
+        }
+
+        if ($assigneduserid !== null) {
+            $args['assigneduserid'] = $assigneduserid;
+        }
+
+        return new moodle_url('/peergrade/assign.php', $args);
+    }
+
 
 } // End peergrade class definition.
 
@@ -1159,7 +1196,7 @@ class peergrade_manager {
      * }
      * @global moodle_database $DB
      */
-    public function delete_peergrades($options) {
+    public function delete_peergrades($options, $propagate = true) {
         global $DB;
 
         if (empty($options->contextid)) {
@@ -1179,9 +1216,54 @@ class peergrade_manager {
                 $conditions[$field] = $options->{$option};
             }
         }
+
         $DB->delete_records('peerforum_peergrade', $conditions);
 
+        if ($propagate) {
+            $this->delete_assignments($options, false);
+        }
+    }
+
+
+    /**
+     * Delete one or more assignments. Specify either a assignments id, an item id or just the context id.
+     *
+     * @param stdClass $options {
+     *            contextid => int the context in which the assignments exist [required]
+     *            peergradeid => int the id of an individual assignments to delete [optional]
+     *            userid => int delete the assignments to this user. May be used in conjuction with itemid [optional]
+     *            itemid => int delete all assignments attached to this item [optional]
+     *            component => string The component to delete assignments from [optional]
+     *            peergradearea => string The peergradearea to delete assignments from [optional]
+     * }
+     * @global moodle_database $DB
+     */
+    public function delete_assignments($options, $propagate = true) {
+        global $DB;
+
+        if (empty($options->contextid)) {
+            throw new coding_exception('The context option is a required option when deleting assignments.');
+        }
+
+        $conditions = array('contextid' => $options->contextid);
+        $possibleconditions = array(
+                'assignid' => 'id',
+                'userid' => 'userid',
+                'itemid' => 'itemid',
+                'component' => 'component',
+                'peergradearea' => 'peergradearea'
+        );
+        foreach ($possibleconditions as $option => $field) {
+            if (isset($options->{$option})) {
+                $conditions[$field] = $options->{$option};
+            }
+        }
+
         $DB->delete_records('peerforum_time_assigned', $conditions);
+
+        if ($propagate) {
+            $this->delete_peergrades($options, false);
+        }
     }
 
     public function get_id() {

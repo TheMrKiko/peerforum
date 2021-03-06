@@ -512,6 +512,18 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
             $peergradehtml .= html_writer::tag('span', $peersnames, array('id' => 'peersassigned' . $peergrade->itemid));
 
+            $assignremurl = $peergrade->get_assign_url('remove');
+            $assignedopt = array_map(static function ($assign) {
+                return fullname($assign->userinfo);
+            }, $peergrade->usersassigned);
+
+            $peergradehtml .= html_writer::div(
+                    html_writer::label('Remove assign and peergrade of:', 'assigneduserid') .
+                    ' ' .
+                    $this->output->single_select($assignremurl, 'assigneduserid', $assignedopt,
+                    0, array(0 => 'choosedots')),
+                    '', array('style' => 'color: grey;')
+            );
             // Show options about assign/remove peers.
             if (false) {
                 // TODO replace!
