@@ -38,6 +38,25 @@ require_once($CFG->dirroot . '/repository/lib.php');
  */
 class mod_peerforum_training_form extends moodleform {
 
+    public static function replace_placeholders($original, $avaliable, $n) {
+        $bpos = strpos($original, '{');
+        if ($bpos === false) {
+            return $original;
+        }
+        $mpos = strpos($original, '}{', $bpos + 1);
+        if ($mpos === false) {
+            return $original;
+        }
+        $epos = strpos($original, '}', $mpos + 1);
+        if ($epos === false) {
+            return $original;
+        }
+        $substr = substr($original, $bpos + 1, $epos - $bpos - 1);
+        $substr = explode('}{', $substr);
+        $string = $avaliable[$substr[0]][$substr[1]][$n];
+        return substr_replace($original, $string, $bpos, $epos - $bpos + 1);
+    }
+
     /**
      * Form definition
      *
@@ -95,11 +114,7 @@ class mod_peerforum_training_form extends moodleform {
                     $grade = $trainingsubmission->grades['grade'][$critid][$exid];
                     $correctgrades = $trainingpage->correctgrades['grade'][$critid][$n];
                     $feedback = trim($trainingpage->feedback['feedback'][$grade][$critid][$n] ?? '');
-                    if ($feedback[0] === '{' && $feedback[-1] === '}') {
-                        $ofid = substr($feedback, 1, -1);
-                        $ofid = explode('}{', $ofid);
-                        $feedback = $trainingpage->feedback['feedback'][$ofid[0]][$ofid[1]][$n];
-                    }
+                    $feedback = self::replace_placeholders($feedback, $trainingpage->feedback['feedback'], $n);
                     if ($grade == $correctgrades) {
                         $html = '<span class="text-success"><b>Correct</b>: '.$feedback.'</span>';
                     } else {
@@ -124,11 +139,7 @@ class mod_peerforum_training_form extends moodleform {
                 $grade = $trainingsubmission->grades['grade'][-1][$exid];
                 $correctgrades = $trainingpage->correctgrades['grade'][-1][$n];
                 $feedback = trim($trainingpage->feedback['feedback'][$grade][-1][$n] ?? '');
-                if ($feedback[0] === '{' && $feedback[-1] === '}') {
-                    $ofid = substr($feedback, 1, -1);
-                    $ofid = explode('}{', $ofid);
-                    $feedback = $trainingpage->feedback['feedback'][$ofid[0]][$ofid[1]][$n];
-                }
+                $feedback = self::replace_placeholders($feedback, $trainingpage->feedback['feedback'], $n);
                 if ($grade == $correctgrades) {
                     $html = '<span class="text-success"><b>Correct</b>: '.$feedback.'</span>';
                 } else {
