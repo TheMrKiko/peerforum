@@ -779,7 +779,7 @@ class peergrade implements renderable {
         $timetilalmostexpire = $this->settings->timetoexpire * DAYSECS - $howsoon;
         $timewhenstartsexpiring = $time - $timetilalmostexpire; // This makes sense when reordered.
         foreach ($this->usersassigned as $userassign) {
-            if (!$userassign->expired && $userassign->timeassigned < $timewhenstartsexpiring) {
+            if (!$userassign->ended && $userassign->timeassigned < $timewhenstartsexpiring) {
                 $willexpiresoon++;
             }
         }
