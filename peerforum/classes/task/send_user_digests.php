@@ -479,7 +479,7 @@ class send_user_digests extends \core\task\adhoc_task {
         global $CFG;
 
         $canreply = $this->canpostto[$discussion->id];
-        $canseereply = peerforum_user_can_see_reply($peerforum, $post, $this->recipient, $cm);
+        [$replyhidden, $canseereply] = peerforum_user_can_see_reply($peerforum, $post, $this->recipient, $cm);
 
         $data = new \mod_peerforum\output\peerforum_post_email(
                 $course,
@@ -490,7 +490,8 @@ class send_user_digests extends \core\task\adhoc_task {
                 $author,
                 $this->recipient,
                 $canreply,
-                $canseereply
+                $replyhidden,
+                $canseereply,
         );
 
         // Override the viewfullnames value.

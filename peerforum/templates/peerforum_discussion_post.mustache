@@ -134,6 +134,9 @@
                     {{#capabilities.viewreply}}
                     <div id="post-content-{{id}}" class="post-content-container">
                         {{{message}}}
+                        {{#capabilities.hidereply}}
+                            <div class="dimmed_text">This message is hidden for students until peer grade ends.</div>
+                        {{/capabilities.hidereply}}
                     </div>
                     {{/capabilities.viewreply}}
                     {{^capabilities.viewreply}}

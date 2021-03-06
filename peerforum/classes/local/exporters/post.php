@@ -174,10 +174,15 @@ class post extends exporter {
                                         'null' => NULL_ALLOWED,
                                         'description' => 'Whether the user can post a private reply',
                                 ],
+                                'hidereply' => [
+                                        'type' => PARAM_BOOL,
+                                        'null' => NULL_ALLOWED,
+                                        'description' => 'Whether the reply is hidden for some users',
+                                ],
                                 'viewreply' => [
                                         'type' => PARAM_BOOL,
                                         'null' => NULL_ALLOWED,
-                                        'description' => 'If enabled, whether the student can see professor reply before pg end',
+                                        'description' => 'Whether the reply is visible for this user, if hidden for some',
                                 ]
                         ]
                 ],
@@ -389,7 +394,7 @@ class post extends exporter {
         $cancontrolreadstatus = $capabilitymanager->can_manually_control_post_read_status($user);
         $canselfenrol = $capabilitymanager->can_self_enrol($user);
         $canreplyprivately = $capabilitymanager->can_reply_privately_to_post($user, $post);
-        $canviewreply = $capabilitymanager->can_view_reply($user, $post);
+        [$replyhidden, $canviewreply] = $capabilitymanager->can_view_reply($user, $post);
 
         $urlfactory = $this->related['urlfactory'];
         $viewurl = $canview ? $urlfactory->get_view_post_url_from_post($post) : null;
@@ -471,7 +476,8 @@ class post extends exporter {
                         'controlreadstatus' => $cancontrolreadstatus,
                         'canreplyprivately' => $canreplyprivately,
                         'selfenrol' => $canselfenrol,
-                        'viewreply' => $canviewreply
+                        'hidereply' => $replyhidden,
+                        'viewreply' => $canviewreply,
                 ],
                 'urls' => [
                         'view' => $viewurl ? $viewurl->out(false) : null,

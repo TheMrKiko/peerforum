@@ -289,6 +289,7 @@ class send_user_notifications extends \core\task\adhoc_task {
 
         // Generate a reply-to address from using the Inbound Message handler.
         $replyaddress = $this->get_reply_address($course, $peerforum, $discussion, $post, $cm, $context);
+        [$replyhidden, $canseereply] = $this->can_see_reply($peerforum, $post, $cm);
 
         $data = new \mod_peerforum\output\peerforum_post_email(
                 $course,
@@ -299,7 +300,8 @@ class send_user_notifications extends \core\task\adhoc_task {
                 $author,
                 $this->recipient,
                 $this->can_post($course, $peerforum, $discussion, $post, $cm, $context),
-                $this->can_see_reply($peerforum, $post, $cm),
+                $replyhidden,
+                $canseereply,
         );
         $data->viewfullnames = $this->can_view_fullnames($course, $peerforum, $discussion, $post, $cm, $context);
 
@@ -520,12 +522,12 @@ class send_user_notifications extends \core\task\adhoc_task {
     }
 
     /**
-     * Check whether the user can see this reply.
+     * Check whether the user can see this reply and if it is hidden.
      *
      * @param \stdClass $peerforum
      * @param \stdClass $post
      * @param \stdClass $cm
-     * @return  bool
+     * @return array
      */
     protected function can_see_reply($peerforum, $post, $cm) {
         return peerforum_user_can_see_reply($peerforum, $post, $this->recipient, $cm);

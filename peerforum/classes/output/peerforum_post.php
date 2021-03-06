@@ -79,6 +79,13 @@ class peerforum_post implements \renderable, \templatable {
     protected $canreply = false;
 
     /**
+     * Whether the reply is hidden from someone because of peer grade.
+     *
+     * @var boolean $replyhidden
+     */
+    protected $replyhidden = true;
+
+    /**
      * Whether the user can see this reply because of peer grade.
      *
      * @var boolean $canseereply
@@ -128,9 +135,11 @@ class peerforum_post implements \renderable, \templatable {
      * @param object $author Author of the post
      * @param object $recipient Recipient of the email
      * @param bool $canreply True if the user can reply to the post
+     * @param bool $replyhidden True if the reply is hidden from someone because of peer grade
      * @param bool $canseereply True if the user can see this reply because of peer grade
      */
     public function __construct($course, $cm, $peerforum, $discussion, $post, $author, $recipient, $canreply,
+            $replyhidden = false,
             $canseereply = true,
             $canpeergrade = false) {
         $this->course = $course;
@@ -141,6 +150,7 @@ class peerforum_post implements \renderable, \templatable {
         $this->author = $author;
         $this->userto = $recipient;
         $this->canreply = $canreply;
+        $this->replyhidden = $replyhidden;
         $this->canseereply = $canseereply;
         $this->canpeergrade = $canpeergrade;
     }
@@ -184,6 +194,7 @@ class peerforum_post implements \renderable, \templatable {
                         'attachments' => html_entity_decode($renderer->format_message_attachments($this->cm, $this->post)),
 
                         'canreply' => $this->canreply,
+                        'replyhidden' => $this->replyhidden,
                         'canseereply' => $this->canseereply,
                         'permalink' => $this->get_permalink(),
                         'firstpost' => $this->get_is_firstpost(),
@@ -238,6 +249,7 @@ class peerforum_post implements \renderable, \templatable {
         return array(
                 'canreply' => $this->canreply,
                 'canpeergrade' => $this->canpeergrade,
+                'replyhidden' => $this->replyhidden,
                 'canseereply' => $this->canseereply,
                 'permalink' => $this->get_permalink(),
                 'firstpost' => $this->get_is_firstpost(),

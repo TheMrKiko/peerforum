@@ -37,6 +37,7 @@
     * message
     * attachments
     * canreply
+    * replyhidden
     * canseereply
     * replylink
     * unsubscribepeerforumlink
@@ -57,6 +58,9 @@
 ---------------------------------------------------------------------
 {{# canseereply }}
     {{{ message }}}
+    {{# replyhidden }}
+        (This reply is hidden for the students until peer grade is over.)
+    {{/ replyhidden }}
 {{/ canseereply }}
 {{^ canseereply }}
     (Sorry, you can only see this reply after the parent peer grade is over.)

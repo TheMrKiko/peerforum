@@ -7014,29 +7014,26 @@ function peerforum_user_can_see_post($peerforum, $discussion, $post, $user = nul
  * @param \stdClass $post The post in question
  * @param \stdClass $user The user to test - if not specified, the current user is checked.
  * @param \stdClass $cm The Course Module that the peerforum is in (required).
- * @return  bool
+ * @return array
  */
 function peerforum_user_can_see_reply($peerforum, $post, $user = null, $cm = null) {
     global $CFG, $USER, $DB;
+    $replyhidden = true;
+    $canseereply = false;
 
     // retrieve objects (yuk)
     if (is_numeric($peerforum)) {
         debugging('missing full peerforum', DEBUG_DEVELOPER);
         if (!$peerforum = $DB->get_record('peerforum', array('id' => $peerforum))) {
-            return false;
+            return array($replyhidden, $canseereply);
         }
     }
     if (is_numeric($post)) {
         debugging('missing full post', DEBUG_DEVELOPER);
         if (!$post = $DB->get_record('peerforum_posts', array('id' => $post))) {
-            return false;
+            return array($replyhidden, $canseereply);
         }
     }
-
-    if (!isset($post->id) && isset($post->parent)) {
-        $post->id = $post->parent;
-    }
-
 
     if (!$cm) {
         debugging('missing cm', DEBUG_DEVELOPER);
@@ -7052,27 +7049,30 @@ function peerforum_user_can_see_reply($peerforum, $post, $user = null, $cm = nul
         $user = $USER;
     }
 
-    if (!$peerforum->hidereplies || has_capability('mod/peerforum:professorpeergrade', $modcontext, $user)) {
-        return true;
+    $replyhidden = false;
+    $canseereply = true;
+
+    if (!$peerforum->hidereplies) {
+        return array($replyhidden, $canseereply);
     }
-    // We are professors, a omnipresent force. or we dont care.
+    // We dont care.
 
     $parentpostid = $post->parent ?? 0;
     if (!$parentpostid) {
-        return true;
+        return array($replyhidden, $canseereply);
     }
     // This is a reply.
 
     $postauthor = $post->userid;
     if (!has_capability('mod/peerforum:professorpeergrade', $modcontext, $postauthor)) {
-        return true;
+        return array($replyhidden, $canseereply);
     }
     // This is a reply by the professor.
 
     $postparent = $DB->get_record('peerforum_posts', array('id' => $parentpostid));
     $postparentauthor = $postparent->userid;
     if (has_capability('mod/peerforum:professorpeergrade', $modcontext, $postparentauthor)) {
-        return true;
+        return array($replyhidden, $canseereply);
     }
     // This is a reply by the professor to a student.
 
@@ -7089,7 +7089,16 @@ function peerforum_user_can_see_reply($peerforum, $post, $user = null, $cm = nul
     );
     $peergrade = $pgm->get_peergrades((object) $peergradeoptions)[0]->peergrade;
 
-    return $peergrade->can_peergrades_be_shown();
+    if (!$peergrade->exists()) {
+        return array($replyhidden, $canseereply);
+    }
+
+    $replyhidden = !$peergrade->can_peergrades_be_shown();
+
+    $canseereply = !$replyhidden || has_capability('mod/peerforum:professorpeergrade', $modcontext, $user);
+    // We are professors, a omnipresent force.
+
+    return array($replyhidden, $canseereply);
 }
 
 /**

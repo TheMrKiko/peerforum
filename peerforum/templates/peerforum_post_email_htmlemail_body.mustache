@@ -45,6 +45,7 @@
     * message
     * parentpostlink
     * canreply
+    * replyhidden
     * canseereply
     * replylink
     * permalink
@@ -73,6 +74,7 @@
         "message": "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum et auctor libero. Quisque porta egestas neque, et bibendum libero dignissim at. Nulla facilisi. Morbi eget accumsan felis. Nunc et vulputate odio, vel venenatis nisl. Nunc maximus ipsum sed tincidunt mollis. Integer nunc erat, luctus sit amet arcu tincidunt, volutpat dignissim mi. Sed ut magna quam.  Mauris accumsan porta turpis sed aliquam. Etiam at justo tristique, imperdiet augue quis, consectetur sapien. Ut nec erat malesuada sem suscipit lobortis. Vivamus posuere nibh eu ipsum porta fringilla.  Sed vitae dapibus ipsum, ac condimentum enim. Sed dignissim ante at elit mollis, ac tempor lacus iaculis. Etiam nec lectus vitae nibh vulputate volutpat. Nulla quis tellus aliquam, commodo nisi et, dictum est.</p><p><br /></p>",
         "parentpostlink": "",
         "canreply": 1,
+        "replyhidden": 0,
         "canseereply": 1,
         "replylink": "https://example.com/mod/peerforum/post.php?reply=2",
         "permalink": "https://example.com/mod/peerforum/discuss.php?d=2#2",
@@ -119,6 +121,9 @@
             {{/ attachments }}
             {{# canseereply }}
                 {{{ message }}}
+                {{# replyhidden }}
+                    <p style="color: dimgrey">This reply is hidden for the students until peer grade is over.</p>
+                {{/ replyhidden }}
             {{/ canseereply }}
             {{^ canseereply }}
                 <p style="color: dimgrey">Sorry, you can only see this reply after the parent peer grade is over.</p>

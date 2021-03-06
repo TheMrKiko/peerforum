@@ -426,9 +426,9 @@ class capability {
      *
      * @param stdClass $user The user to check
      * @param post_entity $post
-     * @return bool if students can see teacher reply.
+     * @return array if students can see teacher reply.
      */
-    public function can_view_reply(stdClass $user, post_entity $post): bool {
+    public function can_view_reply(stdClass $user, post_entity $post): array {
         $peerforum = $this->get_peerforum();
         $peerforumrecord = $this->get_peerforum_record();
         $postrecord = $this->get_post_record($post);
