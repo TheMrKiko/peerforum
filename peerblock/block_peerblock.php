@@ -140,8 +140,8 @@ class block_peerblock extends block_list {
                     }
                 }
             }
-            $rankings = $rankingvault->get_from_user_id($userid, $courseid);
-            $nrankings = count($rankings) ?: 0;
+            $rankings = $rankingvault->count_pending_from_user_id($userid, $courseid);
+            $nrankings = $rankings ?: 0;
         } else {
             $postspeergrading = 0;
             $indpgexpiringsoon = 0;
