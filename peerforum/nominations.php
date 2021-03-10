@@ -86,15 +86,16 @@ if (!empty($peerforumid)) {
 require_login($course, false, $cm);
 
 $unamefields = get_all_user_name_fields(true, 'u');
-$allstudents = get_users_by_capability($modcontext, 'mod/peerforum:studentpeergrade', 'u.id,' . $unamefields);
+$allstudents = get_users_by_capability($modcontext, 'mod/peerforum:studentpeergrade', 'u.id, u.username,' . $unamefields);
 
 foreach ($allstudents as $i => $u) {
     if ($i == $userid) {
         unset($allstudents[$i]);
         continue;
     }
-    $allstudents[$i] = fullname($u);
+    $allstudents[$i] = fullname($u) . " ({$u->username})";
 }
+asort($allstudents);
 $allstudents = array(0 => 'Select one...') + $allstudents;
 
 // Instantiate relationships_form.
