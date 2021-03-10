@@ -9,31 +9,9 @@
 require_once('../../config.php');
 require_once('./lib.php');
 
-// Careful when changing. Repeated in lf/lib.php.
-/*define('MANAGEPOSTS_MODE_SEEALL', 1);
-define('MANAGEPOSTS_MODE_SEEGRADED', 2);
-define('MANAGEPOSTS_MODE_SEENOTGRADED', 3);
-define('MANAGEPOSTS_MODE_SEENOTEXPIRED', 4);
-define('MANAGEPOSTS_MODE_SEEEXPIRED', 5);
-
-define('MANAGEGRADERS_MODE_SEEALL', 1);
-define('MANAGEGRADERS_MODE_SEENOTEXPIRED', 2);
-define('MANAGEGRADERS_MODE_SEEEXPIRED', 3);
-define('MANAGEGRADERS_MODE_SEENOTGRADED', 4);
-define('MANAGEGRADERS_MODE_SEEGRADED', 5);
-
-define('VIEWPEERGRADES_MODE_SEEALL', 1);
-define('VIEWPEERGRADES_MODE_SEEWARNINGS', 2);
-define('VIEWPEERGRADES_MODE_SEEOUTLIERS', 3);
-
-define('RELATIONSHIPS_MODE_NOMINATIONS', 1);
-define('RELATIONSHIPS_MODE_RANKINGS', 2);*/
-
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
 $display = optional_param('display', 1, PARAM_INT);
-
-$PAGE->requires->css('/peergrading/style.css');
 
 if (isset($userid) && empty($courseid)) {
     $context = context_user::instance($userid);
@@ -164,6 +142,7 @@ if (!empty($items)) {
     }
 
     if (!empty($posts)) {
+        krsort($posts);
         $postsrenderer = $rendererfactory->get_user_peerforum_posts_report_renderer(true);
         $postoutput = $postsrenderer->render(
                 $USER,
