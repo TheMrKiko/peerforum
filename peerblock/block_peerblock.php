@@ -174,7 +174,7 @@ class block_peerblock extends block_list {
                     html_writer::link(new moodle_url($sumurl, array(
                             'userid' => $userid,
                             'display' => MANAGEPOSTS_MODE_SEENOTGRADED,
-                    )), $poststopeergrade . ' post(s)'));
+                    )), $poststopeergrade . ' posts'));
 
             if ($poststopeergrade > 0) {
                 $this->content->items[] = html_writer::span(
@@ -209,6 +209,7 @@ class block_peerblock extends block_list {
         }
 
         $this->content->items[] = html_writer::tag('p', html_writer::link(new moodle_url($sumurl, array(
+                        'userid' => !$viewgeneral ? $userid : 0,
                         'display' => MANAGEPOSTS_MODE_SEEALL)),
                 html_writer::span('Full summary...', 'mark')),
                 array('class' => 'm-0 mt-3'));
