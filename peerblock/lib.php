@@ -22,10 +22,16 @@ if (is_file($CFG->dirroot . '/mod/peerforum/lib.php')) {
  */
 function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isself = true): array {
     $postsassigned = get_string('postsassigned', 'block_peerblock');
+    $viewpeergrades = get_string('viewpeergrades', 'block_peerblock');
     $peerranking = get_string('peer_ranking', 'block_peerblock');
 
     $row[] = new tabobject('manageposts', new moodle_url('/blocks/peerblock/summary.php',
                     $params + array('display' => MANAGEPOSTS_MODE_SEEALL)), $postsassigned);
+    if ($isprofessor) {
+        $row[] = new tabobject('peergrades',
+                new moodle_url('/blocks/peerblock/short.php',
+                        $params + array('display' => MANAGEPOSTS_MODE_SEEALL)), $viewpeergrades);
+    }
     if (!$isprofessor && $isself) {
         $row[] = new tabobject('peerranking',
                 new moodle_url('/blocks/peerblock/rankings.php',
