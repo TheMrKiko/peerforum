@@ -443,7 +443,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
             if (!empty($expandhtml)) {
                 $expandstr = 'Show peer grades';
-                $peergradehtml .= html_writer::link('#', $expandstr, array('data-action' => 'peergrade-collapsible-link'));
+                $peergradehtml .= html_writer::link('#peergradefeedbacks' . $peergrade->itemid,
+                        $expandstr, array('data-action' => 'peergrade-collapsible-link'));
 
                 $peergradehtml .= html_writer::start_tag('div',
                         array('id' => 'peergradefeedbacks' . $peergrade->itemid,
@@ -479,7 +480,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         if (has_capability('mod/peerforum:professorpeergrade', $peergrade->context)) {
             $expandstr = 'Expand controls';
             $peergradehtml .= html_writer::empty_tag('br');
-            $peergradehtml .= html_writer::link('#', $expandstr, array('data-action' => 'peergrade-collapsible-config-link'));
+            $peergradehtml .= html_writer::link('#peergradefeedbacks' . $peergrade->itemid,
+                    $expandstr, array('data-action' => 'peergrade-collapsible-config-link'));
 
             /*DIV - peergradeconfig*/
             $peergradehtml .= html_writer::start_tag('div', array(
@@ -522,12 +524,15 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             $assignedopt = array_map(static function ($assign) {
                 return fullname($assign->userinfo);
             }, $peergrade->usersassigned);
+            $singleselect = new single_select($assignremurl, 'assigneduserid', $assignedopt,
+                    0, array(0 => 'choosedots'));
+            $singleselect->add_confirm_action('Are you sure you wanna de assign and delete the peer grade?
+            This is irreversible. Also, if this is the LAST assign left, you won\'t be able to assign anyone else. ');
 
             $peergradehtml .= html_writer::div(
                     html_writer::label('Remove assign and peergrade of:', 'assigneduserid') .
                     ' ' .
-                    $this->output->single_select($assignremurl, 'assigneduserid', $assignedopt,
-                    0, array(0 => 'choosedots')),
+                    $this->output->render($singleselect),
                     '', array('style' => 'color: grey;')
             );
             $peergradehtml .= html_writer::tag('p',
