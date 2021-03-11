@@ -222,6 +222,10 @@ $titlesubject = format_string($trainingpage->name, true);
 $strparentname = 'Training page';
 $PAGE->navbar->add($strparentname);
 
+if ($capabilitymanager->can_edit_training_pages($USER)) {
+    $PAGE->set_button(html_writer::link($urlfactory->get_training_edit_url($trainingpage), 'Edit training page'));
+}
+
 $PAGE->set_title("{$course->shortname}: {$strparentname}: {$titlesubject}");
 $PAGE->set_heading($course->fullname);
 
