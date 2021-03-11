@@ -751,7 +751,8 @@ $mformpost->set_data(
                 'parent' => $post->parent,
                 'discussion' => $post->discussion,
                 'course' => $course->id,
-                'isprivatereply' => $post->isprivatereply ?? false
+                'isprivatereply' => $post->isprivatereply ?? false,
+                'nopeergrade' => false
         ) +
 
         $pageparams +

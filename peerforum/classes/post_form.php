@@ -167,6 +167,15 @@ class mod_peerforum_post_form extends moodleform {
                 }
             }
 
+            if (empty($post->id) && $post->parent && $peerforum->peergradeassessed) {
+                $pgm = \mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
+                $pgpermissions = $pgm->get_plugin_permissions_array($modcontext->id, 'mod_peerforum', 'post');
+                if ($pgm->check_peergrade_permission($pgpermissions, $peerforum->finalgrademode)) {
+                    $mform->addElement('checkbox', 'nopeergrade', 'Don\'t peer grade this post');
+                    $mform->setDefault('nopeergrade', 0);
+                }
+            }
+
             if ($groupmode = groups_get_activity_groupmode($cm, $course)) {
                 $groupdata = groups_get_activity_allowed_groups($cm);
                 $groupinfo = array();

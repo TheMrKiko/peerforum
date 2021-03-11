@@ -6063,14 +6063,16 @@ function peerforum_add_new_post($post, $mform, $unused = null) {
     $peerforumvault = \mod_peerforum\local\container::get_vault_factory()->get_peerforum_vault();
     $peerforumentity = $peerforumvault->get_from_id($peerforum->id);
 
-    // Assign posts for user to peergrade.
-    $pgm = \mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
-    $peergradeoptions = (object) ([
-                    'itemuserid' => $USER->id,
-                    'itemid' => $post->id,
-                    'itemfamily' => $posthierarchy,
-            ] + $peerforumentity->get_peergrade_options());
-    $pgm->assign_peergraders($peergradeoptions);
+    if (empty($post->nopeergrade)) {
+        // Assign posts for user to peergrade.
+        $pgm = \mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
+        $peergradeoptions = (object) ([
+                        'itemuserid' => $USER->id,
+                        'itemid' => $post->id,
+                        'itemfamily' => $posthierarchy,
+                ] + $peerforumentity->get_peergrade_options());
+        $pgm->assign_peergraders($peergradeoptions);
+    }
 
     return $post->id;
 }
