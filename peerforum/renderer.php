@@ -520,139 +520,48 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
             $peergradehtml .= html_writer::tag('span', $peersnames, array('id' => 'peersassigned' . $peergrade->itemid));
 
-            $assignremurl = $peergrade->get_assign_url('remove');
-            $assignedopt = array_map(static function ($assign) {
-                return fullname($assign->userinfo);
-            }, $peergrade->usersassigned);
-            $singleselect = new single_select($assignremurl, 'assigneduserid', $assignedopt,
-                    0, array(0 => 'choosedots'));
-            $singleselect->add_confirm_action('Are you sure you wanna de assign and delete the peer grade?
-            This is irreversible. Also, if this is the LAST assign left, you won\'t be able to assign anyone else. ');
-
-            $peergradehtml .= html_writer::div(
-                    html_writer::label('Remove assign and peergrade of:', 'assigneduserid') .
-                    ' ' .
-                    $this->output->render($singleselect),
-                    '', array('style' => 'color: grey;')
-            );
             $peergradehtml .= html_writer::tag('p',
                     'FYI: The author of this post did ' .
                     (!$authordidtraining ? 'not ' : '') .
                     'do the training with all correct replies.',
                     array('class' => !$authordidtraining ? 'text-warning' : 'text-info')
             );
+
             // Show options about assign/remove peers.
-            if (false) {
-                // TODO replace!
-                $courseid = $peerforumentity->get_course_id();
-                $possstudents = get_students_can_be_assigned($courseid, $peergrade->itemid, $peergrade->itemuserid);
-                $students = array();
-                foreach ($possstudents as $key => $value) {
-                    $id = $possstudents[$key]->id;
-                    $students[$id] = $id;
+            if ($peerforumentity->is_showdetails()) {
+                $assignaddurl = $peergrade->get_assign_url('assign');
+                static $possstudents = array();
+                if (empty($possstudents)) {
+                    $possstudents = $peergrademanager->get_possible_peergraders($peergrade);
+                    $possstudents = array_map(static function ($s) {
+                        return fullname($s);
+                    }, $possstudents);
                 }
-                $students = get_students_name($students);
+                $singleselect = new single_select($assignaddurl, 'assigneduserid', $possstudents,
+                        0, array(0 => 'choosedots'));
 
-                $peergrademanager->initialise_assignpeer_javascript($this->page);
-
-                // Students assigned to peer grade this post.
-                $assignpeerurl = new moodle_url('/mod/peerforum/assignpeer.php',
-                        array('itemid' => $peergrade->itemid, 'courseid' => $courseid, 'postauthor' => $peergrade->itemuserid));
-                $formattrs = array(
-                        'id' => "menuassignpeerform{$peergrade->itemid}",
-                        'class' => 'menuassignpeerform',
-                        'method' => 'post',
-                        'action' => $assignpeerurl->out_omit_querystring()
+                $peergradehtml .= html_writer::div(
+                        html_writer::label('Assign student:', 'assigneduserid') .
+                        ' ' .
+                        $this->output->render($singleselect),
+                        '', array('style' => 'color: grey;')
                 );
 
-                /*[FORM - menuassignpeerform*/
-                $peergradehtml .= html_writer::start_tag('form', $formattrs);
+                $assignremurl = $peergrade->get_assign_url('remove');
+                $assignedopt = array_map(static function ($assign) {
+                    return fullname($assign->userinfo);
+                }, $peergrade->usersassigned);
+                $singleselect = new single_select($assignremurl, 'assigneduserid', $assignedopt,
+                        0, array(0 => 'choosedots'));
+                $singleselect->add_confirm_action('Are you sure you wanna de assign and delete the peer grade?
+            This is irreversible. Also, if this is the LAST assign left, you won\'t be able to assign anyone else. ');
 
-                // Add the hidden inputs.
-                $inputs = $assignpeerurl->params();
-                foreach ($inputs as $name => $value) {
-                    $attributes = array('type' => 'hidden', 'class' => 'studentinput', 'name' => $name, 'value' => $value);
-                    $peergradehtml .= html_writer::empty_tag('input', $attributes);
-                }
-
-                $selectstudentrandom = get_string('selectstudentrandom', 'peerforum');
-                $assignstudentstr = get_string('assignstudentstr', 'peerforum');
-                $studentsarray =
-                        array(UNSET_STUDENT_SELECT => $assignstudentstr, UNSET_STUDENT => $selectstudentrandom) + $students;
-
-                $peergradehtml .= html_writer::tag('span', "Select student to ASSIGN this post to peer grade: ",
-                        array('style' => 'color: grey;')); // Color: #6699ff;.
-
-                // Assign peer grader.
-                $studentattrs = array('class' => 'menuassignpeer studentinput', 'id' => 'menuassignpeer' . $peergrade->itemid);
-                $peergradehtml .= html_writer::select($studentsarray, 'menuassignpeer' . $peergrade->itemid,
-                        $studentsarray[UNSET_STUDENT_SELECT], false, $studentattrs);
-
-                /*FORM - menuassignpeerform]*/
-                $peergradehtml .= html_writer::end_tag('form');
-
-                // Remove peer grader.
-                $peergrademanager->initialise_removepeer_javascript($this->page);
-
-                $studenturlrmv = new moodle_url('/peergrade/removestudent.php');
-                $formattrsrmv = array(
-                        'id' => "poststudentmenurmv{$peergrade->itemid}",
-                        'class' => 'poststudentmenurmv',
-                        'method' => 'post',
-                        'action' => $studenturlrmv->out_omit_querystring()
+                $peergradehtml .= html_writer::div(
+                        html_writer::label('Remove assign and peergrade of:', 'assigneduserid') .
+                        ' ' .
+                        $this->output->render($singleselect),
+                        '', array('style' => 'color: grey;')
                 );
-
-                /*[FORM - poststudentmenurmv*/
-                $peergradehtml .= html_writer::start_tag('form', $formattrsrmv);
-
-                $peergradeurl = $peergrade->get_peergrade_url();
-                $inputsrmv = $peergradeurl->params();
-
-                // Add the hidden inputs.
-                foreach ($inputsrmv as $name => $value) {
-                    $attributesrmv = array('type' => 'hidden', 'class' => 'peergradeinput', 'name' => $name, 'value' => $value);
-                    $peergradehtml .= html_writer::empty_tag('input', $attributesrmv);
-                }
-
-                $studentsassignedrmv = get_assigned_users($peergrade->itemid);
-
-                $studentsrmv = get_students_name($studentsassignedrmv);
-
-                // Remove peer grader.
-                $removepeerurl = new moodle_url('/mod/peerforum/removepeer.php',
-                        array('itemid' => $peergrade->itemid, 'courseid' => $courseid, 'postauthor' => $peergrade->itemuserid));
-                $formattrs = array(
-                        'id' => "menuremovepeerform{$peergrade->itemid}",
-                        'class' => 'menuremovepeerform',
-                        'method' => 'post',
-                        'action' => $removepeerurl->out_omit_querystring()
-                );
-
-                /*[FORM - menuremovepeerform*/
-                $peergradehtml .= html_writer::start_tag('form', $formattrs);
-                $inputs = $removepeerurl->params();
-
-                // Add the hidden inputs.
-                foreach ($inputs as $name => $value) {
-                    $attributes = array('type' => 'hidden', 'class' => 'studentinput', 'name' => $name, 'value' => $value);
-                    $peergradehtml .= html_writer::empty_tag('input', $attributes);
-                }
-
-                $removestudentstr = get_string('removestudent', 'peerforum');
-                $studentsarrayrmv =
-                        array(UNSET_STUDENT_SELECT => $removestudentstr, UNSET_STUDENT => $selectstudentrandom) + $studentsrmv;
-
-                $peergradehtml .= html_writer::tag('span', "Select student to REMOVE this post to peer grade: ",
-                        array('style' => 'color: grey;')); // Color: #6699ff;.
-
-                $studentattrsrmv = array('class' => 'menuremovepeer studentinput', 'id' => 'menuremovepeer' . $peergrade->itemid);
-                $peergradehtml .= html_writer::select($studentsarrayrmv, 'menuremovepeer' . $peergrade->itemid,
-                        $studentsarrayrmv[UNSET_STUDENT], false, $studentattrsrmv);
-
-                /*FORM - menuremovepeerform]*/
-                $peergradehtml .= html_writer::end_tag('form');
-                /*FORM - poststudentmenurmv]*/
-                $peergradehtml .= html_writer::end_tag('form');
             }
             /*DIV - peergradeconfig]*/
             $peergradehtml .= html_writer::end_tag('div');
@@ -660,7 +569,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         return $peergradehtml;
     }
 
-    //------------------------------------------------//
+    /*-------------------------------------------*/
 
     /**
      * Returns the navigation to the previous and next discussion.
