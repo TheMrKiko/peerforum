@@ -1150,6 +1150,7 @@ class peergrade implements renderable {
                 'component' => $this->component,
                 'peergradearea' => $this->peergradearea,
                 'itemid' => $this->itemid,
+                'peergradeduserid' => $this->itemuserid,
                 'returnurl' => $returnurl,
                 'sesskey' => sesskey()
         );
@@ -1354,7 +1355,7 @@ class peergrade_manager {
      *      returnurl        => string the url to return the user to after submitting a peergrade. Null for ajax requests [optional]
      *      assesstimestart  => int only allow peergrade of items created after this timestamp [optional]
      *      assesstimefinish => int only allow peergrade of items created before this timestamp [optional]
-     * @return array the array of items with their peergrades attached at $items[0]->peergrade
+     * @return array the array of items with their peergrades attached at $items[i]->peergrade
      */
     public function get_peergrades($options) {
         global $DB, $USER;
@@ -2269,6 +2270,35 @@ class peergrade_manager {
             $result->feedback = $feedback;
         }
         return $result;
+    }
+
+    public function get_possible_peergraders($peergradeoptions) {
+        global $DB;
+
+        $users = get_users_by_capability($peergradeoptions->context, 'mod/peerforum:studentpeergrade', 'u.id AS userid');
+        // Get the items from the database.
+        list($useridtest, $params) = $DB->get_in_or_equal(
+                array_map(function($u) {
+                    return $u->userid;
+                }, $users), SQL_PARAMS_NAMED);
+
+        $params['contextid'] = $peergradeoptions->context->id;
+        $params['component'] = $peergradeoptions->component;
+        $params['peergradearea'] = $peergradeoptions->peergradearea;
+
+        $userfields = user_picture::fields('s', ['deleted'], 'userid');
+        $sql = "SELECT r.userid, r.peergraded, COUNT(r.id) - SUM(r.ended) AS numcurrent, SUM(r.expired) AS sexpied,
+                       MAX(r.timeassigned) AS lastassign, COUNT(p.id) AS numpeergrades, $userfields
+                  FROM {peerforum_time_assigned} r
+             LEFT JOIN {peerforum_peergrade} p ON r.peergraded = p.id
+             LEFT JOIN {user} s ON r.userid = s.id
+                 WHERE r.contextid = :contextid AND
+                       r.userid {$useridtest} AND
+                       r.component = :component AND
+                       r.peergradearea = :peergradearea
+              GROUP BY r.userid, r.component, r.peergradearea, r.contextid
+              ORDER BY numcurrent ASC, numpeergrades ASC, sexpied ASC, lastassign ASC, r.userid";
+        return $DB->get_records_sql($sql, $params);
     }
 
     /**

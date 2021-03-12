@@ -35,7 +35,8 @@ $peergradearea = required_param('peergradearea', PARAM_AREA);
 $itemid = required_param('itemid', PARAM_INT);
 $action = required_param('action', PARAM_TEXT);
 $assigneduserid =
-        required_param('assigneduserid', PARAM_INT); // Which user is the assign being change. Required to update their grade.
+        required_param('assigneduserid', PARAM_INT); // Which user is the assign being change.
+$peergradeduserid = required_param('peergradeduserid', PARAM_INT); // Which user is being peergraded.
 $returnurl = required_param('returnurl', PARAM_LOCALURL); // Required for non-ajax requests.
 
 $result = new stdClass;
@@ -68,6 +69,22 @@ if ($action === 'remove' && $assigneduserid) {
     $pgm->delete_assignments($delopt);
 
 } else if ($action === 'assign') {
+
+    /*$delopt = new stdClass;
+    $delopt->contextid = $context->id;
+    $delopt->component = $component;
+    $delopt->peergradearea = $peergradearea;
+    $delopt->itemid = $itemid;
+    $delopt->userid = $assigneduserid;
+    $pgm->delete_assignments($delopt);
+
+    $peergradeoptions = (object) ([
+                    'itemuserid' => $USER->id,
+                    'itemid' => $post->id,
+                    'itemfamily' => $posthierarchy,
+            ] + $peerforumentity->get_peergrade_options());
+    $pgm->assign_peergraders($peergradeoptions);
+
     $peergradeoptions = new stdClass;
     $peergradeoptions->context = $context;
     $peergradeoptions->component = $component;
@@ -78,7 +95,7 @@ if ($action === 'remove' && $assigneduserid) {
     $peergradeoptions->itemuserid = $peergradeduserid;
 
     $peergrade = new peergrade($peergradeoptions);
-    $peergrade->update_peergrade($userpeergrade, $feedback);
+    $peergrade->update_peergrade($userpeergrade, $feedback);*/
 }
 
 redirect($returnurl);
