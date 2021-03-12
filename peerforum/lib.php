@@ -2428,6 +2428,11 @@ function peerforum_peergrade_validate($params) {
 }
 
 function peerforum_peergrade_extrasettings($contextid, $component, $gradingarea) {
+    static $cache = array();
+    if (!empty($cache[$contextid])) {
+        return $cache[$contextid];
+    }
+
     $context = context::instance_by_id($contextid, MUST_EXIST);
     if ($component != 'mod_peerforum' || $gradingarea != 'post') {
         // We don't know about this component/peergradearea so just return null to get the
@@ -2438,7 +2443,9 @@ function peerforum_peergrade_extrasettings($contextid, $component, $gradingarea)
     $peerforumvault = \mod_peerforum\local\container::get_vault_factory()->get_peerforum_vault();
     $peerforum = $peerforumvault->get_from_course_module_id($context->instanceid);
 
-    return $peerforum->get_peergrade_options();
+    $cache[$contextid] = $peerforum->get_peergrade_options();
+
+    return $cache[$contextid];
 }
 
 /**
@@ -6058,20 +6065,22 @@ function peerforum_add_new_post($post, $mform, $unused = null) {
     // Let Moodle know that assessable content is uploaded (eg for plagiarism detection)
     peerforum_trigger_content_uploaded_event($post, $cm, 'peerforum_add_new_post');
 
-    $postvault = \mod_peerforum\local\container::get_vault_factory()->get_post_vault();
-    $posthierarchy = $postvault->get_post_parents_for_post_id($post->id);
-    $peerforumvault = \mod_peerforum\local\container::get_vault_factory()->get_peerforum_vault();
-    $peerforumentity = $peerforumvault->get_from_id($peerforum->id);
+    if ($peerforum->peergradeassessed) {
+        $postvault = \mod_peerforum\local\container::get_vault_factory()->get_post_vault();
+        $posthierarchy = $postvault->get_post_parents_for_post_id($post->id);
+        $peerforumvault = \mod_peerforum\local\container::get_vault_factory()->get_peerforum_vault();
+        $peerforumentity = $peerforumvault->get_from_id($peerforum->id);
 
-    if (empty($post->nopeergrade)) {
-        // Assign posts for user to peergrade.
-        $pgm = \mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
-        $peergradeoptions = (object) ([
-                        'itemuserid' => $USER->id,
-                        'itemid' => $post->id,
-                        'itemfamily' => $posthierarchy,
-                ] + $peerforumentity->get_peergrade_options());
-        $pgm->assign_peergraders($peergradeoptions);
+        if (empty($post->nopeergrade)) {
+            // Assign posts for user to peergrade.
+            $pgm = \mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
+            $peergradeoptions = (object) ([
+                            'itemuserid' => $USER->id,
+                            'itemid' => $post->id,
+                            'itemfamily' => $posthierarchy,
+                    ] + $peerforumentity->get_peergrade_options());
+            $pgm->assign_peergraders($peergradeoptions);
+        }
     }
 
     return $post->id;
