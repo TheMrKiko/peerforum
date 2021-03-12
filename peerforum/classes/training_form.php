@@ -38,7 +38,8 @@ require_once($CFG->dirroot . '/repository/lib.php');
  */
 class mod_peerforum_training_form extends moodleform {
 
-    public static function replace_placeholders($original, $avaliable, $n) {
+    public static function replace_placeholders($original, $avaliable, $n, $visited) {
+        $original = trim($original);
         $bpos = strpos($original, '{');
         if ($bpos === false) {
             return $original;
@@ -53,7 +54,12 @@ class mod_peerforum_training_form extends moodleform {
         }
         $substr = substr($original, $bpos + 1, $epos - $bpos - 1);
         $substr = explode('}{', $substr);
-        $string = $avaliable[$substr[0]][$substr[1]][$n];
+        $string = '!LOOP!';
+        if (empty($visited["{{$substr[0]}}{{$substr[1]}}"])) {
+            $string = $avaliable[$substr[0]][$substr[1]][$n] ?? '!WRONG ID!';
+            $visited["{{$substr[0]}}{{$substr[1]}}"] = true;
+            $string = self::replace_placeholders($string, $avaliable, $n, $visited);
+        }
         return substr_replace($original, $string, $bpos, $epos - $bpos + 1);
     }
 
@@ -113,8 +119,9 @@ class mod_peerforum_training_form extends moodleform {
                 if ($submitted) {
                     $grade = $trainingsubmission->grades['grade'][$critid][$exid];
                     $correctgrades = $trainingpage->correctgrades['grade'][$critid][$n];
-                    $feedback = trim($trainingpage->feedback['feedback'][$grade][$critid][$n] ?? '');
-                    $feedback = self::replace_placeholders($feedback, $trainingpage->feedback['feedback'], $n);
+                    $feedback = $trainingpage->feedback['feedback'][$grade][$critid][$n] ?? '';
+                    $feedback = self::replace_placeholders($feedback, $trainingpage->feedback['feedback'], $n,
+                            array("{{$grade}}{{$critid}}" => true));
                     if ($grade == $correctgrades) {
                         $html = '<span class="text-success"><b>Correct</b>: '.$feedback.'</span>';
                     } else {
@@ -138,8 +145,9 @@ class mod_peerforum_training_form extends moodleform {
             if ($submitted) {
                 $grade = $trainingsubmission->grades['grade'][-1][$exid];
                 $correctgrades = $trainingpage->correctgrades['grade'][-1][$n];
-                $feedback = trim($trainingpage->feedback['feedback'][$grade][-1][$n] ?? '');
-                $feedback = self::replace_placeholders($feedback, $trainingpage->feedback['feedback'], $n);
+                $feedback = $trainingpage->feedback['feedback'][$grade][-1][$n] ?? '';
+                $feedback = self::replace_placeholders($feedback, $trainingpage->feedback['feedback'], $n,
+                        array("{{$grade}}{-1}" => true));
                 if ($grade == $correctgrades) {
                     $html = '<span class="text-success"><b>Correct</b>: '.$feedback.'</span>';
                 } else {
