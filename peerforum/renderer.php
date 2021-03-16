@@ -203,15 +203,6 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $postentity = $vaultfactory->get_post_vault()->get_from_id($peergrade->itemid);
         $peerforumentity = $vaultfactory->get_peerforum_vault()->get_from_post_id($postentity->get_id());
         $trainingvault = $vaultfactory->get_training_submission_vault();
-        $correcttrainings = $trainingvault
-            ->get_from_discussion_id_and_user_id($peerforumentity->get_id(), $postentity->get_discussion_id(), $USER->id);
-        $authorcorrecttrainings = $trainingvault
-            ->get_from_discussion_id_and_user_id($peerforumentity->get_id(), $postentity->get_discussion_id(),
-                        $postentity->get_author_id());
-        $shouldcompletetraining = !empty($correcttrainings) && isset($correcttrainings[$USER->id])
-                && !$correcttrainings[$USER->id]->corrects;
-        $authordidtraining = !empty($authorcorrecttrainings) && isset($authorcorrecttrainings[$postentity->get_author_id()])
-                && $authorcorrecttrainings[$postentity->get_author_id()]->corrects;
 
         /*------------------- SHOW AGGREGATE -----------------------------------*/
 
@@ -257,6 +248,11 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         // If the item doesn't belong to the current user, the user has permission to peergrade
         // and we're within the assessable period.
         if ($peergrade->user_can_peergrade() || $peergrade->can_edit()) {
+            $correcttrainings = $trainingvault
+                ->get_from_discussion_id_and_user_id($peerforumentity->get_id(), $postentity->get_discussion_id(), $USER->id);
+            $shouldcompletetraining = !empty($correcttrainings) && isset($correcttrainings[$USER->id])
+                    && !empty($correcttrainings[$USER->id]->id)
+                    && !$correcttrainings[$USER->id]->corrects;
             if ($shouldcompletetraining) {
                 $peergradehtml .= html_writer::tag('p', "You are assigned to peer grade this BUT
                 you have to complete the training first and get them ALL CORRECT. You can try several times, don't worry. ".
@@ -519,6 +515,13 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     array('style' => 'color: grey;')); // Color: #6699ff;.
 
             $peergradehtml .= html_writer::tag('span', $peersnames, array('id' => 'peersassigned' . $peergrade->itemid));
+
+            $authorcorrecttrainings = $trainingvault
+                ->get_from_discussion_id_and_user_id($peerforumentity->get_id(), $postentity->get_discussion_id(),
+                            $postentity->get_author_id());
+            $authordidtraining = !empty($authorcorrecttrainings) && isset($authorcorrecttrainings[$postentity->get_author_id()])
+                    && !empty($authorcorrecttrainings[$postentity->get_author_id()]->id)
+                    && $authorcorrecttrainings[$postentity->get_author_id()]->corrects;
 
             $peergradehtml .= html_writer::tag('p',
                     'FYI: The author of this post did ' .
