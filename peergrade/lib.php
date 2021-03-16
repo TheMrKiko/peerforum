@@ -2469,9 +2469,11 @@ class peergrade_manager {
 
     /**
      * @param array $filters
+     * @param array $group
+     * @param array $count
      * @return array
      */
-    public function get_items_from_filters(array $filters = array()): array {
+    public function get_items_from_filters(array $filters = array(), array $group = array(), array $count = array()): array {
         global $DB;
         $where = [];
         $alias = 's';
@@ -2493,9 +2495,23 @@ class peergrade_manager {
         }
         $wheres = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
-        $sql = "SELECT {$alias}.*
+        $count = array_reduce(
+                $count, static function ($prev, $c) use ($alias) {
+                    return $prev . ", COUNT(NULLIF({$alias}.{$c},0)) AS n{$c}";
+                }, '');
+        $group = array_map(static function ($g) use ($alias) {
+            return "{$alias}.{$g}";
+        }, $group);
+        $group = implode(', ', $group);
+        $groups = !empty($group) ? 'GROUP BY ' . $group : '';
+        $groupsl = !empty($group) ? $group . ',' : '';
+        $userfields = user_picture::fields('u', ['deleted'], 'userid');
+
+        $sql = "SELECT {$groupsl} {$alias}.* {$count}, {$userfields}
                   FROM {peerforum_time_assigned} {$alias}
+             LEFT JOIN {user} u ON {$alias}.userid = u.id
                        {$wheres}
+                       {$groups}
               ORDER BY {$alias}.timeassigned DESC";
         return $DB->get_records_sql($sql);
     }
