@@ -24,6 +24,7 @@ function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isse
     $postsassigned = get_string('postsassigned', 'block_peerblock');
     $viewpeergrades = get_string('viewpeergrades', 'block_peerblock');
     $peerranking = get_string('peer_ranking', 'block_peerblock');
+    $viewgradersstats = get_string('viewgradersstats', 'block_peerblock');
 
     $row[] = new tabobject('manageposts', new moodle_url('/blocks/peerblock/summary.php',
                     $params + array('display' => MANAGEPOSTS_MODE_SEEALL)), $postsassigned);
@@ -36,6 +37,11 @@ function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isse
         $row[] = new tabobject('peerranking',
                 new moodle_url('/blocks/peerblock/rankings.php',
                         $params), $peerranking);
+    }
+    if ($isprofessor) {
+        $row[] = new tabobject('viewgradersstats',
+                new moodle_url('/blocks/peerblock/user.php',
+                        $params + array('display' => MANAGEPOSTS_MODE_SEEALL)), $viewgradersstats);
     }
     return $row;
 }
