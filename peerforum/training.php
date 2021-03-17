@@ -108,6 +108,15 @@ if (!empty($page)) {
         $openid = peerforum_enter_training_page($trainingpage);
         if (empty($submitid)) {
             unset($SESSION->fromurl);
+
+            $lastcorrsubm = $trainingsubmissionvault->get_correct_from_page_id_and_user_id($page, $USER->id);
+            if (!empty($lastcorrsubm)) {
+                \core\notification::info(
+                        'You already completed this training with success before! '
+                        . html_writer::link($urlfactory->get_training_url($trainingpage, reset($lastcorrsubm)->id),
+                        'See how i did.')
+                );
+            }
         }
     }
 

@@ -131,6 +131,24 @@ class training_submission extends db_table_vault {
 
         return $this->get_db()->get_records_sql($sql);
     }
+
+    /**
+     * Get the list of records for the given ids.
+     *
+     * @param int $pageid
+     * @param int $userid
+     * @return array
+     */
+    public function get_correct_from_page_id_and_user_id(int $pageid, int $userid) {
+        $alias = $this->get_table_alias();
+        list($insql1, $params1) = $this->get_db()->get_in_or_equal($pageid, SQL_PARAMS_NAMED);
+        list($insql2, $params2) = $this->get_db()->get_in_or_equal($userid, SQL_PARAMS_NAMED);
+        $wheresql = $alias . '.allcorrect = 1';
+        $wheresql .= ' AND ' . $alias . '.pageid ' . $insql1;
+        $wheresql .= ' AND ' . $alias . '.userid ' . $insql2;
+        $sql = $this->generate_get_records_sql($wheresql, 'id DESC');
+        return $this->get_db()->get_records_sql($sql, $params1 + $params2);
+    }
 }
 
 class training_rating extends db_table_vault {
