@@ -1,0 +1,39 @@
+.input-collapsable {
+    opacity: 0;
+    position: absolute;
+    pointer-events: none;
+}
+
+[data-region-content='peerblock-collapsable-text'] {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.input-collapsable ~ label {
+    color: #0f6fc5;
+    text-decoration: none;
+    background-color: transparent;
+}
+
+.input-collapsable:hover ~ label {
+    color: #0a477e;
+    text-decoration: underline;
+}
+
+.input-collapsable:focus ~ label {
+    outline: .2rem solid transparent;
+    color: #212529;
+    background-color: #d7ebfc;
+    box-shadow: 0 -0.2rem #d7ebfc, 0 0.2rem #343a40;
+}
+
+.input-collapsable:checked + [data-region-content='peerblock-collapsable-text'] {
+    -webkit-line-clamp: unset;
+}
+
+.input-collapsable:checked ~ label,
+[data-region-content='peerblock-collapsable-text']:not(.truncated) ~ label {
+    display: none;
+}

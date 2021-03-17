@@ -36,6 +36,8 @@ $urlparams = array(
 );
 $url = new moodle_url('/blocks/peerblock/short.php', $urlparams);
 $PAGE->set_url($url, array('display' => $display, ));
+$PAGE->requires->css('/blocks/peerblock/styles.css');
+$PAGE->requires->js_call_amd('block_peerblock/truncate_text', 'init');
 
 // Output the page.
 $pagetitle = get_string('pluginname', 'block_peerblock');
@@ -264,8 +266,11 @@ foreach ($items as $item) {
             $pg = $allpeergrades[$assign->peergraded];
             $row->cells[] = new html_table_cell($peergradescalemenu[$pg->peergrade]);
             end($row->cells)->attributes = array('class' => 'text-center align-middle');
-
-            $row->cells[] = new html_table_cell($pg->feedback);
+            $row->cells[] = new html_table_cell(
+                html_writer::empty_tag('input',
+                    array('type' => 'checkbox', 'id' => 'expanded' . $pg->id, 'class' => 'input-collapsable'))
+                . html_writer::span($pg->feedback, '', array('data-region-content' => 'peerblock-collapsable-text'))
+                . html_writer::label('Read more', 'expanded' . $pg->id, true, array('role' => 'button')));
             end($row->cells)->attributes = array('class' => 'text-left w-25 align-middle');
 
             $row->cells[] = new html_table_cell(userdate($pg->timemodified, $dateformat));
