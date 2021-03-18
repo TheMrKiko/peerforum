@@ -15,8 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Edit and save a new post to a discussion
- * Custom functions to allow peergrading of PeerForum posts
+ * Display a training page.
  *
  * @package   mod_peerforum
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
@@ -33,12 +32,9 @@ $openid = optional_param('openid', null, PARAM_INT);
 $PAGE->set_url('/mod/peerforum/training.php', array(
         'page' => $page,
         'submitid' => $submitid,
-        'openid' => $openid
 ));
 // These page_params will be passed as hidden variables later in the form.
 $pageparams = array('page' => $page, 'submitid' => $submitid);
-
-$sitecontext = context_system::instance();
 
 $entityfactory = mod_peerforum\local\container::get_entity_factory();
 $vaultfactory = mod_peerforum\local\container::get_vault_factory();
@@ -65,6 +61,10 @@ if (!empty($submitid)) {
     $trainingsubmissionentity = $trainingsubmissionvault->get_from_id($submitid);
     if (empty($trainingsubmissionentity)) {
         print_error('invalidpostid', 'peerforum');
+    }
+
+    if ($trainingsubmissionentity->userid != $USER->id) {
+        print_error('differentusersubmission', 'peerforum');
     }
 
     // Load up the $trainingpage variable.

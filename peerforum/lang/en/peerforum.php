@@ -1140,3 +1140,4 @@ $string['peerforum:submittraining'] = 'Count for the training stats';
 $string['repetitionids'] = 'FRESH NEWS: Do you want to give your Ctrl+C a break? Write feedback text ONCE and use its id (the {n}{n}
 next to it) to replicate it in other fields of the *same exercise*. Each feedback id will be replaced (for the student) by its value.
 Try now!';
+$string['differentusersubmission'] = 'Epa, não, isso é batota. Vou reportar aos profs.';
