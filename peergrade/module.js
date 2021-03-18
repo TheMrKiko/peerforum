@@ -31,12 +31,14 @@ M.core_peergrade = {
         }
         var scope = this;
         var node = scope.Y.one('#confirmation' + itemid);
+        node.replaceClass('text-danger', 'text-success');
         node.set('innerHTML', "Sending...");
 
         var cfg = {
             method: 'POST',
             on: {
                 complete: function (tid, outcome, args) {
+                    itemid = args.itemid;
                     try {
                         if (!outcome) {
                             alert('IO FATAL');
@@ -64,9 +66,9 @@ M.core_peergrade = {
                             node.set('innerHTML', "Peer grade submitted with success! Thanks!");
                             return true;
                         } else if (data.error) {
-                            var node = scope.Y.one('#confirmation' + data.id);
-                            node.set('innerHTML', "Godjy bodji, an error!");
-                            alert(data.error);
+                            var node = scope.Y.one('#confirmation' + itemid);
+                            node.replaceClass('text-success', 'text-danger');
+                            node.set('innerHTML', "Godjy bodji, an error! " + data.error);
                         }
                     } catch (e) {
                         alert(e.message + " " + outcome.responseText);
@@ -75,7 +77,8 @@ M.core_peergrade = {
                 }
             },
             arguments: {
-                scope: scope
+                scope: scope,
+                itemid: itemid
             },
             headers: {},
             data: build_querystring(thedata)

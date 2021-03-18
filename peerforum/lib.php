@@ -2375,7 +2375,7 @@ function peerforum_peergrade_validate($params) {
     }
 
     if ($params['peergrade'] === PEERGRADE_UNSET_PEERGRADE) {
-        throw new peergrade_exception('invalidnum4');
+        throw new peergrade_exception('invalidnum');
     }
     if ($peerforum->enablefeedback && $params['feedback'] === PEERGRADE_UNSET_FEEDBACK) {
         throw new peergrade_exception('nofeedback', 'peerforum');
@@ -2385,7 +2385,7 @@ function peerforum_peergrade_validate($params) {
 
     // lower limit
     if ($params['peergrade'] < 0) {
-        throw new peergrade_exception('invalidnum4');
+        throw new peergrade_exception('invalidnum');
     }
 
     // upper limit
@@ -2404,7 +2404,7 @@ function peerforum_peergrade_validate($params) {
         }
     } else if ($params['peergrade'] > $peerforum->peergradescale) {
         //if its numeric and submitted peergrade is above maximum
-        throw new peergrade_exception('invalidnum8');
+        throw new peergrade_exception('invalidnum');
     }
 
     // Make sure groups allow this user to see the item they're rating
