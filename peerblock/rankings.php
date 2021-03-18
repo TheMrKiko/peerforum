@@ -15,16 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Edit and save a new post to a discussion
- * Custom functions to allow peergrading of PeerForum posts
+ * Renders the rankings for peers.
  *
- * @package   mod_peerforum
- * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
+ * @package   block_peerblock
+ * @copyright 2019 Andrew Nicols <andrew@nicols.co.uk>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once('../../config.php');
 require_once('./lib.php');
+
+$entityfactory = mod_peerforum\local\container::get_entity_factory();
+$vaultfactory = mod_peerforum\local\container::get_vault_factory();
+$managerfactory = mod_peerforum\local\container::get_manager_factory();
+$urlfactory = mod_peerforum\local\container::get_url_factory();
 
 $courseid = required_param('courseid', PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
@@ -38,11 +42,6 @@ $urlparams = array(
         'courseid' => $courseid,
 );
 $PAGE->set_url('/blocks/peerblock/rankings.php', $urlparams);
-
-$entityfactory = mod_peerforum\local\container::get_entity_factory();
-$vaultfactory = mod_peerforum\local\container::get_vault_factory();
-$managerfactory = mod_peerforum\local\container::get_manager_factory();
-$urlfactory = mod_peerforum\local\container::get_url_factory();
 
 require_login($courseid);   // Script is useless unless they're logged in.
 
@@ -109,13 +108,12 @@ if (count($userids) >= 5) {
     }
 }
 
-// Output the page.
 $pagetitle = get_string('pluginname', 'block_peerblock');
 $row = get_peerblock_tabs($urlparams);
 
+// Output the page.
 $PAGE->navbar->add($pagetitle);
 $PAGE->set_title(format_string($pagetitle));
-$PAGE->set_pagelayout('incourse');
 $PAGE->set_heading($pagetitle);
 echo $OUTPUT->header();
 echo $OUTPUT->tabtree($row, 'peerranking');
@@ -125,6 +123,5 @@ if (isset($mform)) {
 } else {
     echo 'You have no peers to rank.';
 }
-
 
 echo $OUTPUT->footer();

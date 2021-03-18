@@ -18,20 +18,31 @@ if (is_file($CFG->dirroot . '/mod/peerforum/lib.php')) {
  * @param array $params
  * @param bool $isprofessor
  * @param bool $isself
+ * @param int $display
  * @return array
  */
-function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isself = true): array {
-    $postsassigned = get_string('postsassigned', 'block_peerblock');
+function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isself = true, $display = MANAGEPOSTS_MODE_SEEALL) {
+    // Strings.
+    $poststopeergrade = get_string('poststopeergrade', 'block_peerblock');
+    $postspeergraded = get_string('postspeergraded', 'block_peerblock');
+    $postsexpired = get_string('postsexpired', 'block_peerblock');
     $viewpeergrades = get_string('viewpeergrades', 'block_peerblock');
-    $peerranking = get_string('peer_ranking', 'block_peerblock');
+    $manageposts = get_string('manageposts', 'block_peerblock');
+    $postsassigned = get_string('postsassigned', 'block_peerblock');
+    $manageconflicts = get_string('manageconflicts', 'block_peerblock');
+    $managegradersposts = get_string('managegraders_posts', 'block_peerblock');
     $viewgradersstats = get_string('viewgradersstats', 'block_peerblock');
+    $managerelations = get_string('managerelations', 'block_peerblock');
+    $threadingstats = get_string('threadingstats', 'block_peerblock');
+    $peerranking = get_string('peer_ranking', 'block_peerblock');
+    $managetraining = get_string('managetraining', 'block_peerblock');
 
     $row[] = new tabobject('manageposts', new moodle_url('/blocks/peerblock/summary.php',
-                    $params + array('display' => MANAGEPOSTS_MODE_SEEALL)), $postsassigned);
+                    $params + array('display' => $display)), $postsassigned);
     if ($isprofessor) {
         $row[] = new tabobject('peergrades',
                 new moodle_url('/blocks/peerblock/short.php',
-                        $params + array('display' => MANAGEPOSTS_MODE_SEEALL)), $viewpeergrades);
+                        $params + array('display' => $display)), $viewpeergrades);
     }
     if (!$isprofessor && $isself) {
         $row[] = new tabobject('peerranking',
@@ -41,9 +52,21 @@ function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isse
     if ($isprofessor) {
         $row[] = new tabobject('viewgradersstats',
                 new moodle_url('/blocks/peerblock/user.php',
-                        $params + array('display' => MANAGEPOSTS_MODE_SEEALL)), $viewgradersstats);
+                        $params), $viewgradersstats);
     }
     return $row;
+}
+
+/**
+ * @return array
+ */
+function get_peerblock_select_options() {
+    return array(
+            MANAGEPOSTS_MODE_SEEALL => get_string('managepostsmodeseeall', 'peerforum'),
+            MANAGEPOSTS_MODE_SEENOTGRADED => get_string('managepostsmodeseenotgraded', 'peerforum'),
+            MANAGEPOSTS_MODE_SEEGRADED => get_string('managepostsmodeseegraded', 'peerforum'),
+            MANAGEPOSTS_MODE_SEEEXPIRED => get_string('managepostsmodeseeexpired', 'peerforum'),
+    );
 }
 
 /**

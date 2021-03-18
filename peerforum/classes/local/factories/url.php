@@ -578,13 +578,15 @@ class url {
      * Generate the user summary link.
      *
      * @param \stdClass $userinfo
+     * @param int $courseid
+     * @param int $display
      * @return moodle_url
-     * @throws \moodle_exception
      */
-    public function get_user_summary_url(\stdClass $userinfo): moodle_url {
+    public function get_user_summary_url(\stdClass $userinfo, $courseid = 0, $display = MANAGEPOSTS_MODE_SEEALL): moodle_url {
         return new moodle_url('/blocks/peerblock/summary.php',
                 array(
-                        'display' => MANAGEPOSTS_MODE_SEEALL,
+                        'display' => $display,
+                        'courseid' => $courseid,
                         'userid' => $userinfo->id)
         );
     }

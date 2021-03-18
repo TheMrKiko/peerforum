@@ -486,9 +486,12 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     'data-content' => 'peergrade-config-content',
                     'style' => 'display: none;'));
 
-            $peersnames = array_map(static function ($assign) use ($peergrade) {
+            $peersnames = array_map(static function ($assign) use ($peerforumentity, $peergrade) {
                 $name = html_writer::span(fullname($assign->userinfo), 'bold');
-                $userinfolink = \mod_peerforum\local\container::get_url_factory()->get_user_summary_url($assign->userinfo);
+                $userinfolink = \mod_peerforum\local\container::get_url_factory()->get_user_summary_url(
+                        $assign->userinfo,
+                        $peerforumentity->get_course_id(),
+                );
                 $tte = '';
                 if (!empty($assign->peergraded)) {
                     $color = '#339966';
