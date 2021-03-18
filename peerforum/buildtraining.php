@@ -510,10 +510,6 @@ if (empty($edit) && !$capabilitymanager->can_edit_training_pages($USER)) {
     print_error('cannotcreatediscussion', 'peerforum');
 }
 
-if (!empty($peerforum->intro)) {
-    echo $OUTPUT->box(format_module_intro('peerforum', $peerforum, $cm->id), 'generalbox', 'intro');
-}
-
 if (!empty($formheading)) {
     echo $OUTPUT->heading($formheading, 2, array('class' => 'accesshide'));
 }
