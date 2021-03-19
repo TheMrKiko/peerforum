@@ -57,7 +57,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $peerforumvault = \mod_peerforum\local\container::get_vault_factory()->get_peerforum_vault();
         $peerforum = $peerforumvault->get_from_course_module_id($rating->context->instanceid); // Lil hack.
 
-        $canshowafterpeergrade = true;
+        $canshowafterpeergrade = true; // If the peer grade can be shown to everyone.
+        $canseeafterpeergrade = true; // If this user can see the pgs.
         $peergradematters = $peerforum->is_showafterpeergrade();
 
         if ($peergradematters) {
@@ -69,8 +70,10 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             $peergrade = $peergrademanager->get_peergrades((object) $peergradeoptions)[0]->peergrade;
 
             $canshowafterpeergrade = !$peergrade->exists() || $peergrade->can_peergrades_be_shown();
+            $canseeafterpeergrade = $canshowafterpeergrade || $peergrade->settings->permissions->professor;
         }
 
+        $dimclass = !$canshowafterpeergrade ? ' dimmed_text' : '';
         $strrate = get_string("rate", "rating");
         $ratinghtml = ''; // The string we'll return.
 
@@ -78,7 +81,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         if ($rating->user_can_view_aggregate()) {
             $aggregatelabel = $ratingmanager->get_aggregate_label($rating->settings->aggregationmethod);
             $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'rating-aggregate-label'));
-            if ($canshowafterpeergrade) {
+            $aggregatehtml = '';
+            if ($canseeafterpeergrade) {
                 $aggregatestr = $rating->get_aggregate_string();
 
                 $aggregatehtml = html_writer::tag('span', $aggregatestr,
@@ -99,13 +103,10 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     $action = new popup_action('click', $popuplink, 'ratings', array('height' => 400, 'width' => 600));
                     $aggregatehtml = $this->output->action_link($nonpopuplink, $aggregatehtml, $action);
                 }
-
-                $ratinghtml .= html_writer::tag('span', $aggregatelabel . $aggregatehtml,
-                        array('class' => 'rating-aggregate-container'));
-            } else {
-                $ratinghtml .= html_writer::span($aggregatelabel, 'dimmed_text');
-                $ratinghtml .= $this->output->help_icon('showratingafterpg', 'peerforum');
             }
+            $ratinghtml .= html_writer::tag('span', $aggregatelabel . $aggregatehtml,
+                    array('class' => 'rating-aggregate-container' . $dimclass));
+            $ratinghtml .= !$canshowafterpeergrade ? $this->output->help_icon('showratingafterpg', 'peerforum') : '';
         }
 
         $formstart = null;
