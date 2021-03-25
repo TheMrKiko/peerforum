@@ -2333,7 +2333,8 @@ class peergrade_manager {
         $params['courseid'] = $coursecontext->instanceid;
 
         $sql = "SELECT r.userid, r.peergraded, COUNT(r.id) - SUM(r.ended) AS numcurrent, SUM(r.expired) AS sexpied,
-                       MAX(r.timeassigned) AS lastassign, COUNT(p.id) AS numpeergrades, COUNT(r.id) AS numassigned
+                       MAX(r.timeassigned) AS lastassign, COUNT(p.id) AS numpeergrades, COUNT(r.id) AS numassigned,
+                       COUNT(r.id) + COUNT(r.id) - SUM(r.ended) AS workload
                   FROM {peerforum_time_assigned} r
              LEFT JOIN {peerforum_peergrade} p ON r.peergraded = p.id
                  WHERE r.contextid = :contextid AND
@@ -2341,12 +2342,12 @@ class peergrade_manager {
                        r.component = :component AND
                        r.peergradearea = :peergradearea
               GROUP BY r.userid, r.component, r.peergradearea, r.contextid
-              ORDER BY numassigned ASC, numcurrent ASC, numpeergrades ASC, sexpied ASC, lastassign ASC, r.userid";
+              ORDER BY workload ASC, numcurrent ASC, numpeergrades ASC, sexpied ASC, lastassign ASC, r.userid";
         $usersassigned = $DB->get_records_sql($sql, $params);
 
         $sql = "SELECT r.userid, r.peergraded, COUNT(r.id) - SUM(r.ended) AS numcurrent, SUM(r.expired) AS sexpied,
                        MAX(r.timeassigned) AS lastassign, COUNT(p.id) AS numpeergrades, n.id AS nominationid, n.nomination,
-                       COUNT(r.id) AS numassigned
+                       COUNT(r.id) AS numassigned, COUNT(r.id) + COUNT(r.id) - SUM(r.ended) AS workload
                   FROM {peerforum_time_assigned} r
              LEFT JOIN {peerforum_relationship_nomin} n ON r.userid = n.userid
              LEFT JOIN {peerforum_peergrade} p ON r.peergraded = p.id
@@ -2356,7 +2357,7 @@ class peergrade_manager {
                        n.course = :courseid AND
                        n.otheruserid = :itemuserid
               GROUP BY r.userid, r.component, r.peergradearea, r.contextid
-              ORDER BY numassigned ASC, numcurrent ASC, numpeergrades ASC, sexpied ASC, lastassign ASC, r.userid";
+              ORDER BY workload ASC, numcurrent ASC, numpeergrades ASC, sexpied ASC, lastassign ASC, r.userid";
         $usersnominated = $DB->get_records_sql($sql, $params);
 
         $emptyusers = array_filter($users, function($us) use ($usersassigned) {
