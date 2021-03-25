@@ -7075,14 +7075,14 @@ function peerforum_user_can_see_reply($peerforum, $post, $user = null, $cm = nul
     // This is a reply.
 
     $postauthor = $post->userid;
-    if (!has_capability('mod/peerforum:professorpeergrade', $modcontext, $postauthor)) {
+    if (!has_capability('mod/peerforum:professorpeergrade', $modcontext, $postauthor, false)) {
         return array($replyhidden, $canseereply);
     }
     // This is a reply by the professor.
 
     $postparent = $DB->get_record('peerforum_posts', array('id' => $parentpostid));
     $postparentauthor = $postparent->userid;
-    if (has_capability('mod/peerforum:professorpeergrade', $modcontext, $postparentauthor)) {
+    if (has_capability('mod/peerforum:professorpeergrade', $modcontext, $postparentauthor, false)) {
         return array($replyhidden, $canseereply);
     }
     // This is a reply by the professor to a student.
@@ -7106,7 +7106,7 @@ function peerforum_user_can_see_reply($peerforum, $post, $user = null, $cm = nul
 
     $replyhidden = !$peergrade->can_peergrades_be_shown();
 
-    $canseereply = !$replyhidden || has_capability('mod/peerforum:professorpeergrade', $modcontext, $user);
+    $canseereply = !$replyhidden || has_capability('mod/peerforum:professorpeergrade', $modcontext, $user, false);
     // We are professors, a omnipresent force.
 
     return array($replyhidden, $canseereply);

@@ -439,6 +439,28 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021030401, 'peerforum');
     }
 
+    if ($oldversion < 2021032501) {
+
+        // Define table peerforum_delayed_post to be created.
+        $table = new xmldb_table('peerforum_delayed_post');
+
+        // Adding fields to table peerforum_delayed_post.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('postid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        // Adding keys to table peerforum_delayed_post.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('postid', XMLDB_KEY_FOREIGN, ['postid'], 'peerforum_posts', ['id']);
+
+        // Conditionally launch create table for peerforum_delayed_post.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021032501, 'peerforum');
+    }
+
 
     return true;
 }

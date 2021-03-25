@@ -113,7 +113,6 @@ class cron_task extends \core\task\scheduled_task {
         $this->log_start("Fetching unmailed posts.");
         if (!$posts = $this->get_unmailed_posts($starttime, $endtime, $timenow)) {
             $this->log_finish("No posts found.", 1);
-            return false;
         }
         $this->log_finish("Done");
 
@@ -124,8 +123,19 @@ class cron_task extends \core\task\scheduled_task {
         }
         $this->log_finish("Done");
 
+        $this->log_start("Fetching delayed posts.");
+        if (!$delayedposts = $this->get_delayed_posts()) {
+            $this->log_finish("No delayed posts found.", 1);
+            $delayedposts = array();
+        }
+        $this->log_finish("Done");
+
         // Process post data and turn into adhoc tasks.
-        $this->process_post_data($posts, $peergrades);
+        $this->process_post_data($posts, $delayedposts, $peergrades);
+
+        if (empty($posts)) {
+            return false;
+        }
 
         // Mark posts as read.
         list($in, $params) = $DB->get_in_or_equal(array_keys($posts));
@@ -136,9 +146,10 @@ class cron_task extends \core\task\scheduled_task {
      * Process all posts and convert to appropriated hoc tasks.
      *
      * @param \stdClass[] $posts
+     * @param \stdClass[] $delayedposts
      * @param \stdClass[] $peergrades
      */
-    protected function process_post_data($posts, $peergrades) {
+    protected function process_post_data($posts, $delayedposts, $peergrades) {
         $discussionids = [];
         $peerforumids = [];
         $courseids = [];
@@ -146,7 +157,7 @@ class cron_task extends \core\task\scheduled_task {
         $this->log_start("Processing post information");
 
         $start = microtime(true);
-        foreach ($posts as $id => $post) {
+        foreach ($posts + $delayedposts as $id => $post) {
             $discussionids[$post->discussion] = true;
             $peerforumids[$post->peerforum] = true;
             $courseids[$post->course] = true;
@@ -190,6 +201,10 @@ class cron_task extends \core\task\scheduled_task {
 
         $this->log_finish("All caches filled");
 
+        $this->log_start("Filtering delayed posts");
+        $this->filter_tasks_to_delay($delayedposts);
+        $this->log_finish("Done");
+
         $this->log_start("Queueing user tasks.");
         $this->queue_user_tasks();
         $this->log_finish("All tasks queued.");
@@ -220,6 +235,9 @@ class cron_task extends \core\task\scheduled_task {
                 'course',
                 'forcesubscribe',
                 'type',
+                'hidereplies',
+                'peergradeassessed',
+                'peergradescale',
         ];
         list($in, $params) = $DB->get_in_or_equal($peerforumids);
         $this->peerforums = $DB->get_records_select('peerforum', "id $in", $params, '', implode(', ', $requiredfields));
@@ -334,6 +352,81 @@ class cron_task extends \core\task\scheduled_task {
                 unset($users);
             }
         }
+    }
+
+    /**
+     * Remove from queue the user tasks to delay.
+     *
+     * @param array $delayedposts
+     */
+    protected function filter_tasks_to_delay($delayedposts = array()) {
+        global $DB;
+        $newposttodelay = [];
+        $counts = [
+                'delayed' => 0,
+                'released' => 0,
+                'continued' => 0,
+                'total' => 0,
+        ];
+
+        $poststructure = $this->adhocdata;
+        cron_setup_user();
+        foreach ($poststructure as $courseid => $peerforumids) {
+            $course = $this->courses[$courseid];
+
+            foreach ($peerforumids as $peerforumid => $discussionids) {
+                $peerforum = $this->peerforums[$peerforumid];
+                $cm = get_fast_modinfo($course)->instances['peerforum'][$peerforumid];
+
+                foreach ($discussionids as $discussionid => $postids) {
+                    $discussion = $this->discussions[$discussionid];
+
+                    foreach ($postids as $postid) {
+                        $post = $this->posts[$postid];
+                        $counts['total']++;
+
+                        [$replyhidden, $x] = peerforum_user_can_see_reply($peerforum, $post, null, $cm);
+                        if ($replyhidden) {
+                            unset($this->adhocdata[$courseid][$peerforumid][$discussionid][$postid]);
+                            if (!isset($delayedposts[$postid])) {
+                                $newposttodelay[] = [
+                                        'postid' => $postid,
+                                ];
+                                $counts['delayed']++;
+                                continue;
+                            }
+                            $counts['continued']++;
+                        } else if (isset($delayedposts[$postid])) {
+                            $DB->delete_records('peerforum_delayed_post', [
+                                    'postid' => $postid,
+                            ]);
+                            $counts['released']++;
+                        }
+                    }
+                    if (empty($poststructure[$courseid][$peerforumid][$discussionid])) {
+                        unset($poststructure[$courseid][$peerforumid][$discussionid]);
+                        continue;
+                    }
+                }
+                if (empty($poststructure[$courseid][$peerforumid])) {
+                    unset($poststructure[$courseid][$peerforumid]);
+                    continue;
+                }
+            }
+            if (empty($poststructure[$courseid])) {
+                unset($poststructure[$courseid]);
+                continue;
+            }
+        }
+        $DB->insert_records('peerforum_delayed_post', $newposttodelay);
+        $this->log(
+                sprintf(
+                        "Checked %d posts, %d new now delayed, %d now released and %d continue delayed.",
+                        $counts['total'],
+                        $counts['delayed'],
+                        $counts['released'],
+                        $counts['continued'],
+                ), 1);
     }
 
     /**
@@ -599,6 +692,9 @@ class cron_task extends \core\task\scheduled_task {
     protected function get_unmailed_peergrades($posts) {
         global $DB;
 
+        if (empty($posts)) {
+            return array();
+        }
         list($insql, $params) = $DB->get_in_or_equal(array_keys($posts));
 
         return $DB->get_records_sql(
@@ -606,5 +702,28 @@ class cron_task extends \core\task\scheduled_task {
                        FROM {peerforum_time_assigned} p
                       WHERE p.itemid $insql",
                 $params);
+    }
+
+    /**
+     * Returns a list of all posts that are delayed.
+     *
+     * @return array
+     */
+    protected function get_delayed_posts() {
+        global $DB;
+
+        return $DB->get_records_sql(
+                "SELECT
+                    p.id,
+                    p.discussion,
+                    d.peerforum,
+                    d.course,
+                    p.created,
+                    p.parent,
+                    p.userid
+                  FROM {peerforum_delayed_post} l
+                  JOIN {peerforum_posts} p ON p.id = l.postid
+                  JOIN {peerforum_discussions} d ON d.id = p.discussion
+                 ORDER BY p.modified ASC");
     }
 }
