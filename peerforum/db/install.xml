@@ -379,6 +379,16 @@
                        COMMENT="These fields define a unique user assignment of an item"/>
             </INDEXES>
         </TABLE>
+        <TABLE NAME="peerforum_user_block" COMMENT="Peerforum peergrade users block table">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="Relates to user.id"/>
+            </KEYS>
+        </TABLE>
         <TABLE NAME="peerforum_blockedgrades" COMMENT="Peer Forum blocked peer grades">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
