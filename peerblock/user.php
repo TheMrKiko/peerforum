@@ -94,7 +94,7 @@ $count = array('id', 'peergraded', 'expired', 'ended');
 // Gets posts from filters.
 $items = $pgmanager->get_items_from_filters($userfilter, $group, $count);
 
-$table = new html_table;
+$table = new html_table();
 $table->attributes['class'] = 'generalboxtable table table-striped';
 $table->head = array(
         'User',
@@ -102,8 +102,12 @@ $table->head = array(
         'Peer graded',
         'Expired',
         'Ended',
+        'Performance',
+        'Block'
 );
 $table->align = array(
+        'center',
+        'center',
         'center',
         'center',
         'center',
@@ -115,7 +119,12 @@ $table->data = array();
 
 foreach ($items as $item) {
     $user = user_picture::unalias($item, ['deleted'], 'userid');
+    $userblocked = !empty($item->ublocked);
+    $blockurl = $pgmanager->get_block_user_url($user->id, $coursecontext->id);
     $row = new html_table_row();
+    if ($userblocked) {
+        $row->style = "background-color: lightpink;";
+    }
 
     $subjcell = new html_table_cell(html_writer::link(
             $urlfactory->get_user_summary_url($user, $courseid),
@@ -127,7 +136,10 @@ foreach ($items as $item) {
     $row->cells[] = $item->npeergraded;
     $row->cells[] = $item->nexpired;
     $row->cells[] = $item->nended;
+    $row->cells[] = ($item->nid ? number_format($item->npeergraded * 100 / $item->nid, 1 ) : '0') . '%';
 
+    $singlebutton = new single_button($blockurl, (!$userblocked ? 'B' : 'Unb') . 'lock');
+    $row->cells[] = $OUTPUT->render($singlebutton);
     $table->data[] = $row;
 }
 echo !empty($items) ? html_writer::table($table) : 'No users to show.';
