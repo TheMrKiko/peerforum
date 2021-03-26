@@ -202,9 +202,8 @@ class block_peerblock extends block_list {
                     new moodle_url($CFG->wwwroot . '/peergrading/index.php',
                             array('courseid' => $courseid,
                                     'userid' => $userid, 'display' => 1, 'peerforum' => $courseid)),
-                    'View old peer grade panel only for professors...',
+                    '(old panel)',
                     array('title' => get_string('viewpanel', 'block_peerblock')));
-            $this->content->items[] = 'Pls dont press action buttons while there. only navigate.';
         }
 
         $this->content->items[] = html_writer::tag('p', html_writer::link(new moodle_url($sumurl, array(
