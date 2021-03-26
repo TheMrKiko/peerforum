@@ -1267,6 +1267,30 @@ class peergrade_manager {
         }
     }
 
+    /**
+     * Block or unblock a user.
+     *
+     * @param stdClass $options {
+     *            userid => int delete the assignments to this user.
+     * }
+     * @global moodle_database $DB
+     */
+    public function toggle_user_block($options) {
+        global $DB;
+
+        if (empty($options->userid)) {
+            throw new coding_exception('The userid option is a required option when blocking users.');
+        }
+        $conditions = array('userid' => $options->userid);
+
+        $userblock = $DB->get_record('peerforum_user_block', $conditions);
+        if (empty($userblock)) {
+            $DB->insert_record('peerforum_user_block', $conditions);
+        } else {
+            $DB->delete_records('peerforum_user_block', array('id' => $userblock->id));
+        }
+    }
+
     public function get_id() {
 
         global $DB;
@@ -1448,11 +1472,11 @@ class peergrade_manager {
                  WHERE r.contextid = :contextid AND
                        r.itemid {$itemidtest} AND
                        r.component = :component AND
-                       r.peergradearea = :peergradearea"; // TODO change postid to itemid!
+                       r.peergradearea = :peergradearea";
         $usersassigned = $DB->get_records_sql($sql, $params);
 
-        $userinfo = $DB->get_record('peerforum_peergrade_users', array('iduser' => $userid));
-        // TODO WARNING! Cuidado porque é preciso meter courseid supostamente!
+        $userblocked = $DB->get_record('peerforum_user_block', array('userid' => $userid));
+
         $peergradeoptions = new stdClass;
         $peergradeoptions->context = $options->context;
         $peergradeoptions->component = $options->component;
@@ -1522,10 +1546,7 @@ class peergrade_manager {
                 }
                 $peergradeoptions->usersassigned = !empty($usersopts) ? $usersopts : null;
             }
-
-            if ($userinfo && $userinfo->userblocked) {
-                $peergradeoptions->userblocked = true;
-            }
+            $peergradeoptions->userblocked = !empty($userblocked);
 
             $peergrade = new peergrade($peergradeoptions);
             $peergrade->itemtimecreated = $this->get_item_time_created($item);
@@ -2360,6 +2381,8 @@ class peergrade_manager {
               ORDER BY workload ASC, numcurrent ASC, numpeergrades ASC, sexpied ASC, lastassign ASC, r.userid";
         $usersnominated = $DB->get_records_sql($sql, $params);
 
+        $usersblocked = $DB->get_records('peerforum_user_block', null, '', 'userid');
+
         $emptyusers = array_filter($users, function($us) use ($usersassigned) {
             return !isset($usersassigned[$us->userid]) || empty($usersassigned[$us->userid]);
         });
@@ -2402,7 +2425,6 @@ class peergrade_manager {
 
         $usersassigned = $assignedbefore + $nomusersassigned + $emptyusers + $usersassigned;
 
-        // $userinfo = $DB->get_record('peerforum_peergrade_users', array('iduser' => $userid)); TODO check block!
         $gradersalreadyassigned = array();
         foreach ($usersassigned as $userassigned) {
             if (count($gradersalreadyassigned) == $peergradeoptions->maxpeergraders) {
@@ -2412,6 +2434,9 @@ class peergrade_manager {
                 continue;
             }
             if ($userassigned->userid == $peergradeoptions->itemuserid) {
+                continue;
+            }
+            if (isset($usersblocked[$userassigned->userid])) {
                 continue;
             }
             $userid = $userassigned->userid;
@@ -2509,13 +2534,38 @@ class peergrade_manager {
         $groupsl = !empty($group) ? $group . ',' : '';
         $userfields = user_picture::fields('u', ['deleted'], 'userid');
 
-        $sql = "SELECT {$groupsl} {$alias}.* {$count}, {$userfields}
+        $sql = "SELECT {$groupsl} {$alias}.* {$count}, b.id AS ublocked, {$userfields}
                   FROM {peerforum_time_assigned} {$alias}
              LEFT JOIN {user} u ON {$alias}.userid = u.id
+             LEFT JOIN {peerforum_user_block} b ON {$alias}.userid = b.userid
                        {$wheres}
                        {$groups}
               ORDER BY {$alias}.timeassigned DESC";
         return $DB->get_records_sql($sql);
+    }
+
+    /**
+     * Returns a URL to view all of the peergrades for the item this peergrade is for.
+     *
+     * If this is a peergrade of a post then this URL will take the user to a page that shows all of the peergrades for the post
+     * (this one included).
+     *
+     * @param bool $popup whether of not the URL should be loaded in a popup
+     * @return moodle_url URL to view all of the peergrades for the item this peergrade is for.
+     */
+    public function get_block_user_url($userid, $contextid, $returnurl = null) {
+        if (empty($returnurl)) {
+                global $PAGE;
+                $returnurl = $PAGE->url;
+        }
+        $args = array(
+                'blockeduserid' => $userid,
+                'contextid' => $contextid,
+                'returnurl' => $returnurl,
+                'sesskey' => sesskey(),
+        );
+
+        return new moodle_url('/peergrade/block.php', $args);
     }
 } // End peergrade_manager class definition.
 
