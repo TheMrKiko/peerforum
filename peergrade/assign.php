@@ -69,33 +69,34 @@ if ($action === 'remove' && $assigneduserid) {
     $pgm->delete_assignments($delopt);
 
 } else if ($action === 'assign') {
+    if ($assigneduserid == $peergradeduserid) {
+        print_error('Author lol.');
+    }
 
-    /*$delopt = new stdClass;
-    $delopt->contextid = $context->id;
-    $delopt->component = $component;
-    $delopt->peergradearea = $peergradearea;
-    $delopt->itemid = $itemid;
-    $delopt->userid = $assigneduserid;
-    $pgm->delete_assignments($delopt);
+    $coursecontext = $context->get_course_context();
+    $nom = $DB->get_record('peerforum_relationship_nomin', array(
+            'userid' => $assigneduserid,
+            'otheruserid' => $peergradeduserid,
+            'course' => $coursecontext->instanceid,
+    ));
 
-    $peergradeoptions = (object) ([
-                    'itemuserid' => $USER->id,
-                    'itemid' => $post->id,
-                    'itemfamily' => $posthierarchy,
-            ] + $peerforumentity->get_peergrade_options());
-    $pgm->assign_peergraders($peergradeoptions);
-
-    $peergradeoptions = new stdClass;
+    $peergradeoptions = new stdClass();
     $peergradeoptions->context = $context;
     $peergradeoptions->component = $component;
     $peergradeoptions->peergradearea = $peergradearea;
-    $peergradeoptions->itemid = $itemid;
-    $peergradeoptions->peergradescaleid = $peergradescaleid;
-    $peergradeoptions->userid = $USER->id;
-    $peergradeoptions->itemuserid = $peergradeduserid;
 
-    $peergrade = new peergrade($peergradeoptions);
-    $peergrade->update_peergrade($userpeergrade, $feedback);*/
+    $assignoptions = new stdClass();
+    $assignoptions->itemid = $itemid;
+    $assignoptions->userid = $assigneduserid;
+    $assignoptions->ended = 0;
+    $assignoptions->expired = 0;
+    $assignoptions->blocked = 0;
+    $assignoptions->peergraded = 0;
+    $assignoptions->nomination = $nom->id ?? 0;
+    $assignoptions->peergradeoptions = $peergradeoptions;
+
+    $assign = new peergrade_assignment($assignoptions);
+    $assign->assign();
 }
 
 redirect($returnurl);
