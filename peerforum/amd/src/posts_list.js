@@ -95,17 +95,6 @@ define([
             }
         });
         root.on('click', Selectors.post.peergradeListLink, function(e) {
-            e.preventDefault();
-            // After adding a reply a url hash is being generated that scrolls (points) to the newly added reply.
-            // The hash being present causes this scrolling behavior to the particular reply to persists even when
-            // another, non-related in-page replay link is being clicked which ultimately causes a bad user experience.
-            // A particular solution for this problem would be changing the browser's history state when a url hash is
-            // present.
-            if (window.location.hash) {
-                // Remove the fragment identifier from the url.
-                var url = window.location.href.split('#')[0];
-                history.pushState({}, document.title, url);
-            }
             var pending = new Pending('peergrade-collapsable');
             var currentRoot = $(e.currentTarget).parents(Selectors.post.peerforumContent);
             var form = currentRoot.find(Selectors.post.peergradeListContent);
@@ -115,17 +104,6 @@ define([
             }
         });
         root.on('click', Selectors.post.peergradeConfigLink, function(e) {
-            e.preventDefault();
-            // After adding a reply a url hash is being generated that scrolls (points) to the newly added reply.
-            // The hash being present causes this scrolling behavior to the particular reply to persists even when
-            // another, non-related in-page replay link is being clicked which ultimately causes a bad user experience.
-            // A particular solution for this problem would be changing the browser's history state when a url hash is
-            // present.
-            if (window.location.hash) {
-                // Remove the fragment identifier from the url.
-                var url = window.location.href.split('#')[0];
-                history.pushState({}, document.title, url);
-            }
             var pending = new Pending('peergrade-config-collapsable');
             var currentRoot = $(e.currentTarget).parents(Selectors.post.peerforumContent);
             var form = currentRoot.find(Selectors.post.peergradeConfigContent);
