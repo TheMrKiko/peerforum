@@ -322,6 +322,11 @@ class peergrade_assignment {
     public $nomination = 0;
 
     /**
+     * @var int The nomination value related to this assignment
+     */
+    public $nominationvalue = 0;
+
+    /**
      * Constructor.
      *
      * @param stdClass $options {
@@ -337,6 +342,7 @@ class peergrade_assignment {
      *            expired => If the user let the peer grade expire [required]
      *            timemodified  => int The time the peer grade [optional]
      *            nomination  => int The nomination id related to this assignment [optional]
+     *            nominationvalue  => int The nomination value related to this assignment [optional]
      * }
      */
     public function __construct($options) {
@@ -365,6 +371,9 @@ class peergrade_assignment {
         }
         if (isset($options->nomination)) {
             $this->nomination = $options->nomination;
+        }
+        if (isset($options->nominationvalue)) {
+            $this->nominationvalue = $options->nominationvalue;
         }
         if (isset($this->peergradeoptions->settings)) {
             $this->settings = $this->peergradeoptions->settings;
@@ -1466,9 +1475,11 @@ class peergrade_manager {
         $aggregatepeergrades = $DB->get_records_sql($sql, $params);
 
         $userfields = user_picture::fields('u', ['deleted'], 'userid');
-        $sql = "SELECT r.id, r.itemid, r.userid, r.peergraded, r.ended, r.expired, r.blocked, r.nomination, r.timeassigned, r.timemodified, $userfields
+        $sql = "SELECT r.id, r.itemid, r.userid, r.peergraded, r.ended, r.expired, r.blocked, r.nomination, r.timeassigned,
+                       r.timemodified, n.nomination AS nominationvalue, $userfields
                   FROM {peerforum_time_assigned} r
              LEFT JOIN {user} u ON r.userid = u.id
+             LEFT JOIN {peerforum_relationship_nomin} n ON r.nomination = n.id
                  WHERE r.contextid = :contextid AND
                        r.itemid {$itemidtest} AND
                        r.component = :component AND
@@ -1537,6 +1548,7 @@ class peergrade_manager {
                     $assignoptions->blocked = $userassign->blocked;
                     $assignoptions->peergraded = $userassign->peergraded;
                     $assignoptions->nomination = $userassign->nomination;
+                    $assignoptions->nominationvalue = $userassign->nominationvalue;
                     $assignoptions->timeassigned = $userassign->timeassigned;
                     $assignoptions->timemodified = $userassign->timemodified;
                     $assignoptions->peergradeoptions = $peergradeoptions;
@@ -2442,6 +2454,7 @@ class peergrade_manager {
             $userid = $userassigned->userid;
 
             $nominationid = $usersnominated[$userid]->nominationid ?? 0;
+            $nominationvalue = $usersnominated[$userid]->nomination ?? 0;
 
             $assignoptions = new stdClass();
             $assignoptions->userid = $userid;
@@ -2450,6 +2463,7 @@ class peergrade_manager {
             $assignoptions->expired = 0;
             $assignoptions->blocked = 0;
             $assignoptions->nomination = $nominationid;
+            $assignoptions->nominationvalue = $nominationvalue;
             $assignoptions->peergraded = 0;
             $assignoptions->peergradeoptions = $peergradeoptions;
             $assign = new peergrade_assignment($assignoptions);
