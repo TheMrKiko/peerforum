@@ -446,7 +446,8 @@ class peergrade_assignment {
         $timeassigned = $this->timeassigned;
         $timetilexpire = $this->settings->timetoexpire * DAYSECS;
         $timewhenexpires = $timeassigned + $timetilexpire;
-        return $formatted ? get_time_interval_string($timewhenexpires, $time) : $timewhenexpires - $time;
+        $difference = $timewhenexpires - $time;
+        return $formatted ? format_time($difference) : $difference;
 
     }
 } // End peergrade assignment class definition.
@@ -1144,13 +1145,17 @@ class peergrade implements renderable {
      * @param moodle_url|string $returnurl The URL to return to.
      * @return moodle_url can be used to peergrade the associated item.
      */
-    public function get_assign_url($action = null, $assigneduserid = null, $returnurl = null) {
+    public function get_assign_url($action = null, $assigneduserid = null, $returnanchor = null, $returnurl = null) {
         if (empty($returnurl)) {
             if (!empty($this->settings->returnurl)) {
                 $returnurl = $this->settings->returnurl;
             } else {
                 global $PAGE;
                 $returnurl = $PAGE->url;
+            }
+            $returnurl = new moodle_url($returnurl);
+            if (!empty($returnanchor)) {
+                $returnurl->set_anchor($returnanchor);
             }
         }
 

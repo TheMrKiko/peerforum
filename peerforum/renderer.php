@@ -320,8 +320,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
                 // Feedback autor.
                 $anonymouspeergrader = $peergrade->settings->remainanonymous;
-                $grader = $anonymouspeergrader ? '[Your peergrade to this post is anonymous]' :
-                        '[Your peergrade to this post is public]';
+                $grader = $anonymouspeergrader ? 'Your peergrade to this post is anonymous.' :
+                        'Your peergrade to this post is public.';
 
                 // Output submit button.
                 $peergradehtml .= html_writer::start_tag('span', array('class' => "peergradesubmit"));
@@ -427,8 +427,8 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     $expandhtml .= html_writer::end_tag('div');
 
                     // Edit peergrade.
-                    if ($peergrade->can_edit()) { // TODO!
-                        $expandhtml .= html_writer::span('');
+                    if ($peergrade->can_edit()) {
+                        $expandhtml .= html_writer::span(' (Can be edited!)');
                     }
 
                     /*DIV - peerforumpostseefeedback]*/
@@ -475,10 +475,11 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
         /*--------------- PROFESSOR OPTIONS ------------- */
         if (has_capability('mod/peerforum:professorpeergrade', $peergrade->context)) {
-            $expandstr = 'Expand controls';
+            $expandstr = 'Manage peer grading';
             $peergradehtml .= html_writer::empty_tag('br');
             $peergradehtml .= html_writer::link('#peergradefeedbacks' . $peergrade->itemid,
-                    $expandstr, array('data-action' => 'peergrade-collapsible-config-link'));
+                    $expandstr, array('data-action' => 'peergrade-collapsible-config-link',
+                            'id' => 'pgconfiglink' . $peergrade->itemid));
 
             /*DIV - peergradeconfig*/
             $peergradehtml .= html_writer::start_tag('div', array(
@@ -487,38 +488,91 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     'data-content' => 'peergrade-config-content',
                     'style' => 'display: none;'));
 
-            $peersnames = array_map(static function ($assign) use ($peerforumentity, $peergrade) {
+            $peersnames = array_map(function ($assign) use ($peerforumentity, $peergrade) {
+                $row = new html_table_row();
+                $row->id = 'peersassigned' . $peergrade->itemid;
                 $name = html_writer::span(fullname($assign->userinfo), 'bold');
                 $userinfolink = \mod_peerforum\local\container::get_url_factory()->get_user_summary_url(
                         $assign->userinfo,
                         $peerforumentity->get_course_id(),
                 );
-                $tte = '';
+                $tte = '-';
                 if (!empty($assign->peergraded)) {
+                    $state = 'GRAD';
                     $color = '#339966';
                 } else if (!empty($assign->expired)) {
+                    $state = 'EXP';
                     $color = '#cc3300';
                 } else if (!empty($assign->ended)) {
+                    $state = 'END';
                     $color = 'grey';
                 } else {
+                    $state = 'TODO';
                     $color = 'black';
-                    $tte = ' (' . $assign->get_time_to_expire() . ')';
+                    $tte = $assign->get_time_to_expire();
                 }
-                $name .= html_writer::link($userinfolink, '...');
-                $nom = $assign->nomination ? '[N]' : '';
-                return html_writer::tag('span', $name . $tte . $nom, array(
-                        'id' => 'peersassigned' . $peergrade->itemid,
-                        'style' => 'color: ' . $color . ';'));
+                $row->cells[] = html_writer::link($userinfolink, $name);
+                $row->cells[] = $assign->nomination ? 'Like '
+                        . ($assign->nominationvalue > 0 ? 'most' : 'least')
+                        : 'None';
+                $state = new html_table_cell($state);
+                $state->header = true;
+                $state->style = 'color: ' . $color . ';';
+                $row->cells[] = $state;
+                $row->cells[] = $tte;
+
+                $unassignurl = $peergrade->get_assign_url('remove', $assign->userinfo->id, 'pgconfiglink' . $peergrade->itemid);
+                $singlebutton = new single_button($unassignurl, 'Delete');
+                $singlebutton->add_confirm_action('Are you sure you wanna de assign and delete the peer grade?
+            This is irreversible. Also, if this is the LAST assign left, you won\'t be able to assign anyone else. ');
+                $row->cells[] = $this->output->render($singlebutton);
+
+                return $row;
             }, $peergrade->usersassigned);
-            $peersnames = implode(
-                    $peersnames,
-                    html_writer::tag('span', '; ', array('style' => 'color: grey;'))
+
+            $table = new html_table();
+            $table->id = 'peersassigned' . $peergrade->itemid;
+            $table->attributes['class'] = 'table table-responsive table-striped table-sm';
+            $table->head = array(
+                    '',
+                    'Relation',
+                    'State',
+                    'Time left',
+                    'Unassign',
             );
+            $table->align = array(
+                    'left',
+                    'center',
+                    'center',
+                    'center',
+                    'center',
+            );
+            $table->data = $peersnames;
+            $peergradehtml .= html_writer::table($table);
 
-            $peergradehtml .= html_writer::tag('span', "Students assigned to peer grade: ",
-                    array('style' => 'color: grey;')); // Color: #6699ff;.
+            // Show options about assign/remove peers.
+            if ($peerforumentity->is_showdetails()) {
+                $assignaddurl = $peergrade->get_assign_url('assign', null, 'pgconfiglink' . $peergrade->itemid);
+                static $possstudents = array();
+                if (empty($possstudents)) {
+                    $possstudents = $peergrademanager->get_possible_peergraders($peergrade);
+                    $possstudents = array_map(static function ($s) {
+                        return fullname($s);
+                    }, $possstudents);
+                }
+                $singleselect = new single_select($assignaddurl, 'assigneduserid',
+                        array_filter($possstudents, static function ($s) use ($peergrade) {
+                            return empty($peergrade->usersassigned[$s]) && $peergrade->itemuserid != $s;
+                        }, ARRAY_FILTER_USE_KEY),
+                        0, array(0 => 'choosedots'));
 
-            $peergradehtml .= html_writer::tag('span', $peersnames, array('id' => 'peersassigned' . $peergrade->itemid));
+                $peergradehtml .= html_writer::div(
+                        html_writer::label('Assign student:', 'assigneduserid') .
+                        ' ' .
+                        $this->output->render($singleselect),
+                        '', array('style' => 'color: grey;')
+                );
+            }
 
             $authorcorrecttrainings = $trainingvault
                 ->get_from_discussion_id_and_user_id($peerforumentity->get_id(), $postentity->get_discussion_id(),
@@ -534,42 +588,6 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     array('class' => !$authordidtraining ? 'text-warning' : 'text-info')
             );
 
-            // Show options about assign/remove peers.
-            if ($peerforumentity->is_showdetails()) {
-                $assignaddurl = $peergrade->get_assign_url('assign');
-                static $possstudents = array();
-                if (empty($possstudents)) {
-                    $possstudents = $peergrademanager->get_possible_peergraders($peergrade);
-                    $possstudents = array_map(static function ($s) {
-                        return fullname($s);
-                    }, $possstudents);
-                }
-                $singleselect = new single_select($assignaddurl, 'assigneduserid', $possstudents,
-                        0, array(0 => 'choosedots'));
-
-                $peergradehtml .= html_writer::div(
-                        html_writer::label('Assign student:', 'assigneduserid') .
-                        ' ' .
-                        $this->output->render($singleselect),
-                        '', array('style' => 'color: grey;')
-                );
-
-                $assignremurl = $peergrade->get_assign_url('remove');
-                $assignedopt = array_map(static function ($assign) {
-                    return fullname($assign->userinfo);
-                }, $peergrade->usersassigned);
-                $singleselect = new single_select($assignremurl, 'assigneduserid', $assignedopt,
-                        0, array(0 => 'choosedots'));
-                $singleselect->add_confirm_action('Are you sure you wanna de assign and delete the peer grade?
-            This is irreversible. Also, if this is the LAST assign left, you won\'t be able to assign anyone else. ');
-
-                $peergradehtml .= html_writer::div(
-                        html_writer::label('Remove assign and peergrade of:', 'assigneduserid') .
-                        ' ' .
-                        $this->output->render($singleselect),
-                        '', array('style' => 'color: grey;')
-                );
-            }
             /*DIV - peergradeconfig]*/
             $peergradehtml .= html_writer::end_tag('div');
         }
