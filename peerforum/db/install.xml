@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/peerforum/db" VERSION="20210325" COMMENT="XMLDB file for Moodle mod/peerforum"
+<XMLDB PATH="mod/peerforum/db" VERSION="20210401" COMMENT="XMLDB file for Moodle mod/peerforum"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -516,6 +516,9 @@
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
                 <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="peerforum_training_page" REFFIELDS="id"/>
             </KEYS>
+            <INDEXES>
+                <INDEX NAME="pageid-n" UNIQUE="true" FIELDS="pageid, n"/>
+            </INDEXES>
         </TABLE>
         <TABLE NAME="peerforum_training_exercise" COMMENT="Exercises from the training pages">
             <FIELDS>
@@ -532,7 +535,7 @@
                 <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="peerforum_training_page" REFFIELDS="id"/>
             </KEYS>
             <INDEXES>
-                <INDEX NAME="n-pageid" UNIQUE="false" FIELDS="pageid, n"/>
+                <INDEX NAME="pageid-n" UNIQUE="true" FIELDS="pageid, n"/>
             </INDEXES>
         </TABLE>
         <TABLE NAME="peerforum_training_feedback" COMMENT="The feedback strings for each grade given">
@@ -550,6 +553,9 @@
                 <KEY NAME="exid" TYPE="foreign" FIELDS="exid" REFTABLE="peerforum_training_exercise" REFFIELDS="id"/>
                 <KEY NAME="criteriaid" TYPE="foreign" FIELDS="criteriaid" REFTABLE="peerforum_training_criteria" REFFIELDS="id"/>
             </KEYS>
+            <INDEXES>
+                <INDEX NAME="pageid-exid-criteriaid-grade" UNIQUE="true" FIELDS="pageid, exid, criteriaid, grade"/>
+            </INDEXES>
         </TABLE>
         <TABLE NAME="peerforum_training_rgh_grade" COMMENT="The correct grade for each criteria, according to the professor">
             <FIELDS>
@@ -565,6 +571,9 @@
                 <KEY NAME="exid" TYPE="foreign" FIELDS="exid" REFTABLE="peerforum_training_exercise" REFFIELDS="id"/>
                 <KEY NAME="criteriaid" TYPE="foreign" FIELDS="criteriaid" REFTABLE="peerforum_training_criteria" REFFIELDS="id"/>
             </KEYS>
+            <INDEXES>
+                <INDEX NAME="pageid-exid-criteriaid" UNIQUE="true" FIELDS="pageid, exid, criteriaid"/>
+            </INDEXES>
         </TABLE>
         <TABLE NAME="peerforum_training_submit" COMMENT="Submissions in training pages">
             <FIELDS>
@@ -597,6 +606,9 @@
                 <KEY NAME="exid" TYPE="foreign" FIELDS="exid" REFTABLE="peerforum_training_exercise" REFFIELDS="id"/>
                 <KEY NAME="criteriaid" TYPE="foreign" FIELDS="criteriaid" REFTABLE="peerforum_training_criteria" REFFIELDS="id"/>
             </KEYS>
+            <INDEXES>
+                <INDEX NAME="submissionid-exid-criteriaid" UNIQUE="true" FIELDS="submissionid, exid, criteriaid"/>
+            </INDEXES>
         </TABLE>
     </TABLES>
 </XMLDB>

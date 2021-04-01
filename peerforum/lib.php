@@ -11216,18 +11216,26 @@ function peerforum_update_training_page($trainingpage, $mform) {
     $correctgrades = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->correctgrades, array('criteriaid', 'n'));
     $criterias = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->criteria, array('n'));
 
-    foreach ($exercises as $key => $trainingexercise) {
+    foreach ($exercises as $key => &$trainingexercise) {
         $exid = $trainingexercise->id;
+
+        if ($exid == -1) { // Hack: should be a constant but ya
+            $ex = $DB->get_record('peerforum_training_exercise', array(
+                    'pageid' => $trainingpage->id,
+                    'n' => $key,
+            ));
+            $exid = $trainingexercise->id = $ex->id ?? $exid;
+        }
 
         $exercise = $trainingexercise->description;
         $exercise->pageid = $trainingpage->id;
         $exercise->n = $key;
         $exercise->name = $trainingexercise->name;
-        $exercise->id = $exid;
 
         if ($exid == -1) { // Hack: should be a constant but ya
             $trainingexercise->id = $DB->insert_record("peerforum_training_exercise", $exercise);
         } else {
+            $exercise->id = $exid;
             $DB->update_record("peerforum_training_exercise", $exercise);
         }
 
@@ -11236,15 +11244,26 @@ function peerforum_update_training_page($trainingpage, $mform) {
 
         $DB->set_field('peerforum_training_exercise', 'description', $exercise->description, array('id' => $trainingexercise->id));
     }
+    unset($trainingexercise);
 
     foreach ($criterias as $key => $criteria) {
+        $criteriaid = $criteria->id;
+
+        if ($criteriaid == -1) { // Hack: should be a constant but ya
+            $cr = $DB->get_record('peerforum_training_criteria', array(
+                    'pageid' => $trainingpage->id,
+                    'n' => $key,
+            ));
+            $criteriaid = $cr->id ?? $criteriaid;
+        }
+
         $criteria->pageid = $trainingpage->id;
         $criteria->n = $key;
-        $criteriaid = $criteria->id;
 
         if ($criteriaid == -1) { // Hack: should be a constant but ya
             $criteria->id = $DB->insert_record("peerforum_training_criteria", $criteria);
         } else {
+            $criteria->id = $criteriaid;
             $DB->update_record("peerforum_training_criteria", $criteria);
         }
     }
@@ -11252,25 +11271,48 @@ function peerforum_update_training_page($trainingpage, $mform) {
     $DB->set_field('peerforum_training_page', 'ncriterias', count($criterias),  array('id' => $trainingpage->id));
 
     foreach ($correctgrades as $correctgrade) {
-        $correctgrade->pageid = $trainingpage->id;
         $correctgradeid = $correctgrade->id;
+
+        if ($correctgradeid == -1) { // Hack: should be a constant but ya
+            $cg = $DB->get_record('peerforum_training_rgh_grade', array(
+                    'pageid' => $trainingpage->id,
+                    'exid' => $exercises[$correctgrade->n]->id,
+                    'criteriaid' => $correctgrade->criteriaid,
+            ));
+            $correctgradeid = $cg->id ?? $correctgradeid;
+        }
+
+        $correctgrade->pageid = $trainingpage->id;
         $correctgrade->exid = $exercises[$correctgrade->n]->id;
 
         if ($correctgradeid == -1) { // Hack: should be a constant but ya
             $correctgrade->id = $DB->insert_record("peerforum_training_rgh_grade", $correctgrade);
         } else {
+            $correctgrade->id = $correctgradeid;
             $DB->update_record("peerforum_training_rgh_grade", $correctgrade);
         }
     }
 
     foreach ($feedbacks as $feedback) {
-        $feedback->pageid = $trainingpage->id;
         $feedbackid = $feedback->id;
+
+        if ($feedbackid == -1) { // Hack: should be a constant but ya
+            $fb = $DB->get_record('peerforum_training_feedback', array(
+                    'pageid' => $trainingpage->id,
+                    'exid' => $exercises[$feedback->n]->id,
+                    'criteriaid' => $feedback->criteriaid,
+                    'grade' => $feedback->grade,
+            ));
+            $feedbackid = $fb->id ?? $feedbackid;
+        }
+
+        $feedback->pageid = $trainingpage->id;
         $feedback->exid = $exercises[$feedback->n]->id;
 
         if ($feedbackid == -1) { // Hack: should be a constant but ya
             $feedback->id = $DB->insert_record("peerforum_training_feedback", $feedback);
         } else {
+            $feedback->id = $feedbackid;
             $DB->update_record("peerforum_training_feedback", $feedback);
         }
     }

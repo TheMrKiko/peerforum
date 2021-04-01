@@ -483,7 +483,65 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021032502, 'peerforum');
     }
 
+    if ($oldversion < 2021040101) {
 
+        // Define index pageid-n (unique) to be added to peerforum_training_criteria.
+        $table = new xmldb_table('peerforum_training_criteria');
+        $index = new xmldb_index('pageid-n', XMLDB_INDEX_UNIQUE, ['pageid', 'n']);
+
+        // Conditionally launch add index pageid-n.
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Define index pageid-n (unique) to be dropped form peerforum_training_exercise.
+        $table = new xmldb_table('peerforum_training_exercise');
+        $index = new xmldb_index('n-pageid', XMLDB_INDEX_NOTUNIQUE, ['pageid', 'n']);
+
+        // Conditionally launch drop index pageid-n.
+        if ($dbman->index_exists($table, $index)) {
+            $dbman->drop_index($table, $index);
+        }
+
+        // Define index pageid-n (unique) to be added to peerforum_training_exercise.
+        $table = new xmldb_table('peerforum_training_exercise');
+        $index = new xmldb_index('pageid-n', XMLDB_INDEX_UNIQUE, ['pageid', 'n']);
+
+        // Conditionally launch add index pageid-n.
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Define index pageid-exid-criteriaid (unique) to be added to peerforum_training_feedback.
+        $table = new xmldb_table('peerforum_training_feedback');
+        $index = new xmldb_index('pageid-exid-criteriaid-grade', XMLDB_INDEX_UNIQUE, ['pageid', 'exid', 'criteriaid', 'grade']);
+
+        // Conditionally launch add index pageid-exid-criteriaid.
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Define index pageid-exid-criteriaid (unique) to be added to peerforum_training_rgh_grade.
+        $table = new xmldb_table('peerforum_training_rgh_grade');
+        $index = new xmldb_index('pageid-exid-criteriaid', XMLDB_INDEX_UNIQUE, ['pageid', 'exid', 'criteriaid']);
+
+        // Conditionally launch add index pageid-exid-criteriaid.
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Define index submissionid-exid-criteriaid (unique) to be added to peerforum_training_rating.
+        $table = new xmldb_table('peerforum_training_rating');
+        $index = new xmldb_index('submissionid-exid-criteriaid', XMLDB_INDEX_UNIQUE, ['submissionid', 'exid', 'criteriaid']);
+
+        // Conditionally launch add index submissionid-exid-criteriaid.
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021040101, 'peerforum');
+    }
 
     return true;
 }
