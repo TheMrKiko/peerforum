@@ -31,6 +31,7 @@ $vaultfactory = mod_peerforum\local\container::get_vault_factory();
 $urlfactory = mod_peerforum\local\container::get_url_factory();
 $peerforumvault = $vaultfactory->get_peerforum_vault();
 $trainingpagesvault = $vaultfactory->get_training_page_vault();
+$discussionsvault = $vaultfactory->get_discussion_vault();
 
 $cmid = optional_param('id', 0, PARAM_INT);
 $peerforumid = optional_param('pf', 0, PARAM_INT);
@@ -88,6 +89,7 @@ $button->class = 'py-3';
 echo $OUTPUT->render($button);
 
 $trainingpages = $trainingpagesvault->get_from_peerforum_id($peerforum->get_id());
+$discussions = $discussionsvault->get_all_discussions_in_peerforum($peerforum);
 if (!$trainingpages) {
     $msg = get_string('nopeergrades', 'peerforum');
     echo html_writer::tag('div', $msg, array('class' => 'mdl-align'));
@@ -114,7 +116,7 @@ if (!$trainingpages) {
         current($row->cells)->header = true;
 
         $row->cells[] = $trainingpage->exercises;
-        $row->cells[] = $trainingpage->discussion;
+        $row->cells[] = !empty($discussions[$trainingpage->discussion]) ? $discussions[$trainingpage->discussion]->get_name() : '-';
         $row->cells[] = html_writer::link($urlfactory->get_training_edit_url($trainingpage), $stredit);
         $table->data[] = $row;
     }

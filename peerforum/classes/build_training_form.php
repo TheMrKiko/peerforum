@@ -60,9 +60,9 @@ class mod_peerforum_build_training_form extends moodleform {
 
         $peerforum = $this->_customdata['peerforum'];
         $peergradescaleitems = $this->_customdata['peergradescaleitems'];
+        $discussionsselect = $this->_customdata['discussionsselect'];
         $trainingpage = $this->_customdata['trainingpage'];
         $edit = $this->_customdata['edit'];
-
 
         $scalearray = array(PEERGRADE_UNSET_PEERGRADE => 'Rating...') + $peergradescaleitems;
 
@@ -78,9 +78,8 @@ class mod_peerforum_build_training_form extends moodleform {
         $mform->setType('description', PARAM_RAW);
 
         /* Discussion */
-        $mform->addElement('text', 'discussion', 'Discussion ID');
+        $mform->addElement('select', 'discussion', 'Discussion', array(0 => 'Discussion...') + $discussionsselect);
         $mform->setType('discussion', PARAM_INT);
-        $mform->addRule('discussion', 'Must be a number.', 'numeric', null, 'client');
 
         /*-------- CRITERIA --------*/
         $repeatarray = array();

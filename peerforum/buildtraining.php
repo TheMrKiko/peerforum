@@ -51,6 +51,7 @@ $peerforumvault = $vaultfactory->get_peerforum_vault();
 $peerforumdatamapper = $legacydatamapperfactory->get_peerforum_data_mapper();
 
 $trainingpagevault = $vaultfactory->get_training_page_vault();
+$discussionvault = $vaultfactory->get_discussion_vault();
 
 if (!isloggedin() or isguestuser()) {
     require_login();
@@ -317,10 +318,16 @@ if ($peerforum->peergradeassessed) {
 }
 $peergradescaleitems = $pg->settings->peergradescale->peergradescaleitems ?? array();
 
+$discussionentities = $discussionvault->get_all_discussions_in_peerforum($peerforumentity, 'name ASC');
+$discussionsselect = array_map(function ($de) {
+    return $de->get_name();
+}, $discussionentities);
+
 $mformpage = new mod_peerforum_build_training_form('buildtraining.php', [
         'peerforum' => $peerforum,
         'peergradescaleitems' => $peergradescaleitems,
         'trainingpage' => $trainingpage,
+        'discussionsselect' => $discussionsselect,
         'edit' => $edit,
 ]);
 
