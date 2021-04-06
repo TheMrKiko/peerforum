@@ -2505,11 +2505,13 @@ class peergrade_manager {
 
     /**
      * @param array $filters
+     * @param string $xal extra alias
+     * @param string $sortsql
      * @param array $group
      * @param array $count
      * @return array
      */
-    public function get_items_from_filters(array $filters = array(), array $group = array(), array $count = array()): array {
+    public function get_items_from_filters(array $filters = array(), $xal = '', $sortsql = '', $group = array(), $count = array()) {
         global $DB;
         $where = [];
         $alias = 's';
@@ -2535,21 +2537,26 @@ class peergrade_manager {
                 $count, static function ($prev, $c) use ($alias) {
                     return $prev . ", COUNT(NULLIF({$alias}.{$c},0)) AS n{$c}";
                 }, '');
-        $group = array_map(static function ($g) use ($alias) {
+        $groupal = array_map(static function ($g) use ($alias) {
             return "{$alias}.{$g}";
         }, $group);
-        $group = implode(', ', $group);
-        $groups = !empty($group) ? 'GROUP BY ' . $group : '';
-        $groupsl = !empty($group) ? $group . ',' : '';
-        $userfields = user_picture::fields('u', ['deleted'], 'userid');
+        $groupal = implode(', ', $groupal);
+        $groups = !empty($groupal) ? 'GROUP BY ' . $groupal : '';
+        $groupsl = !empty($group) ? implode(', ', $group) . ',' : '';
+        $sortsql = !empty($sortsql) ? $sortsql . ',' : '';
+        $extraalias = !empty($xal) ? ',' . $xal : '';
+        $userfields = user_picture::fields('u', ['deleted'], 'useridu');
 
-        $sql = "SELECT {$groupsl} {$alias}.* {$count}, b.id AS ublocked, {$userfields}
+        $sql = "SELECT {$groupsl} a.* {$extraalias}
+                FROM (
+                SELECT  {$alias}.* {$count}, b.id AS ublocked, {$userfields}
                   FROM {peerforum_time_assigned} {$alias}
              LEFT JOIN {user} u ON {$alias}.userid = u.id
              LEFT JOIN {peerforum_user_block} b ON {$alias}.userid = b.userid
                        {$wheres}
                        {$groups}
-              ORDER BY {$alias}.timeassigned DESC";
+                     ) a
+              ORDER BY {$sortsql} timeassigned DESC";
         return $DB->get_records_sql($sql);
     }
 

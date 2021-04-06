@@ -23,6 +23,7 @@
  */
 
 require_once('../../config.php');
+require_once($CFG->dirroot.'/lib/tablelib.php');
 require_once('./lib.php');
 
 $urlfactory = mod_peerforum\local\container::get_url_factory();
@@ -89,14 +90,19 @@ echo $OUTPUT->header();
 echo $OUTPUT->box_start('posts-list');
 echo $OUTPUT->tabtree($row, 'viewgradersstats');
 
-$group = array('userid');
-$count = array('id', 'peergraded', 'expired', 'ended');
-// Gets posts from filters.
-$items = $pgmanager->get_items_from_filters($userfilter, $group, $count);
+$table = new flexible_table('userpgstatistics');
+$table->set_attribute('class', 'generalboxtable table table-striped');
 
-$table = new html_table();
-$table->attributes['class'] = 'generalboxtable table table-striped';
-$table->head = array(
+$table->define_columns(array(
+        'fullname',
+        'nid',
+        'npeergraded',
+        'nexpired',
+        'nended',
+        'performance',
+        'ublocked'
+));
+$table->define_headers(array(
         'User',
         'Assigned',
         'Peer graded',
@@ -104,44 +110,46 @@ $table->head = array(
         'Ended',
         'Performance',
         'Block'
-);
-$table->align = array(
-        'center',
-        'center',
-        'center',
-        'center',
-        'center',
-        'center',
-        'center',
-);
+));
+$table->column_style_all('text-align', 'center');
+$table->column_style('fullname', 'text-align', 'left');
 
-$table->data = array();
+$table->sortable(true, 'firstname');
+$table->is_persistent(false);
+$table->define_baseurl($url);
+$table->text_sorting('block');
+$table->define_header_column('fullname');
+$table->setup();
+
+$group = array('userid');
+$count = array('id', 'peergraded', 'expired', 'ended');
+$perfalias =
+        'nid AS performance';
+// Gets posts from filters.
+$items = $pgmanager->get_items_from_filters($userfilter, $perfalias, $table->get_sql_sort(), $group, $count);
 
 foreach ($items as $item) {
     $user = user_picture::unalias($item, ['deleted'], 'userid');
     $userblocked = !empty($item->ublocked);
     $blockurl = $pgmanager->get_block_user_url($user->id, $coursecontext->id);
-    $row = new html_table_row();
-    if ($userblocked) {
-        $row->style = "background-color: lightpink;";
-    }
+    $row = array();
+    $rowclass = $userblocked ? 'bg-warning' : '';
 
-    $subjcell = new html_table_cell(html_writer::link(
+    $subjcell = html_writer::link(
             $urlfactory->get_user_summary_url($user, $courseid),
             fullname($user),
-    ));
-    $subjcell->header = true;
-    $row->cells[] = $subjcell;
-    $row->cells[] = $item->nid;
-    $row->cells[] = $item->npeergraded;
-    $row->cells[] = $item->nexpired;
-    $row->cells[] = $item->nended;
-    $row->cells[] = ($item->nid ? number_format($item->npeergraded * 100 / $item->nid, 1 ) : '0') . '%';
+    );
+    $row[] = $subjcell;
+    $row[] = $item->nid;
+    $row[] = $item->npeergraded;
+    $row[] = $item->nexpired;
+    $row[] = $item->nended;
+    $row[] = number_format($item->performance, 1 ) . '%';
 
     $singlebutton = new single_button($blockurl, (!$userblocked ? 'B' : 'Unb') . 'lock');
-    $row->cells[] = $OUTPUT->render($singlebutton);
-    $table->data[] = $row;
+    $row[] = $OUTPUT->render($singlebutton);
+    $table->add_data($row, $rowclass);
 }
-echo !empty($items) ? html_writer::table($table) : 'No users to show.';
+$table->finish_output();
 echo $OUTPUT->box_end();
 echo $OUTPUT->footer();
