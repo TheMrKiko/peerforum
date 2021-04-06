@@ -2320,22 +2320,12 @@ class peergrade_manager {
                     return $u->userid;
                 }, $users), SQL_PARAMS_NAMED);
 
-        $params['contextid'] = $peergradeoptions->context->id;
-        $params['component'] = $peergradeoptions->component;
-        $params['peergradearea'] = $peergradeoptions->peergradearea;
-
-        $userfields = user_picture::fields('s', ['deleted'], 'userid');
-        $sql = "SELECT r.userid, r.peergraded, COUNT(r.id) - SUM(r.ended) AS numcurrent, SUM(r.expired) AS sexpied,
-                       MAX(r.timeassigned) AS lastassign, COUNT(p.id) AS numpeergrades, $userfields
-                  FROM {peerforum_time_assigned} r
-             LEFT JOIN {peerforum_peergrade} p ON r.peergraded = p.id
-             LEFT JOIN {user} s ON r.userid = s.id
-                 WHERE r.contextid = :contextid AND
-                       r.userid {$useridtest} AND
-                       r.component = :component AND
-                       r.peergradearea = :peergradearea
-              GROUP BY r.userid, r.component, r.peergradearea, r.contextid
-              ORDER BY numcurrent ASC, numpeergrades ASC, sexpied ASC, lastassign ASC, r.userid";
+        $userfields = user_picture::fields('s', ['deleted']);
+        $sql = "SELECT $userfields
+                  FROM {user} s
+             LEFT JOIN {peerforum_user_block} b ON s.id = b.userid
+                 WHERE s.id {$useridtest} AND
+                       b.id IS NULL";
         return $DB->get_records_sql($sql, $params);
     }
 
