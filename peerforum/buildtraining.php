@@ -25,15 +25,23 @@
 
 require_once('../../config.php');
 
+define('DEL_TYPE_PAGE', 1);
+define('DEL_TYPE_CRITERIA', 2);
+define('DEL_TYPE_EXERCISE', 3);
+
 $peerforum = optional_param('peerforum', 0, PARAM_INT);
 $edit = optional_param('edit', 0, PARAM_INT);
 $delete = optional_param('delete', 0, PARAM_INT);
+$deletetype = optional_param('deltype', 0, PARAM_INT);
+$deleteid = optional_param('delid', 0, PARAM_INT);
 $confirm = optional_param('confirm', 0, PARAM_INT);
 
 $PAGE->set_url('/mod/peerforum/buildtraining.php', array(
         'peerforum' => $peerforum,
         'edit' => $edit,
         'delete' => $delete,
+        'deltype' => $deletetype,
+        'delid' => $deleteid,
         'confirm' => $confirm,
 ));
 // These page_params will be passed as hidden variables later in the form.
@@ -86,6 +94,7 @@ if (!empty($peerforum)) {
     $trainingpage->course = $course->id;
     $trainingpage->peerforum = $peerforum->id;
     $trainingpage->discussion = null;
+    $trainingpage->id = 0;
     $trainingpage->name = null;
     $trainingpage->description = null;
     $trainingpage->descriptionformat = editors_get_preferred_format();
@@ -139,8 +148,22 @@ if (!empty($peerforum)) {
         return trusttext_pre_edit($ex, 'description', $modcontext);
     }, $trainingpage->exercise['description']);
 
+    $trainingpage->link = $urlfactory->get_training_delete_url($trainingpage, DEL_TYPE_PAGE);
+
+    $trainingpage->criteria['link'] = array();
+    $trainingpage->criteria['id'] = $trainingpage->criteria['id'] ?? array();
+    foreach ($trainingpage->criteria['id'] as $k => $criteriaid) {
+        $trainingpage->criteria['link'][$k] = $urlfactory->get_training_delete_url($trainingpage, DEL_TYPE_CRITERIA, $criteriaid);
+    }
+
+    $trainingpage->exercise['link'] = array();
+    $trainingpage->exercise['id'] = $trainingpage->exercise['id'] ?? array();
+    foreach ($trainingpage->exercise['id'] as $k => $exerciseid) {
+        $trainingpage->exercise['link'][$k] = $urlfactory->get_training_delete_url($trainingpage, DEL_TYPE_EXERCISE, $exerciseid);
+    }
+
 } else if (!empty($delete)) {
-    // User is deleting a page.
+    // User is deleting something.
 
     $trainingpageentity = $trainingpagevault->get_from_id($delete);
     if (empty($trainingpageentity)) {
@@ -153,131 +176,88 @@ if (!empty($peerforum)) {
     }
 
     $capabilitymanager = $managerfactory->get_capability_manager($peerforumentity);
+    $trainingpage = $trainingpageentity;
+    $peerforum = $peerforumdatamapper->to_legacy_object($peerforumentity);
     $course = $peerforumentity->get_course_record();
-    $cm = $peerforumentity->get_course_module_record();
     $modcontext = $peerforumentity->get_context();
 
-    require_login($course, false, $cm);
+    if (!$cm = get_coursemodule_from_instance("peerforum", $peerforum->id, $course->id)) {
+        print_error('invalidcoursemodule');
+    }
 
-    $replycount = $postvault->get_reply_count_for_post_id_in_discussion_id(
-            $USER, $postentity->get_id(), $discussionentity->get_id(), true);
+    require_login($course, false, $cm);
+    $PAGE->set_cm($cm, $course, $peerforum);
+
+    if (!$capabilitymanager->can_edit_training_pages($USER)) {
+        print_error('nopostpeerforum', 'peerforum');
+    }
 
     if (!empty($confirm) && confirm_sesskey()) {
-        // Do further checks and delete the post.
-        $hasreplies = $replycount > 0;
+        // Do further checks and delete the thing.
 
-        try {
-            $capabilitymanager->validate_delete_post($USER, $discussionentity, $postentity, $hasreplies);
-
-            if (!$postentity->has_parent()) {
-                peerforum_delete_discussion(
-                        $discussiondatamapper->to_legacy_object($discussionentity),
-                        false,
-                        $peerforumentity->get_course_record(),
-                        $peerforumentity->get_course_module_record(),
-                        $peerforumdatamapper->to_legacy_object($peerforumentity)
-                );
-
-                $DB->delete_records("peerforum_peergrade_subject",
-                        array('name' => $post->subject, 'courseid' => $course->id, 'peerforumid' => $peerforum->id));
-
+        switch ($deletetype) {
+            case DEL_TYPE_PAGE:
+                peerforum_delete_training_page($trainingpage);
                 redirect(
-                        $urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity),
-                        get_string('eventdiscussiondeleted', 'peerforum'),
+                        $urlfactory->get_training_manager_url($peerforumentity),
+                        'Training page deleted',
                         null,
                         \core\output\notification::NOTIFY_SUCCESS
                 );
-            } else {
-                peerforum_delete_post(
-                        $postdatamapper->to_legacy_object($postentity),
-                        has_capability('mod/peerforum:deleteanypost', $modcontext),
-                        $peerforumentity->get_course_record(),
-                        $peerforumentity->get_course_module_record(),
-                        $peerforumdatamapper->to_legacy_object($peerforumentity)
-                );
-
-                $discussionurl = $urlfactory->get_discussion_view_url_from_discussion($discussionentity);
-
+                break;
+            case DEL_TYPE_CRITERIA:
+                peerforum_delete_criteria_from_training_page($deleteid, $trainingpage);
                 redirect(
-                        peerforum_go_back_to($discussionurl),
-                        get_string('eventpostdeleted', 'peerforum'),
+                        $urlfactory->get_training_edit_url($trainingpage),
+                        'Criteria deleted.',
                         null,
                         \core\output\notification::NOTIFY_SUCCESS
                 );
-            }
-        } catch (Exception $e) {
-            redirect(
-                    $urlfactory->get_discussion_view_url_from_discussion($discussionentity),
-                    $e->getMessage(),
-                    null,
-                    \core\output\notification::NOTIFY_ERROR
-            );
+                break;
+            case DEL_TYPE_EXERCISE:
+                peerforum_delete_exercise_from_training_page($deleteid, $trainingpage);
+                redirect(
+                        $urlfactory->get_training_edit_url($trainingpage),
+                        'Exercise deleted.',
+                        null,
+                        \core\output\notification::NOTIFY_SUCCESS
+                );
+                break;
         }
 
     } else {
-
-        if (!$capabilitymanager->can_delete_post($USER, $discussionentity, $postentity)) {
-            redirect(
-                    $urlfactory->get_discussion_view_url_from_discussion($discussionentity),
-                    get_string('cannotdeletepost', 'peerforum'),
-                    null,
-                    \core\output\notification::NOTIFY_ERROR
-            );
-        }
-
-        $post = $postdatamapper->to_legacy_object($postentity);
-        $peerforum = $peerforumdatamapper->to_legacy_object($peerforumentity);
-
         // User just asked to delete something.
         peerforum_set_return();
+        $strparentname = 'Training pages builder';
+        $PAGE->navbar->add($strparentname);
         $PAGE->navbar->add(get_string('delete', 'peerforum'));
-        $PAGE->set_title($course->shortname);
+        $PAGE->set_title("{$course->shortname}: {$strparentname}: {$trainingpage->name}");
         $PAGE->set_heading($course->fullname);
 
-        if ($replycount) {
-            if (!has_capability('mod/peerforum:deleteanypost', $modcontext)) {
-                redirect(
-                        peerforum_go_back_to($urlfactory->get_view_post_url_from_post($postentity)),
-                        get_string('couldnotdeletereplies', 'peerforum'),
-                        null,
-                        \core\output\notification::NOTIFY_ERROR
-                );
-            }
-
-            echo $OUTPUT->header();
-            echo $OUTPUT->heading(format_string($peerforum->name), 2);
-            echo $OUTPUT->confirm(get_string("deletesureplural", "peerforum", $replycount + 1),
-                    "post.php?delete=$delete&confirm=$delete",
-                    $CFG->wwwroot . '/mod/peerforum/discuss.php?d=' . $post->discussion . '#p' . $post->id);
-
-            $postentities = [$postentity];
-            if (empty($post->edit)) {
-                $postvault = $vaultfactory->get_post_vault();
-                $replies = $postvault->get_replies_to_post(
-                        $USER,
-                        $postentity,
-                        // Note: All replies are fetched here as the user has deleteanypost.
-                        true,
-                        'created ASC'
-                );
-                $postentities = array_merge($postentities, $replies);
-            }
-
-            $rendererfactory = mod_peerforum\local\container::get_renderer_factory();
-            $postsrenderer = $rendererfactory->get_single_discussion_posts_renderer(PEERFORUM_MODE_NESTED, true);
-            echo $postsrenderer->render($USER, [$peerforumentity], [$discussionentity], $postentities);
-        } else {
-            echo $OUTPUT->header();
-            echo $OUTPUT->heading(format_string($peerforum->name), 2);
-            echo $OUTPUT->confirm(get_string("deletesure", "peerforum", $replycount),
-                    "post.php?delete=$delete&confirm=$delete",
-                    $CFG->wwwroot . '/mod/peerforum/discuss.php?d=' . $post->discussion . '#p' . $post->id);
-
-            $rendererfactory = mod_peerforum\local\container::get_renderer_factory();
-            $postsrenderer = $rendererfactory->get_single_discussion_posts_renderer(null, true);
-            echo $postsrenderer->render($USER, [$peerforumentity], [$discussionentity], [$postentity]);
+        echo $OUTPUT->header();
+        echo $OUTPUT->heading(format_string($peerforum->name), 2);
+        $deletesure = 'Are you sure you want to delete ';
+        switch ($deletetype) {
+            case DEL_TYPE_PAGE:
+                $deletesure .= "the entire '{$trainingpage->name}' training page,
+                with all its criteria and exercises?";
+                break;
+            case DEL_TYPE_EXERCISE:
+                $deletesure .= "the entire
+                '{$trainingpage->exercise['name'][array_search($deleteid, $trainingpage->exercise['id'])]}' exercise
+                (from the '{$trainingpage->name}' training page),
+                with all its grades and feedback text?";
+                break;
+            case DEL_TYPE_CRITERIA:
+                $deletesure .= "the
+                '{$trainingpage->criteria['name'][array_search($deleteid, $trainingpage->criteria['id'])]}' criteria
+                (from the '{$trainingpage->name}' training page),
+                with all its feedback text in every exercise? Some feedback reference ids might stop working. Check that.";
+                break;
         }
-
+        echo $OUTPUT->confirm($deletesure,
+                new moodle_url($PAGE->url, array('confirm' => $delete)),
+                $urlfactory->get_training_edit_url($trainingpage));
     }
     echo $OUTPUT->footer();
     die;
@@ -329,6 +309,7 @@ $mformpage = new mod_peerforum_build_training_form('buildtraining.php', [
         'trainingpage' => $trainingpage,
         'discussionsselect' => $discussionsselect,
         'edit' => $edit,
+        'PAGE' => $PAGE,
 ]);
 
 // Load data into form NOW!
@@ -461,8 +442,6 @@ if ($mformpage->is_cancelled()) {
         $addtrainingpage = $fromform;
         $addtrainingpage->peerforum = $peerforum->id;
         if ($addtrainingpage->id = peerforum_add_new_training_page($addtrainingpage, $mformpage)) {
-            $trainingpageentity = $trainingpagevault->get_from_id($fromform->id);
-            $fromform->deleted = 0;
 
             $returnurl = $urlfactory->get_training_url($addtrainingpage);
             if (isset($fromform->submitbutton2)) {

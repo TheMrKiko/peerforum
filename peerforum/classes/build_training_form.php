@@ -63,6 +63,7 @@ class mod_peerforum_build_training_form extends moodleform {
         $discussionsselect = $this->_customdata['discussionsselect'];
         $trainingpage = $this->_customdata['trainingpage'];
         $edit = $this->_customdata['edit'];
+        $gpage = $this->_customdata['PAGE'];
 
         $scalearray = array(PEERGRADE_UNSET_PEERGRADE => 'Rating...') + $peergradescaleitems;
 
@@ -96,6 +97,27 @@ class mod_peerforum_build_training_form extends moodleform {
         $repeatnocrit = !empty($edit) ? $trainingpage->ncriterias : 0;
         $this->repeat_elements($repeatarray, $repeatnocrit, array(), 'ncriterias',
                 'criteria_add_fields', 1, 'Add {no} more criteria');
+
+        /* Delete */
+        if ($criterias = (int) $trainingpage->ncriterias) {
+            $mform->addElement('html', html_writer::start_tag('p', array('class' => 'form-group col-md-10')));
+            $mform->addElement('html', 'Click to ' . html_writer::span('remove ' , 'bold text-danger'));
+
+            $chtml = array();
+            foreach (range(0, $criterias) as $k) {
+                if ($k == $criterias) {
+                    break; // So the last element isn't run. $criteria-1 does not work.
+                }
+
+                $critlink = $trainingpage->criteria['link'][$k];
+                $critname = $trainingpage->criteria['name'][$k];
+                $i = $k + 1;
+
+                $chtml[] = html_writer::link($critlink, "'{$critname}' (criteria {$i})");
+            }
+            $mform->addElement('html', implode(', ', $chtml));
+            $mform->addElement('html', '.' . html_writer::end_tag('p'));
+        }
 
         /*--------------------------------------- EXERCISES ---------------------------------------*/
         $repeatarray = array();
@@ -191,6 +213,36 @@ class mod_peerforum_build_training_form extends moodleform {
         $repeatno = !empty($edit) ? $trainingpage->exercises : 0;
         $this->repeat_elements($repeatarray, $repeatno, $repeateloptions, 'exercises',
                 'option_add_fields', 1, 'Add {no} more exercise');
+
+        /*-------- DELETE EXERCISES --------*/
+        if ($exercises = (int) $trainingpage->exercises) {
+            $mform->addElement('html', html_writer::start_tag('p', array('class' => 'form-group ')));
+            $mform->addElement('html', 'Click to ' . html_writer::span('remove ' , 'bold text-danger'));
+
+            $ehtml = array();
+            foreach (range(0, $exercises) as $k) {
+                if ($k == $exercises) {
+                    break; // So the last element isn't run. $criteria-1 does not work.
+                }
+
+                $exlink = $trainingpage->exercise['link'][$k];
+                $exname = $trainingpage->exercise['name'][$k];
+                $i = $k + 1;
+
+                $ehtml[] = html_writer::link($exlink, "'{$exname}' (exercise {$i})");
+            }
+            $mform->addElement('html', implode(', ', $ehtml));
+            $mform->addElement('html', '.' . html_writer::end_tag('p'));
+        }
+
+        /*-------- DELETE PAGE --------*/
+        if (!empty($trainingpage->id)) {
+            $plink = $trainingpage->link;
+
+            $dphtml = html_writer::span('Remove', 'bold text-danger') . ' this training page ';
+            $dphtml .= html_writer::link($plink, 'here') . '.';
+            $gpage->set_button(html_writer::tag('p', $dphtml));
+        }
 
         /*--------------------------------------- HIDDEN VARS ---------------------------------------*/
         $mform->addElement('hidden', 'course');

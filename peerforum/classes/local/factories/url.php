@@ -549,6 +549,23 @@ class url {
     }
 
     /**
+     * Generate the delete training page link.
+     *
+     * @param \stdClass $trainingpage
+     * @param int $deltype
+     * @param int $delid
+     * @return moodle_url
+     * @throws \moodle_exception
+     */
+    public function get_training_delete_url(\stdClass $trainingpage, int $deltype = 0, int $delid = 0): moodle_url {
+        return new moodle_url('/mod/peerforum/buildtraining.php', [
+                'delete' => $trainingpage->id,
+                'deltype' => $deltype,
+                'delid' => $delid,
+        ]);
+    }
+
+    /**
      * Generate the training manager link.
      *
      * @param peerforum_entity $peerforum
