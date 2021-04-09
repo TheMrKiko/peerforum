@@ -113,18 +113,19 @@ $table->define_headers(array(
 ));
 $table->column_style_all('text-align', 'center');
 $table->column_style('fullname', 'text-align', 'left');
-
-$table->sortable(true, 'firstname');
+$table->sortable(true);
 $table->is_persistent(false);
 $table->define_baseurl($url);
-$table->text_sorting('block');
 $table->define_header_column('fullname');
 $table->setup();
 
 $group = array('userid');
 $count = array('id', 'peergraded', 'expired', 'ended');
-$perfalias =
-        'nid AS performance';
+$perfalias = 'CASE
+                WHEN (npeergraded + nexpired) = 0
+                THEN 0
+                ELSE (npeergraded * 100) / (npeergraded + nexpired)
+              END AS performance';
 // Gets posts from filters.
 $items = $pgmanager->get_items_from_filters($userfilter, $perfalias, $table->get_sql_sort(), $group, $count);
 
@@ -133,7 +134,7 @@ foreach ($items as $item) {
     $userblocked = !empty($item->ublocked);
     $blockurl = $pgmanager->get_block_user_url($user->id, $coursecontext->id);
     $row = array();
-    $rowclass = $userblocked ? 'bg-warning' : '';
+    $rowclass = $userblocked ? 'bg-danger' : '';
 
     $subjcell = html_writer::link(
             $urlfactory->get_user_summary_url($user, $courseid),
