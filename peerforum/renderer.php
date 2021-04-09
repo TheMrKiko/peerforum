@@ -440,8 +440,9 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
             if (!empty($expandhtml)) {
                 $expandstr = 'Show peer grades';
-                $peergradehtml .= html_writer::link('#peergradefeedbacks' . $peergrade->itemid,
-                        $expandstr, array('data-action' => 'peergrade-collapsible-link'));
+                $peergradehtml .= html_writer::link('#pgfeedbackslink' . $peergrade->itemid,
+                        $expandstr, array('data-action' => 'peergrade-collapsible-link',
+                                'id' => 'pgfeedbackslink' . $peergrade->itemid));
 
                 $peergradehtml .= html_writer::start_tag('div',
                         array('id' => 'peergradefeedbacks' . $peergrade->itemid,
@@ -477,7 +478,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         if (has_capability('mod/peerforum:professorpeergrade', $peergrade->context)) {
             $expandstr = 'Manage peer grading';
             $peergradehtml .= html_writer::empty_tag('br');
-            $peergradehtml .= html_writer::link('#peergradefeedbacks' . $peergrade->itemid,
+            $peergradehtml .= html_writer::link('#pgconfiglink' . $peergrade->itemid,
                     $expandstr, array('data-action' => 'peergrade-collapsible-config-link',
                             'id' => 'pgconfiglink' . $peergrade->itemid));
 

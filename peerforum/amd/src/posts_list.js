@@ -95,6 +95,9 @@ define([
             }
         });
         root.on('click', Selectors.post.peergradeListLink, function(e) {
+            e.preventDefault();
+            var url = window.location.href.split('#')[0] + '#' + e.currentTarget.id;
+            history.pushState({}, document.title, url);
             var pending = new Pending('peergrade-collapsable');
             var currentRoot = $(e.currentTarget).parents(Selectors.post.peerforumContent);
             var form = currentRoot.find(Selectors.post.peergradeListContent);
@@ -104,6 +107,9 @@ define([
             }
         });
         root.on('click', Selectors.post.peergradeConfigLink, function(e) {
+            e.preventDefault();
+            var url = window.location.href.split('#')[0] + '#' + e.currentTarget.id;
+            history.pushState({}, document.title, url);
             var pending = new Pending('peergrade-config-collapsable');
             var currentRoot = $(e.currentTarget).parents(Selectors.post.peerforumContent);
             var form = currentRoot.find(Selectors.post.peergradeConfigContent);
