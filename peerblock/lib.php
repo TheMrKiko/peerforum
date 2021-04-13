@@ -32,6 +32,7 @@ function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isse
     $manageconflicts = get_string('manageconflicts', 'block_peerblock');
     $managegradersposts = get_string('managegraders_posts', 'block_peerblock');
     $viewgradersstats = get_string('viewgradersstats', 'block_peerblock');
+    $viewgradesgraph = get_string('viewgradesgraph', 'block_peerblock');
     $managerelations = get_string('managerelations', 'block_peerblock');
     $threadingstats = get_string('threadingstats', 'block_peerblock');
     $peerranking = get_string('peer_ranking', 'block_peerblock');
@@ -53,6 +54,11 @@ function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isse
         $row[] = new tabobject('viewgradersstats',
                 new moodle_url('/blocks/peerblock/user.php',
                         $params), $viewgradersstats);
+    }
+    if ($isprofessor) {
+        $row[] = new tabobject('viewgradesgraph',
+                new moodle_url('/blocks/peerblock/graph.php',
+                        $params), $viewgradesgraph);
     }
     return $row;
 }

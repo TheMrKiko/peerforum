@@ -11,7 +11,7 @@
  */
 
 $string['pluginname'] = 'Peer Grade panel';
-$string['peerblock'] = 'Peer Grade';
+$string['peerblock'] = 'Peer grading';
 $string['peerblock:addinstance'] = 'Add a new Peer Grade block';
 $string['peerblock:myaddinstance'] = 'Add a new Peer Grade block to the course page';
 $string['blockstring'] = 'Block description';
@@ -26,6 +26,7 @@ $string['assign'] = 'Assign post';
 $string['removepost'] = 'Remove post';
 $string['manageconflicts'] = "Conflicts";
 $string['viewgradersstats'] = 'Graders Statistics';
+$string['viewgradesgraph'] = 'Grades Distribution';
 $string['uploadfile'] = 'Upload file';
 $string['remove'] = 'Remove';
 $string['removestd'] = 'Remove student';
