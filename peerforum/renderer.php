@@ -477,6 +477,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         /*--------------- PROFESSOR OPTIONS ------------- */
         if (has_capability('mod/peerforum:professorpeergrade', $peergrade->context)) {
             $expandstr = 'Manage peer grading';
+            $expanded = optional_param('expanded', false, PARAM_BOOL);
             $peergradehtml .= html_writer::empty_tag('br');
             $peergradehtml .= html_writer::link('#pgconfiglink' . $peergrade->itemid,
                     $expandstr, array('data-action' => 'peergrade-collapsible-config-link',
@@ -487,7 +488,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                     'id' => 'peergradeconfig' . $peergrade->itemid,
                     'class' => 'peergradeconfig',
                     'data-content' => 'peergrade-config-content',
-                    'style' => 'display: none;'));
+                    'style' => $expanded ? '' : 'display: none;'));
 
             $peersnames = array_map(function ($assign) use ($peerforumentity, $peergrade) {
                 $row = new html_table_row();

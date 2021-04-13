@@ -38,7 +38,7 @@ function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isse
     $managetraining = get_string('managetraining', 'block_peerblock');
 
     $row[] = new tabobject('manageposts', new moodle_url('/blocks/peerblock/summary.php',
-                    $params + array('display' => $display)), $postsassigned);
+                    $params + array('display' => $display, 'expanded' => true, )), $postsassigned);
     if ($isprofessor) {
         $row[] = new tabobject('peergrades',
                 new moodle_url('/blocks/peerblock/short.php',

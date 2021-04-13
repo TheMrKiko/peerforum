@@ -604,7 +604,8 @@ class url {
                 array(
                         'display' => $display,
                         'courseid' => $courseid,
-                        'userid' => $userinfo->id)
+                        'userid' => $userinfo->id,
+                        'expanded' => true, )
         );
     }
 }

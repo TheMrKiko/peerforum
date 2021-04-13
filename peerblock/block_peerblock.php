@@ -73,7 +73,7 @@ class block_peerblock extends block_list {
         if ($courseid == SITEID) { // SITEID is frontpage.
             return '';
         }
-        $sumurl = new moodle_url('/blocks/peerblock/summary.php', array('courseid' => $courseid));
+        $sumurl = new moodle_url('/blocks/peerblock/summary.php', array('courseid' => $courseid, 'expanded' => true, ));
         $rankurl = new moodle_url('/blocks/peerblock/rankings.php', array('courseid' => $courseid));
 
         $viewgeneral = has_capability('mod/peerforum:viewpanelpeergrades', $this->page->context);
