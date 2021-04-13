@@ -31,6 +31,8 @@ $pgmanager = mod_peerforum\local\container::get_manager_factory()->get_peergrade
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
 $display = optional_param('display', 1, PARAM_INT);
+$page = optional_param('page', 0, PARAM_INT);
+$perpage = optional_param('perpage', 8, PARAM_INT);
 
 // Build context objects.
 $courseid = $courseid ?: SITEID;
@@ -110,6 +112,7 @@ echo $OUTPUT->render(new single_select($url, 'display', $options, $display, fals
 
 // Gets posts from filters.
 $items = $pgmanager->get_items_from_filters($filters);
+$totalposts = 0;
 
 if (!empty($items)) {
     $postids = array_map(static function($item) {
@@ -150,6 +153,7 @@ if (!empty($items)) {
     if (!empty($posts)) {
         // Sort posts.
         krsort($posts);
+        $totalposts += count($posts);
 
         $rendererfactory = mod_peerforum\local\container::get_renderer_factory();
         $postsrenderer = $rendererfactory->get_user_peerforum_posts_report_renderer(true);
@@ -157,11 +161,18 @@ if (!empty($items)) {
                 $USER,
                 $peerforums,
                 $discussions,
-                $posts
+                array_slice($posts, ($page * $perpage), $perpage, true)
         );
     }
 }
 
-echo $postoutput = !empty($postoutput) ? $postoutput : 'No posts to show.';
+if (!empty($postoutput)) {
+    echo $OUTPUT->paging_bar($totalposts, $page, $perpage, $url);
+    echo $postoutput;
+    echo $OUTPUT->paging_bar($totalposts, $page, $perpage, $url);
+} else {
+    echo 'No posts to show.';
+}
+
 echo $OUTPUT->box_end();
 echo $OUTPUT->footer();
