@@ -2396,15 +2396,13 @@ class peergrade_manager {
 
         $assignedbefore = array();
         if ($peergradeoptions->autoassignreplies && isset($peergradeoptions->itemfamily) && !empty($peergradeoptions->itemfamily)) {
-            $parentitem = null;
             foreach ($peergradeoptions->itemfamily as $olditem) {
                 if ($peergradeoptions->itemuserid == $olditem->userid && $olditem->id != $peergradeoptions->itemid) {
-                    $parentitem = $olditem->id;
-                    break;
+                    $assignedbefore = $DB->get_records('peerforum_time_assigned', array('itemid' => $olditem->id)) ?? array();
+                    if (!empty($assignedbefore)) {
+                        break;
+                    }
                 }
-            }
-            if ($parentitem) {
-                $assignedbefore = $DB->get_records('peerforum_time_assigned', array('itemid' => $parentitem));
             }
         }
 
