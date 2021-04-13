@@ -29,6 +29,7 @@ $urlfactory = mod_peerforum\local\container::get_url_factory();
 $vaultfactory = mod_peerforum\local\container::get_vault_factory();
 $postsdatamapper = mod_peerforum\local\container::get_legacy_data_mapper_factory()->get_post_data_mapper();
 $pgmanager = mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
+$rmanager = mod_peerforum\local\container::get_manager_factory()->get_rating_manager();
 
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
@@ -119,6 +120,7 @@ $filters += array(
 
 // Gets posts from filters.
 $items = $pgmanager->get_items_from_filters($filters);
+$ritems = array();
 
 if (!empty($items)) {
     $postids = array_map(static function($item) {
@@ -166,8 +168,20 @@ if (!empty($items)) {
                         'items' => $pfitems,
                         'userid' => $USER->id,
                 ] + $peerforum->get_peergrade_options());
-
         $items += $pgmanager->get_peergrades($peergradeoptions);
+
+        $ratingoptions = (object) [
+                'context' => $peerforum->get_context(),
+                'component' => 'mod_peerforum',
+                'ratingarea' => 'post',
+                'items' => $pfitems,
+                'aggregate' => $peerforum->get_rating_aggregate(),
+                'scaleid' => $peerforum->get_scale(),
+                'userid' => $USER->id,
+                'assesstimestart' => $peerforum->get_assess_time_start(),
+                'assesstimefinish' => $peerforum->get_assess_time_finish()
+        ];
+        $ritems += $rmanager->get_ratings($ratingoptions);
     }
 }
 
@@ -179,7 +193,10 @@ $table->attributes['class'] = 'generalboxtable table table-striped table-sm';
 $table->head = array(
         'Subject',
         'Author',
+        'Peer grades',
+        'Rating',
         'Assignee',
+        'Relation',
         'Date assigned',
         'Unassign & remove',
         'State',
@@ -190,6 +207,9 @@ $table->head = array(
 );
 $table->align = array(
         'left',
+        'center',
+        'center',
+        'center',
         'center',
         'center',
         'center',
@@ -211,11 +231,15 @@ $b = static function ($p) : peergrade {
 $c = static function ($p) : \mod_peerforum\local\entities\author {
     return $p;
 };
+$d = static function ($p) : rating {
+    return $p;
+};
 
 $dateformat = get_string('strftimedatetimeshort', 'langconfig');
 
 foreach ($items as $item) {
     $peergradeobj = $b($item->peergrade);
+    $ratingobj = $d($ritems[$item->id]->rating);
     $post = $a($posts[$item->id]);
     $author = $c($authors[$post->get_author_id()]);
 
@@ -233,7 +257,7 @@ foreach ($items as $item) {
 
     $subjcell = new html_table_cell(html_writer::link(
             $urlfactory->get_view_post_url_from_post($post),
-            $post->get_subject(),
+            $post->get_subject() . ($ratingobj->count ? '' : '*'),
     ));
     $subjcell->header = true;
     $subjcell->attributes = array('class' => 'text-left align-middle');
@@ -243,8 +267,14 @@ foreach ($items as $item) {
     ));
     $authorcell->attributes = array('class' => 'text-center align-middle');
 
-    $subjcell->rowspan = $authorcell->rowspan = $nassigns;
-    $row->cells = array($subjcell, $authorcell);
+    $peergradecell = new html_table_cell($peergradeobj->count ? $peergradeobj->get_aggregate_string() : '-');
+    $peergradecell->attributes = array('class' => 'text-center align-middle');
+
+    $ratingcell = new html_table_cell($ratingobj->count ? $ratingobj->get_aggregate_string() : '-');
+    $ratingcell->attributes = array('class' => 'text-center align-middle');
+
+    $subjcell->rowspan = $authorcell->rowspan = $peergradecell->rowspan = $ratingcell->rowspan = $nassigns;
+    $row->cells = array($subjcell, $authorcell, $peergradecell, $ratingcell);
     $row->style = 'border-top: var(--secondary) 2px solid;';
 
     foreach ($peergradeobj->usersassigned as $assign) {
@@ -254,6 +284,13 @@ foreach ($items as $item) {
                 $urlfactory->get_user_summary_url($assign->userinfo, $courseid, $display),
                 fullname($assign->userinfo),
         ));
+        end($row->cells)->attributes = array('class' => 'text-center align-middle');
+
+        $row->cells[] = new html_table_cell(
+                $assign->nomination ? 'Like '
+                . ($assign->nominationvalue > 0 ? 'most' : 'least')
+                : 'None'
+        );
         end($row->cells)->attributes = array('class' => 'text-center align-middle');
 
         $row->cells[] = new html_table_cell(userdate($assign->timeassigned, $dateformat));
