@@ -60,6 +60,11 @@ function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isse
                 new moodle_url('/blocks/peerblock/graph.php',
                         $params), $viewgradesgraph);
     }
+    if ($isprofessor) {
+        $row[] = new tabobject('managerelations',
+                new moodle_url('/blocks/peerblock/relationships.php',
+                        $params), $managerelations);
+    }
     return $row;
 }
 
