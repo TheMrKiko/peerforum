@@ -440,6 +440,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
 
             if (!empty($expandhtml)) {
                 $expandstr = 'Show peer grades';
+                $expanded = optional_param('expanded', false, PARAM_BOOL);
                 $peergradehtml .= html_writer::link('#pgfeedbackslink' . $peergrade->itemid,
                         $expandstr, array('data-action' => 'peergrade-collapsible-link',
                                 'id' => 'pgfeedbackslink' . $peergrade->itemid));
@@ -447,7 +448,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                 $peergradehtml .= html_writer::start_tag('div',
                         array('id' => 'peergradefeedbacks' . $peergrade->itemid,
                                 'class' => 'peergradefeedbacks',
-                                'style' => 'display: none;',
+                                'style' => $expanded ? '' : 'display: none;',
                                 'data-content' => 'peergrade-list-content'));
                 $peergradehtml .= $expandhtml;
 
