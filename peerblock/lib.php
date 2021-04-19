@@ -15,13 +15,12 @@ if (is_file($CFG->dirroot . '/mod/peerforum/lib.php')) {
 }
 
 /**
- * @param array $params
+ * @param moodle_url $url
  * @param bool $isprofessor
  * @param bool $isself
- * @param int $display
  * @return array
  */
-function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isself = true, $display = MANAGEPOSTS_MODE_SEEALL) {
+function get_peerblock_tabs($url, $isprofessor = false, $isself = true) {
     // Strings.
     $poststopeergrade = get_string('poststopeergrade', 'block_peerblock');
     $postspeergraded = get_string('postspeergraded', 'block_peerblock');
@@ -37,6 +36,12 @@ function get_peerblock_tabs(array $params = array(), $isprofessor = false, $isse
     $threadingstats = get_string('threadingstats', 'block_peerblock');
     $peerranking = get_string('peer_ranking', 'block_peerblock');
     $managetraining = get_string('managetraining', 'block_peerblock');
+
+    $display = $url->get_param('display') ?: MANAGEPOSTS_MODE_SEEALL;
+    $params = array(
+            'userid' => $url->get_param('userid') ?: 0,
+            'courseid' => $url->get_param('courseid') ?: 0,
+    );
 
     $row[] = new tabobject('manageposts', new moodle_url('/blocks/peerblock/summary.php',
                     $params + array('display' => $display, 'expanded' => true, )), $postsassigned);
@@ -258,4 +263,97 @@ function get_posts_about_to_expire($courseid, $peerforumid) {
     }
 
     return $posts_expiring;
+}
+
+function set_peergradepanel_page($courseid, $userid, $url, $tab, $onlyforprofs, $onlyforself, $stdscanviewothers = false) {
+    global $DB, $CFG, $PAGE, $USER, $OUTPUT;
+
+    if ($courseid == SITEID) {
+        print_error('invalidcourseid');
+    }
+
+    require_login($courseid, false);
+
+    $coursecontext = context_course::instance($courseid, MUST_EXIST);
+    $isprofessor = has_capability('mod/peerforum:professorpeergrade', $coursecontext, $USER);
+    $iscurrentuser = ($USER->id == $userid);
+
+    // Check if the person can be here.
+    if (($onlyforprofs && !$isprofessor) || ($onlyforself && !$iscurrentuser) ||
+            (!$stdscanviewothers && !$isprofessor && !$iscurrentuser) || isguestuser()) {
+        print_error('error');
+    }
+
+    $PAGE->set_url($url);
+
+    $course = get_course($courseid, false);
+
+    if ($userid) {
+        require_once($CFG->dirroot . '/user/lib.php');
+
+        $user = !$iscurrentuser ? $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST) : $USER;
+        $usercontext = context_user::instance($userid, MUST_EXIST);
+
+        // Check if the requested user is the guest user.
+        if (isguestuser($user)) {
+            // May as well just bail aggressively here.
+            print_error('invaliduserid');
+        }
+
+        if (!user_can_view_profile($user, $course, $usercontext)) {
+            print_error('cannotviewusersposts', 'peerforum');
+        }
+
+        // Make sure the user has not been deleted.
+        if ($user->deleted) {
+            $PAGE->set_title(get_string('userdeleted'));
+            $PAGE->set_context(context_system::instance());
+            echo $OUTPUT->header();
+            echo $OUTPUT->heading($PAGE->title);
+            echo $OUTPUT->footer();
+            die;
+        }
+    }
+
+    $coursefullname = format_string($course->fullname, true, array('context' => $coursecontext));
+
+    $a = new stdClass;
+    $a->coursename = $coursefullname;
+    if ($userid) {
+        $userfullname = fullname($user);
+        $a->fullname = $userfullname;
+        $pagetitle = get_string('pgbyuserincourse', 'block_peerblock', $a);
+    } else {
+        $pagetitle = get_string('pgincourse', 'block_peerblock', $a);
+    }
+
+    $PAGE->set_title($pagetitle);
+    $PAGE->set_heading($coursefullname);
+
+    if ($userid) {
+        $PAGE->navigation->extend_for_user($user);
+        $usernode = $PAGE->navigation->find('user' . $userid, null);
+        $usernode->make_active();
+
+        if ($isprofessor || $stdscanviewothers) {
+            $nuurl = new moodle_url($url, array('userid' => 0));
+            $PAGE->set_button(html_writer::link($nuurl, 'Clear selected user'));
+        }
+    }
+
+    $PAGE->navbar->add('Peer grading');
+
+    echo $OUTPUT->header();
+
+    if ($userid) {
+        $userheading = array(
+                'heading' => fullname($user),
+                'user' => $user,
+                'usercontext' => $usercontext
+        );
+        echo $OUTPUT->context_header($userheading, 2);
+    }
+
+    $row = get_peerblock_tabs($url, $isprofessor, $iscurrentuser);
+    echo $OUTPUT->tabtree($row, $tab);
 }

@@ -35,60 +35,14 @@ $rankingsvault = $vaultfactory->get_relationship_ranking_vault();
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
 
-// Build context objects.
-$courseid = $courseid ?: SITEID;
-if (!empty($userid)) {
-    $usercontext = context_user::instance($userid);
-}
-if ($courseid != SITEID) {
-    $coursecontext = context_course::instance($courseid);
-} else {
-    $coursecontext = context_system::instance();
-}
-
-$PAGE->set_context($usercontext ?? $coursecontext);
-
-// Must be logged in.
-require_login($courseid);
-
-$canviewalltabs = has_capability('mod/peerforum:professorpeergrade', $coursecontext, null, false);
-// Check if the person can be here.
-if (!$canviewalltabs) {
-    print_error('error');
-}
-
-// Build url.
-$urlparams = array(
-        'userid' => $userid,
+$url = new moodle_url('/blocks/peerblock/relationships.php', array(
         'courseid' => $courseid,
-);
-$url = new moodle_url('/blocks/peerblock/relationships.php', $urlparams);
-$PAGE->set_url($url);
+        'userid' => $userid,
+));
 
-// Manage users.
-$userid = $canviewalltabs ? $userid : $USER->id;
+set_peergradepanel_page($courseid, $userid, $url, 'managerelations', true, false);
 
-$row = get_peerblock_tabs($urlparams, $canviewalltabs, $userid == $USER->id);
-
-$blockname = get_string('pluginname', 'block_peerblock');
-$subtitle = 'User';
-$pagetitle = $blockname;
-
-// Output the page.
-if (!empty($usercontext)) {
-    $pagetitle .= ': ' . $subtitle;
-    $burl = $courseid != SITEID ? new moodle_url($url, array('userid' => 0)) : null;
-    $PAGE->navbar->add($blockname, $burl);
-    $PAGE->navbar->add($subtitle);
-} else {
-    $PAGE->set_heading($blockname);
-    $PAGE->navbar->add($blockname);
-}
-$PAGE->set_title(format_string($pagetitle));
-
-echo $OUTPUT->header();
 echo $OUTPUT->box_start('posts-list');
-echo $OUTPUT->tabtree($row, 'managerelations');
 
 $confscale = array(
         2 => 'Totally my feelings',

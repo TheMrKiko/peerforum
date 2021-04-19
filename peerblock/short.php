@@ -35,82 +35,42 @@ $courseid = optional_param('courseid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
 $display = optional_param('display', 1, PARAM_INT);
 
-// Build context objects.
-$courseid = $courseid ?: SITEID;
-if (!empty($userid)) {
-    $usercontext = context_user::instance($userid);
-}
-if ($courseid != SITEID) {
-    $coursecontext = context_course::instance($courseid);
-} else {
-    $coursecontext = context_system::instance();
-}
-
-$PAGE->set_context($usercontext ?? $coursecontext);
-
-// Must be logged in.
-require_login($courseid);
-
-$canviewalltabs = has_capability('mod/peerforum:professorpeergrade', $coursecontext, null, false);
-// Check if the person can be here.
-if (!$canviewalltabs) {
-    print_error('error');
-}
-
-// Build url.
-$urlparams = array(
-        'userid' => $userid,
+$url = new moodle_url('/blocks/peerblock/short.php', array(
         'courseid' => $courseid,
-);
-$url = new moodle_url('/blocks/peerblock/short.php', $urlparams);
-$PAGE->set_url($url, array('display' => $display, ));
+        'userid' => $userid,
+        'display' => $display,
+));
 
-// Manage users.
-$userid = $canviewalltabs ? $userid : $USER->id;
-$userfilter = $userid ? array('userid' => $userid) : array();
+$PAGE->requires->css('/blocks/peerblock/styles.css');
+
+set_peergradepanel_page($courseid, $userid, $url, 'peergrades', true, false);
 
 // Build filter options.
 if ($display == MANAGEPOSTS_MODE_SEEALL) {
     // All posts.
-    $filters = $userfilter;
+    $filters = array();
 
 } else if ($display == MANAGEPOSTS_MODE_SEENOTGRADED) {
     // Posts to peer grade.
-    $filters = array('ended' => 0) + $userfilter;
+    $filters = array('ended' => 0);
 
 } else if ($display == MANAGEPOSTS_MODE_SEEGRADED) {
     // Posts peergraded.
-    $filters = array('peergradednot' => 0) + $userfilter;
+    $filters = array('peergradednot' => 0);
 
 } else if ($display == MANAGEPOSTS_MODE_SEEEXPIRED) {
     // Posts expired.
-    $filters = array('expired' => 1) + $userfilter;
+    $filters = array('expired' => 1);
 
 }
-$row = get_peerblock_tabs($urlparams, $canviewalltabs, $userid == $USER->id, $display);
-$options = get_peerblock_select_options();
 
-$blockname = get_string('pluginname', 'block_peerblock');
-$subtitle = 'User';
-$pagetitle = $blockname;
+// Manage users.
+$filters += $userid ? array('userid' => $userid) : array();
 
-// Output the page.
-if (!empty($usercontext)) {
-    $pagetitle .= ': ' . $subtitle;
-    $burl = $courseid != SITEID ? new moodle_url($url, array('display' => $display, 'userid' => 0)) : null;
-    $PAGE->navbar->add($blockname, $burl);
-    $PAGE->navbar->add($subtitle);
-} else {
-    $PAGE->set_heading($blockname);
-    $PAGE->navbar->add($blockname);
-}
-$PAGE->set_title(format_string($pagetitle));
-$PAGE->requires->css('/blocks/peerblock/styles.css');
 $PAGE->requires->js_call_amd('block_peerblock/truncate_text', 'init');
 
-echo $OUTPUT->header();
+$options = get_peerblock_select_options();
 echo $OUTPUT->box_start('posts-list');
-echo $OUTPUT->tabtree($row, 'peergrades');
 echo $OUTPUT->render(new single_select($url, 'display', $options, $display, false));
 
 $filters += array(
@@ -281,7 +241,7 @@ foreach ($items as $item) {
 
         $unassignurl = $peergradeobj->get_assign_url('remove', $assign->userinfo->id);
         $row->cells[] = new html_table_cell(html_writer::link(
-                $urlfactory->get_user_summary_url($assign->userinfo, $courseid, $display),
+                new moodle_url($url, array('userid' => $assign->userinfo->id)),
                 fullname($assign->userinfo),
         ));
         end($row->cells)->attributes = array('class' => 'text-center align-middle');

@@ -26,7 +26,6 @@ require_once('../../config.php');
 require_once($CFG->dirroot.'/lib/tablelib.php');
 require_once('./lib.php');
 
-$urlfactory = mod_peerforum\local\container::get_url_factory();
 $vaultfactory = mod_peerforum\local\container::get_vault_factory();
 $postsdatamapper = mod_peerforum\local\container::get_legacy_data_mapper_factory()->get_post_data_mapper();
 $pgmanager = mod_peerforum\local\container::get_manager_factory()->get_peergrade_manager();
@@ -34,61 +33,19 @@ $pgmanager = mod_peerforum\local\container::get_manager_factory()->get_peergrade
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
 
-// Build context objects.
-$courseid = $courseid ?: SITEID;
-if (!empty($userid)) {
-    $usercontext = context_user::instance($userid);
-}
-if ($courseid != SITEID) {
-    $coursecontext = context_course::instance($courseid);
-} else {
-    $coursecontext = context_system::instance();
-}
-
-$PAGE->set_context($usercontext ?? $coursecontext);
-
-// Must be logged in.
-require_login($courseid);
-
-$canviewalltabs = has_capability('mod/peerforum:professorpeergrade', $coursecontext, null, false);
-// Check if the person can be here.
-if (!$canviewalltabs) {
-    print_error('error');
-}
-
-// Build url.
-$urlparams = array(
-        'userid' => $userid,
+$url = new moodle_url('/blocks/peerblock/user.php', array(
         'courseid' => $courseid,
-);
-$url = new moodle_url('/blocks/peerblock/user.php', $urlparams);
-$PAGE->set_url($url);
+        'userid' => $userid,
+));
+
+set_peergradepanel_page($courseid, $userid, $url, 'viewgradersstats', true, false);
+
+$coursecontext = context_course::instance($courseid);
 
 // Manage users.
-$userid = $canviewalltabs ? $userid : $USER->id;
 $userfilter = $userid ? array('userid' => $userid) : array();
 
-$row = get_peerblock_tabs($urlparams, $canviewalltabs, $userid == $USER->id);
-
-$blockname = get_string('pluginname', 'block_peerblock');
-$subtitle = 'User';
-$pagetitle = $blockname;
-
-// Output the page.
-if (!empty($usercontext)) {
-    $pagetitle .= ': ' . $subtitle;
-    $burl = $courseid != SITEID ? new moodle_url($url, array('userid' => 0)) : null;
-    $PAGE->navbar->add($blockname, $burl);
-    $PAGE->navbar->add($subtitle);
-} else {
-    $PAGE->set_heading($blockname);
-    $PAGE->navbar->add($blockname);
-}
-$PAGE->set_title(format_string($pagetitle));
-
-echo $OUTPUT->header();
 echo $OUTPUT->box_start('posts-list');
-echo $OUTPUT->tabtree($row, 'viewgradersstats');
 
 $table = new flexible_table('userpgstatistics');
 $table->set_attribute('class', 'generalboxtable table table-striped');
@@ -137,7 +94,7 @@ foreach ($items as $item) {
     $rowclass = $userblocked ? 'bg-danger' : '';
 
     $subjcell = html_writer::link(
-            $urlfactory->get_user_summary_url($user, $courseid),
+            new moodle_url($url, array('userid' => $user->id)),
             fullname($user),
     );
     $row[] = $subjcell;

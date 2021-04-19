@@ -170,6 +170,9 @@ class block_peerblock extends block_list {
 
         if (!$viewgeneral) {
             // Student view.
+            $sumurl->param('userid', $userid);
+            $rankurl->param('userid', $userid);
+
             $this->content->items[] = html_writer::span('Posts to grade: ' .
                     html_writer::link(new moodle_url($sumurl, array(
                             'display' => MANAGEPOSTS_MODE_SEENOTGRADED,
@@ -182,9 +185,7 @@ class block_peerblock extends block_list {
 
             if ($nrankings >= 5) {
                 $this->content->items[] = html_writer::span('Peers to rank: ' .
-                        html_writer::link(new moodle_url($rankurl, array(
-                                'userid' => $userid,
-                        )), $nrankings . ' peers'));
+                        html_writer::link(new moodle_url($rankurl), $nrankings . ' peers'));
             }
 
         } else {

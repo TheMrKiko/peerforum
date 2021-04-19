@@ -30,22 +30,16 @@ $vaultfactory = mod_peerforum\local\container::get_vault_factory();
 $managerfactory = mod_peerforum\local\container::get_manager_factory();
 $urlfactory = mod_peerforum\local\container::get_url_factory();
 
-$courseid = required_param('courseid', PARAM_INT);
-$userid = optional_param('userid', 0, PARAM_INT);
+$courseid = optional_param('courseid', 0, PARAM_INT);
+$userid = optional_param('userid', $USER->id, PARAM_INT);
 
-$context = context_course::instance($courseid);
-$PAGE->set_context($context);
-
-// These page_params will be passed as hidden variables later in the form.
-$urlparams = array(
-        'userid' => $userid,
+$url = new moodle_url('/blocks/peerblock/rankings.php', array(
         'courseid' => $courseid,
-);
-$PAGE->set_url('/blocks/peerblock/rankings.php', $urlparams);
+        'userid' => $userid,
+));
 
-require_login($courseid);   // Script is useless unless they're logged in.
+set_peergradepanel_page($courseid, $userid, $url, 'peerranking', false, true);
 
-$userid = $USER->id;
 $rankingvault = $vaultfactory->get_relationship_ranking_vault();
 $rankingfull = $rankingvault->get_from_user_id($userid, $courseid);
 $users = $rankingfull['otheruserid'] ?? array();
@@ -76,7 +70,7 @@ if (count($userids) >= 5) {
                     'ids' => $ids,
             ) +
 
-            $urlparams
+            $url->params()
     );
 
     // Form processing and displaying is done here.
@@ -94,30 +88,18 @@ if (count($userids) >= 5) {
         $data->rankings = $ranks;
 
         if (peerblock_edit_rankings($data, $mform)) {
-            redirect($urlfactory->get_course_url_from_courseid($courseid),
-                    'Submitted, thank you! Go make more friends (or foes).',
-                    null,
-                    \core\notification::SUCCESS,
-            );
+            \core\notification::success('Submitted, thank you! Go make more friends (or foes).');
 
         } else {
-            print_error("couldnotadd", "peerforum", $errordestination);
+            print_error("couldnotadd", "peerforum");
+            exit;
+
         }
-        exit;
 
     }
 }
 
-$pagetitle = get_string('pluginname', 'block_peerblock');
-$row = get_peerblock_tabs($urlparams);
-
-// Output the page.
-$PAGE->navbar->add($pagetitle);
-$PAGE->set_title(format_string($pagetitle));
-$PAGE->set_heading($pagetitle);
-echo $OUTPUT->header();
-echo $OUTPUT->tabtree($row, 'peerranking');
-if (isset($mform)) {
+if (isset($mform) && !$mform->is_submitted()) {
     echo $OUTPUT->heading(format_string(get_string('rankinghelp', 'block_peerblock')), 5);
     $mform->display();
 } else {
