@@ -268,6 +268,8 @@ function get_posts_about_to_expire($courseid, $peerforumid) {
 function set_peergradepanel_page($courseid, $userid, $url, $tab, $onlyforprofs, $onlyforself, $stdscanviewothers = false) {
     global $DB, $CFG, $PAGE, $USER, $OUTPUT;
 
+    $PAGE->set_url($url);
+
     if ($courseid == SITEID) {
         print_error('invalidcourseid');
     }
@@ -283,8 +285,6 @@ function set_peergradepanel_page($courseid, $userid, $url, $tab, $onlyforprofs, 
             (!$stdscanviewothers && !$isprofessor && !$iscurrentuser) || isguestuser()) {
         print_error('error');
     }
-
-    $PAGE->set_url($url);
 
     $course = get_course($courseid, false);
 

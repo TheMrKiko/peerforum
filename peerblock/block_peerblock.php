@@ -203,7 +203,7 @@ class block_peerblock extends block_list {
                     new moodle_url($CFG->wwwroot . '/peergrading/index.php',
                             array('courseid' => $courseid,
                                     'userid' => $userid, 'display' => 1, 'peerforum' => $courseid)),
-                    '(old panel)',
+                    '...',
                     array('title' => get_string('viewpanel', 'block_peerblock')));
         }
 
