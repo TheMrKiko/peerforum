@@ -955,20 +955,19 @@ $string['gradeforstudentpeergradehidden'] = 'Grade by student peergraders hidden
 $string['gradeforprofessorpeergrade'] = 'Grade by professor peergraders: {$a->str_long_grade}';
 $string['gradeforprofessorpeergradehidden'] = 'Grade by professor peergraders hidden';
 $string['capabilitychecknotavailable'] = 'Capability check not available until activity is saved';
-$string['seeoutliers'] = 'See outliers on the Peer Grade panel';
-$string['configseeoutliers'] = 'The outliers are displayed in red in the section View Peergrades of the Peer Grade panel';
+$string['seeoutliers'] = 'Display outliers';
+$string['seeoutliers_help'] = 'Peer grading outliers are individual peergrades that seem out of place among the others for the same post. Each peergrade can either be not an outlier (green), a warning for a possible outlier (yellow), or definitely an outlier (red).';
 $string['gradepoints'] = 'Grade points';
-$string['standarddeviation'] = 'Standard Deviation';
+$string['standarddeviation'] = 'Standard deviation';
 $string['outlierdetection'] = 'Outliers detection';
-$string['configoutlierdetection'] = 'Select which method should be used to detect outliers';
-$string['outdetectvalue'] = 'Outliers method value';
-$string['configoutdetectvalue'] = 'Select an integer value which would be used in the outliers detection method';
+$string['outlierdetection_help'] = 'Which method should be used to detect outliers. ';
+$string['outdetectvalue'] = 'Outlier threshold';
+$string['outdetectvalue_help'] = 'A adjustment value to the outlier detection formula. If the method is \'Standard deviation\', this value is multiplied with the standard deviation. If the method is \'Grade points\', this value is how many grade points should be included both more and less from the average of grades.';
 $string['blockoutliers'] = 'Block red outliers';
-$string['configblockoutliers'] =
-        'Set to \'No\' if you want to block/eliminate automatically red outliers from final grades (hide red grades on the Peer Grade panel on View Peergrades tab)';
-$string['warningoutliers'] = 'Threshold for warnign outliers';
-$string['configwarningoutliers'] =
-        'Configure the threshold value for warnign outliers (yellow grades on the Peer Grade panel on View Peergrades tab)';
+$string['blockoutliers_help'] =
+        'If you want the red ouliers from now on to be block automatically and not included in the final grades.';
+$string['warningoutliers'] = 'Warnign outlier threshold';
+$string['warningoutliers_help'] = 'The threshold value for warnign outliers, both more and less from the average grade.';
 
 $string['aggregatetyperate'] = 'Aggregate type';
 $string['aggregateavgrate'] = 'Average of ratings';
