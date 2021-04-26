@@ -37,6 +37,10 @@ define('PEERGRADE_DEFAULT_SCALE', 5);
 define('UNSET_STUDENT', -1);
 define('UNSET_STUDENT_SELECT', -2);
 
+define('PEERGRADE_OUTLIER_IN', 1);
+define('PEERGRADE_OUTLIER_WARNING', 2);
+define('PEERGRADE_OUTLIER_OUT', 3);
+
 if (is_file($CFG->dirroot . '/mod/peerforum/lib.php')) {
     require_once($CFG->dirroot . '/mod/peerforum/lib.php');
 } else {
@@ -1662,6 +1666,11 @@ class peergrade_manager {
         $settings->remainanonymous = $options->remainanonymous ?? $pluginextrasettingsarray['remainanonymous'];
         $settings->whenpeergradevisible = $options->whenpeergradevisible ?? $pluginextrasettingsarray['whenpeergradevisible'];
         $settings->finalgrademode = $options->finalgrademode ?? $pluginextrasettingsarray['finalgrademode'];
+        $settings->seeoutliers = $options->seeoutliers ?? $pluginextrasettingsarray['seeoutliers'];
+        $settings->outlierdetection = $options->outlierdetection ?? $pluginextrasettingsarray['outlierdetection'];
+        $settings->outdetectvalue = $options->outdetectvalue ?? $pluginextrasettingsarray['outdetectvalue'];
+        $settings->warningoutliers = $options->warningoutliers ?? $pluginextrasettingsarray['warningoutliers'];
+        $settings->blockoutliers = $options->blockoutliers ?? $pluginextrasettingsarray['blockoutliers'];
 
         // Check site capabilities.
         $settings->permissions = new stdClass;
@@ -2327,6 +2336,73 @@ class peergrade_manager {
                  WHERE s.id {$useridtest} AND
                        b.id IS NULL";
         return $DB->get_records_sql($sql, $params);
+    }
+
+    /**
+     * From a list of peer grades, adds a outliers property to each in $peergrade->outlier, based on the options.
+     *
+     * @param stdClass[] $peergrades
+     * @param $peergradesettings
+     */
+    public function check_peergrade_outliers(array $peergrades, $peergradesettings) {
+        if (empty($peergrades)) {
+            return array();
+        }
+
+        $outdetectvalue = $peergradesettings->outdetectvalue;
+        $warningoutliers = $peergradesettings->warningoutliers;
+
+        $vpeergrades = array_map(static function($p) {
+            return $p->peergrade;
+        }, $peergrades);
+
+        // Average.
+        $average = array_sum($vpeergrades) / count($vpeergrades);
+
+        // Mode.
+        $cvpeergrades = array_count_values($vpeergrades);
+        asort($cvpeergrades);
+        $mode = count(array_unique($vpeergrades)) < count($vpeergrades) ? array_keys($cvpeergrades, max($cvpeergrades)) : null;
+
+        if ($peergradesettings->outlierdetection == 'standard deviation') {
+            // Standard deviation.
+            $arrvariance = array_map(function($i) use ($average) {
+                return ($i - $average) ** 2;
+            }, $vpeergrades);
+            $sd = count($vpeergrades) > 1 ? sqrt(array_sum($arrvariance)/count($vpeergrades)) : 0;
+
+            if ($peergradesettings->outdetectvalue > 0) {
+                $sd *= $peergradesettings->outdetectvalue;
+            }
+
+            $minpeergrade = $average - $sd;
+            $maxpeergrade = $average + $sd;
+        } else if ($peergradesettings->outlierdetection == 'grade points') {
+
+            $minpeergrade = $average - $outdetectvalue;
+            $maxpeergrade = $average + $outdetectvalue;
+        }
+
+        // Warning interval with threshold.
+        if ($warningoutliers) {
+            $minwarning = $average - $warningoutliers;
+            $maxwarning = $average + $warningoutliers;
+        }
+
+        foreach ($peergrades as &$peergrade) {
+            $grade = $peergrade->peergrade;
+
+            if ($grade < $minpeergrade || $grade > $maxpeergrade) {
+                $peergrade->outlier = PEERGRADE_OUTLIER_OUT;
+            } else if ($grade != $mode && $warningoutliers && ($grade < $minwarning || $grade > $maxwarning)) {
+                $peergrade->outlier = PEERGRADE_OUTLIER_WARNING;
+            } else {
+                $peergrade->outlier = PEERGRADE_OUTLIER_IN;
+            }
+        }
+        unset($peergrade);
+
+        return $peergrades;
     }
 
     /**

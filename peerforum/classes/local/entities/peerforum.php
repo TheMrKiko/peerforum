@@ -1199,6 +1199,11 @@ class peerforum {
             'finalgrademode' => $this->get_finalgrademode(),
             'gradeprofessorpost' => $this->is_gradeprofessorpost(),
             'autoassignreplies' => $this->is_autoassignreplies(),
+            'seeoutliers' => $this->is_seeoutliers(),
+            'outlierdetection' => $this->get_outlierdetection(),
+            'outdetectvalue' => $this->get_outdetectvalue(),
+            'warningoutliers' => $this->get_warningoutliers(),
+            'blockoutliers' => $this->is_blockoutliers(),
         );
     }
 }
