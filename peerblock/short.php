@@ -213,6 +213,8 @@ foreach ($items as $item) {
     $peergradeoptions->peergradearea = $peergradeobj->peergradearea;
     $allpeergrades = $pgmanager->get_all_peergrades_for_item($peergradeoptions);
 
+    $allpeergrades = $pgmanager->check_peergrade_outliers($allpeergrades, $peergradeobj->settings);
+
     $row = new html_table_row();
 
     $subjcell = new html_table_cell(html_writer::link(
@@ -271,7 +273,21 @@ foreach ($items as $item) {
 
             $pg = $allpeergrades[$assign->peergraded];
             $row->cells[] = new html_table_cell($peergradescalemenu[$pg->peergrade]);
-            end($row->cells)->attributes = array('class' => 'text-center align-middle');
+            $outclass = '';
+            if ($peergradeobj->settings->seeoutliers) {
+                switch ($pg->outlier) {
+                    case PEERGRADE_OUTLIER_IN:
+                        $outclass = 'text-success';
+                        break;
+                    case PEERGRADE_OUTLIER_WARNING:
+                        $outclass = 'text-warning';
+                        break;
+                    case PEERGRADE_OUTLIER_OUT:
+                        $outclass = 'text-danger';
+                        break;
+                }
+            }
+            end($row->cells)->attributes = array('class' => 'text-center align-middle ' . $outclass);
             $row->cells[] = new html_table_cell(
                 html_writer::empty_tag('input',
                     array('type' => 'checkbox', 'id' => 'expanded' . $pg->id, 'class' => 'input-collapsable'))
