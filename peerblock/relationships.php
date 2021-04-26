@@ -27,7 +27,6 @@ require_once('../../user/lib.php');
 require_once($CFG->dirroot.'/lib/tablelib.php');
 require_once('./lib.php');
 
-$urlfactory = mod_peerforum\local\container::get_url_factory();
 $vaultfactory = mod_peerforum\local\container::get_vault_factory();
 $nominationsvault = $vaultfactory->get_relationship_nomination_vault();
 $rankingsvault = $vaultfactory->get_relationship_ranking_vault();
@@ -52,6 +51,7 @@ $confscale = array(
 
 $rankings = $rankingsvault->get_from_user_id($userid, $courseid, false, false);
 $nominations = $nominationsvault->get_from_user_id($userid, $courseid, false);
+$othernominations = $userid ? $nominationsvault->get_from_otheruser_id($userid, $courseid, false) : array();
 $userids = [];
 
 foreach($nominations as $n) {
@@ -66,11 +66,25 @@ $users = user_get_users_by_id(array_keys($userids));
 
 /*------------------------------- NOMINATIONS -------------------------------*/
 uasort($nominations, function($a, $b) {
+    return $a->nomination <=> $b->nomination;
+});
+
+uasort($nominations, function($a, $b) {
+    return $a->userid <=> $b->userid;
+});
+
+uasort($othernominations, function($a, $b) {
+    return $a->nomination <=> $b->nomination;
+});
+
+uasort($othernominations, function($a, $b) {
     return $a->userid <=> $b->userid;
 });
 
 echo html_writer::tag('h3', 'Student nominations');
 $table = new flexible_table('userselfnominations');
+
+othertable:
 $table->set_attribute('class', 'table table-responsive table-striped');
 $table->define_columns(array(
         'fullname',
@@ -95,11 +109,11 @@ $table->setup();
 foreach ($nominations as $nomination) {
     $row = array();
     $row[] = html_writer::link(
-            $urlfactory->get_user_summary_url($users[$nomination->userid], $courseid),
+            new moodle_url($url, array('userid' => $nomination->userid)),
             fullname($users[$nomination->userid])
     );
     $row[] = html_writer::link(
-            $urlfactory->get_user_summary_url($users[$nomination->otheruserid], $courseid),
+            new moodle_url($url, array('userid' => $nomination->otheruserid)),
             fullname($users[$nomination->otheruserid])
     );
     $row[] = 'Like ' . ($nomination->nomination > 0 ? 'most' : 'least');
@@ -109,6 +123,16 @@ foreach ($nominations as $nomination) {
 }
 
 $table->finish_output();
+
+$nominations = $othernominations;
+if (!empty($nominations)) {
+    $othernominations = array();
+
+    echo html_writer::tag('h3', 'Students who nominated');
+    $table = new flexible_table('userothernominations');
+
+    goto othertable;
+}
 
 /*------------------------------- RANKINGS -------------------------------*/
 uasort($rankings, function($a, $b) {
@@ -139,11 +163,11 @@ $table->setup();
 foreach ($rankings as $ranking) {
     $row = array();
     $row[] = html_writer::link(
-            $urlfactory->get_user_summary_url($users[$ranking->userid], $courseid),
+            new moodle_url($url, array('userid' => $ranking->userid)),
             fullname($users[$ranking->userid])
     );
     $row[] = html_writer::link(
-            $urlfactory->get_user_summary_url($users[$ranking->otheruserid], $courseid),
+            new moodle_url($url, array('userid' => $ranking->otheruserid)),
             fullname($users[$ranking->otheruserid])
     );
     $row[] = $ranking->ranking ? $ranking->ranking . ' / 5' : '-';
