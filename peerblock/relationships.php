@@ -66,11 +66,19 @@ $users = user_get_users_by_id(array_keys($userids));
 
 /*------------------------------- NOMINATIONS -------------------------------*/
 uasort($nominations, function($a, $b) {
+    return $a->confidence <=> $b->confidence;
+});
+
+uasort($nominations, function($a, $b) {
     return $a->nomination <=> $b->nomination;
 });
 
 uasort($nominations, function($a, $b) {
     return $a->userid <=> $b->userid;
+});
+
+uasort($othernominations, function($a, $b) {
+    return $a->confidence <=> $b->confidence;
 });
 
 uasort($othernominations, function($a, $b) {
@@ -170,7 +178,7 @@ foreach ($rankings as $ranking) {
             new moodle_url($url, array('userid' => $ranking->otheruserid)),
             fullname($users[$ranking->otheruserid])
     );
-    $row[] = $ranking->ranking ? $ranking->ranking . ' / 5' : '-';
+    $row[] = $ranking->ranking !== null ? $ranking->ranking . ' / 5' : '-';
 
     $table->add_data($row);
 }
