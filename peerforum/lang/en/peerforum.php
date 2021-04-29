@@ -967,7 +967,7 @@ $string['blockoutliers'] = 'Block red outliers';
 $string['blockoutliers_help'] =
         'If you want the red ouliers from now on to be block automatically and not included in the final grades.';
 $string['warningoutliers'] = 'Warnign outlier threshold';
-$string['warningoutliers_help'] = 'The threshold value for warnign outliers, both more and less from the average grade.';
+$string['warningoutliers_help'] = 'The threshold value for warnign outliers, calculated the same as the outlier threshold.';
 
 $string['aggregatetyperate'] = 'Aggregate type';
 $string['aggregateavgrate'] = 'Average of ratings';

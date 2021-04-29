@@ -2362,7 +2362,7 @@ class peergrade_manager {
         // Mode.
         $cvpeergrades = array_count_values($vpeergrades);
         asort($cvpeergrades);
-        $mode = count(array_unique($vpeergrades)) < count($vpeergrades) ? array_keys($cvpeergrades, max($cvpeergrades)) : null;
+        $mode = count(array_unique($vpeergrades)) < count($vpeergrades) ? array_keys($cvpeergrades, max($cvpeergrades)) : array();
 
         if ($peergradesettings->outlierdetection == 'standard deviation') {
             // Standard deviation.
@@ -2372,6 +2372,11 @@ class peergrade_manager {
             $sd = count($vpeergrades) > 1 ? sqrt(array_sum($arrvariance)/count($vpeergrades)) : 0;
 
             if ($peergradesettings->outdetectvalue > 0) {
+
+                if ($warningoutliers) {
+                    $warningoutliers *= $sd;
+                }
+
                 $sd *= $peergradesettings->outdetectvalue;
             }
 
@@ -2394,7 +2399,7 @@ class peergrade_manager {
 
             if ($grade < $minpeergrade || $grade > $maxpeergrade) {
                 $peergrade->outlier = PEERGRADE_OUTLIER_OUT;
-            } else if ($grade != $mode && $warningoutliers && ($grade < $minwarning || $grade > $maxwarning)) {
+            } else if (!in_array($grade, $mode) && $warningoutliers && ($grade < $minwarning || $grade > $maxwarning)) {
                 $peergrade->outlier = PEERGRADE_OUTLIER_WARNING;
             } else {
                 $peergrade->outlier = PEERGRADE_OUTLIER_IN;

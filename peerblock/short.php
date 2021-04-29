@@ -287,7 +287,7 @@ foreach ($items as $item) {
                         break;
                 }
             }
-            end($row->cells)->attributes = array('class' => 'text-center align-middle ' . $outclass);
+            end($row->cells)->attributes = array('class' => 'text-center align-middle bold ' . $outclass);
             $row->cells[] = new html_table_cell(
                 html_writer::empty_tag('input',
                     array('type' => 'checkbox', 'id' => 'expanded' . $pg->id, 'class' => 'input-collapsable'))
