@@ -62,36 +62,41 @@ $posts = array(); // List of current number of grade by postid.
 foreach ($items as $item) {
     $itemid = $item->itemid;
 
-    if (!empty($item->peergraded)) {
-        $pn = $posts[$itemid] = ($posts[$itemid] ?? 0) + 1;
-    }
+    $week = intdiv($item->timeassigned - $datemin, WEEKSECS);
+    $pweek = $pweeks[$itemid] = $pweeks[$itemid] ?? $week;
 
     if ($userid && $item->userid != $userid) {
         continue;
     }
 
-    $week = intdiv($item->timeassigned - $datemin, WEEKSECS);
-    $assigns[$week] = $assigns[$week] ?? array();
+    if (!isset($posts[$itemid])) {
+        $posts[$itemid] = 0;
+        $ngrades[$pweek][0][] = 0;
+    }
 
-    $pweek = $pweeks[$itemid] = $pweeks[$itemid] ?? $week;
+    $assigns[$pweek] = $assigns[$pweek] ?? array();
+
     $ngrades[$pweek] = $ngrades[$pweek] ?? array();
 
+    $timedelay = 0;
+    $pn = 0;
     if (!empty($item->peergraded)) {
         // When already peer graded.
-        $assigns[$week]['peergraded'] = ($assigns[$week]['peergraded'] ?? 0) + 1;
+        $assigns[$pweek]['peergraded'] = ($assigns[$pweek]['peergraded'] ?? 0) + 1;
         $timedelay = ($item->timemodified - $item->timeassigned) / (2 * DAYSECS); // TODO Change!!
-        $assigns[$week]['timedelay'][] = $timedelay;
+        $assigns[$pweek]['timedelay'][] = $timedelay;
 
+        $pn = $posts[$itemid] = $posts[$itemid] + 1;
         $ngrades[$pweek][$pn][] = $timedelay;
     } else if (!empty($item->expired)) {
         // When expired.
-        $assigns[$week]['expired'] = ($assigns[$week]['expired'] ?? 0) + 1;
+        $assigns[$pweek]['expired'] = ($assigns[$pweek]['expired'] ?? 0) + 1;
     } else if (!empty($item->ended)) {
         // When ended but not peer graded.
-        $assigns[$week]['ended'] = ($assigns[$week]['ended'] ?? 0) + 1;
+        $assigns[$pweek]['ended'] = ($assigns[$pweek]['ended'] ?? 0) + 1;
     } else {
         // When waiting for grade.
-        $assigns[$week]['todo'] = ($assigns[$week]['todo'] ?? 0) + 1;
+        $assigns[$pweek]['todo'] = ($assigns[$pweek]['todo'] ?? 0) + 1;
     }
 }
 
@@ -114,9 +119,13 @@ foreach (range(0, $numweeks - 1) as $n) {
     $seriedelvals[] = !empty($assigns[$n]['timedelay']) ?
             round(array_sum($assigns[$n]['timedelay']) * 100 / count($assigns[$n]['timedelay'])) : 0;
 
+    // Special case for no grades.
+    $ngr = $ngrades[$n][0] ?? array();
+    $seriesnpvals[0][] = count($ngr);
+
     foreach (range(1, $nmaxgrades) as $k) {
         $ngr = $ngrades[$n][$k] ?? array();
-        $seriesnpvals[$k][] = !empty($ngr) ? count($ngr) : 0;
+        $seriesnpvals[$k][] = count($ngr);
         $seriesnptvals[$k][] = !empty($ngr) ? round(array_sum($ngr) * 100 / count($ngr), 2) : 0;
     }
 
@@ -154,7 +163,7 @@ $yaxis1->set_position(\core\chart_axis::POS_RIGHT);
 $colorset = $CFG->chart_colorset ?? null;
 $CFG->chart_colorset = ['#01ff70', 'black', '#339966', '#cc3300', 'grey'];
 
-echo isset($week) ? $OUTPUT->render($chart) : 'No posts to show.';
+echo isset($pn) ? $OUTPUT->render($chart) : 'No posts to show.';
 $CFG->chart_colorset = $colorset;
 
 /*------------------------ Grade distribution graph ------------------------*/
@@ -164,7 +173,8 @@ ksort($seriesnptvals);
 $chart = new core\chart_bar();
 $chart->set_title('Peer grade sequential distribution');
 foreach ($seriesnpvals as $n => $serienpvals) {
-    $serienp = new core\chart_series($n . 'nth grade', $serienpvals);
+    $nthgradelabel = $n . 'nth grade';
+    $serienp = new core\chart_series($nthgradelabel, $serienpvals);
     $chart->add_series($serienp);
 }
 
@@ -179,7 +189,7 @@ $chart->set_labels($labelsvals);
 $xaxis = $chart->get_xaxis(0, true);
 $xaxis->set_label('Week');
 $yaxis0 = $chart->get_yaxis(0, true);
-$yaxis0->set_label('Number of grades');
+$yaxis0->set_label('Number of posts that at least reach nth grade');
 $yaxis1 = $chart->get_yaxis(1, true);
 $yaxis1->set_label('Percentage of time used from the avaliable (%)');
 $yaxis1->set_stepsize(50);
@@ -187,7 +197,104 @@ $yaxis1->set_min(0);
 $yaxis1->set_max(100);
 $yaxis1->set_position(\core\chart_axis::POS_RIGHT);
 
-echo isset($week) ? $OUTPUT->render($chart) : 'No posts to show.';
+echo isset($pn) ? $OUTPUT->render($chart) : 'No posts to show.';
+
+/*------------------------ Grade distribution graph 2 ------------------------*/
+// Prep.
+$seriesnprvals = [];
+foreach (range(0, $numweeks - 1) as $n) {
+    $ngr = $ngrades[$n][$nmaxgrades] ?? array();
+    $seriesnprvals[$nmaxgrades] = $seriesnprvals[$nmaxgrades] ?? array();
+    $seriesnprvals[$nmaxgrades][$n] = count($ngr);
+
+    foreach (range($nmaxgrades - 1, 0) as $k) {
+        $nextk = $k + 1;
+        $ngr = $ngrades[$n][$k] ?? array();
+        $seriesnprvals[$k][$n] = count($ngr) - $seriesnpvals[$nextk][$n];
+    }
+}
+ksort($seriesnprvals);
+// End prep.
+
+$chart = new core\chart_bar();
+$chart->set_title('Peer grade sequential distribution 2');
+$chart->set_stacked(true);
+foreach ($seriesnprvals as $n => $serienpvals) {
+    $nthgradelabel = $n . ' grades';
+    $serienp = new core\chart_series($nthgradelabel, $serienpvals);
+    $chart->add_series($serienp);
+}
+
+foreach ($seriesnptvals as $n => $serienptvals) {
+    $serienpt = new core\chart_series($n . 'nth time', $serienptvals);
+    $serienpt->set_type(\core\chart_series::TYPE_LINE);
+    $serienpt->set_yaxis(1);
+    $chart->add_series($serienpt);
+}
+
+$chart->set_labels($labelsvals);
+$xaxis = $chart->get_xaxis(0, true);
+$xaxis->set_label('Week');
+$yaxis0 = $chart->get_yaxis(0, true);
+$yaxis0->set_label('Number of posts that end with nth grades');
+$yaxis1 = $chart->get_yaxis(1, true);
+$yaxis1->set_label('Percentage of time used from the avaliable (%)');
+$yaxis1->set_stepsize(50);
+$yaxis1->set_min(0);
+$yaxis1->set_max(100);
+$yaxis1->set_position(\core\chart_axis::POS_RIGHT);
+
+echo isset($pn) ? $OUTPUT->render($chart) : 'No posts to show.';
+
+/*------------------------ Grade distribution graph 3 ------------------------*/
+// Prep.
+$seriesnppvals = [];
+foreach (range(0, $numweeks - 1) as $n) {
+    $ngr = $ngrades[$n][$nmaxgrades] ?? array();
+    $perctotal = $seriesnpvals[0][$n] ?? 0;
+    $seriesnppvals[$nmaxgrades] = $seriesnppvals[$nmaxgrades] ?? array();
+    $seriesnppvals[$nmaxgrades][$n] = $perctotal ? count($ngr) * 100 / $seriesnpvals[0][$n] : 0;
+
+    foreach (range($nmaxgrades - 1, 0) as $k) {
+        $nextk = $k + 1;
+        $ngr = $ngrades[$n][$k] ?? array();
+        $seriesnppvals[$k][$n] = $perctotal ? (count($ngr) - $seriesnpvals[$nextk][$n]) * 100 / $seriesnpvals[0][$n] : 0;
+    }
+}
+ksort($seriesnppvals);
+// End prep.
+
+$chart = new core\chart_bar();
+$chart->set_title('Peer grade sequential distribution 3');
+$chart->set_stacked(true);
+
+foreach ($seriesnptvals as $n => $serienptvals) {
+    $serienpt = new core\chart_series($n . 'nth time', $serienptvals);
+    $serienpt->set_type(\core\chart_series::TYPE_LINE);
+    $serienpt->set_yaxis(1);
+    $chart->add_series($serienpt);
+}
+
+foreach ($seriesnppvals as $n => $serienpvals) {
+    $nthgradelabel = $n . ' grades';
+    $serienp = new core\chart_series($nthgradelabel, $serienpvals);
+    $chart->add_series($serienp);
+}
+
+$chart->set_labels($labelsvals);
+$xaxis = $chart->get_xaxis(0, true);
+$xaxis->set_label('Week');
+$yaxis0 = $chart->get_yaxis(0, true);
+$yaxis0->set_label('Percentage of posts that end with nth grades (%)');
+$yaxis1 = $chart->get_yaxis(1, true);
+$yaxis1->set_label('Percentage of time used from the avaliable (%)');
+$yaxis1->set_stepsize(50);
+$yaxis1->set_min(0);
+$yaxis1->set_max(100);
+$yaxis1->set_position(\core\chart_axis::POS_RIGHT);
+
+echo isset($pn) ? $OUTPUT->render($chart) : 'No posts to show.';
+
 
 echo $OUTPUT->box_end();
 echo $OUTPUT->footer();
