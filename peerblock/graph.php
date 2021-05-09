@@ -83,7 +83,7 @@ foreach ($items as $item) {
     if (!empty($item->peergraded)) {
         // When already peer graded.
         $assigns[$pweek]['peergraded'] = ($assigns[$pweek]['peergraded'] ?? 0) + 1;
-        $timedelay = ($item->timemodified - $item->timeassigned) / (2 * DAYSECS); // TODO Change!!
+        $timedelay = ($item->timemodified - $item->timeassigned) / ($item->timeexpired - $item->timeassigned);
         $assigns[$pweek]['timedelay'][] = $timedelay;
 
         $pn = $posts[$itemid] = $posts[$itemid] + 1;

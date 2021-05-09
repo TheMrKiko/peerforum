@@ -291,6 +291,11 @@ class peergrade_assignment {
     public $timemodified = null;
 
     /**
+     * @var int The time the peer grade will expire, expired or as to expire.
+     */
+    public $timeexpired = null;
+
+    /**
      * @var stdclass The peergrade options with more details
      */
     public $peergradeoptions;
@@ -345,6 +350,7 @@ class peergrade_assignment {
      *            peergraded => If the assignment was already peergraded and the id of the peergrade (if yes) [required]
      *            expired => If the user let the peer grade expire [required]
      *            timemodified  => int The time the peer grade [optional]
+     *            timeexpired  => int The time the peer grade expired or was to expire [optional]
      *            nomination  => int The nomination id related to this assignment [optional]
      *            nominationvalue  => int The nomination value related to this assignment [optional]
      * }
@@ -373,6 +379,9 @@ class peergrade_assignment {
         if (isset($options->timemodified)) {
             $this->timemodified = $options->timemodified;
         }
+        if (isset($options->timeexpired)) {
+            $this->timeexpired = $options->timeexpired;
+        }
         if (isset($options->nomination)) {
             $this->nomination = $options->nomination;
         }
@@ -392,6 +401,7 @@ class peergrade_assignment {
         global $DB;
 
         $time = time();
+        $timetilexpire = $this->peergradeoptions->timetoexpire * DAYSECS;
         $params = array();
         $params['contextid'] = $this->context->id;
         $params['component'] = $this->component;
@@ -420,6 +430,7 @@ class peergrade_assignment {
         $data->courseid = 0; //you want to remove this
         $data->timeassigned = $time;
         $data->timemodified = $time;
+        $data->timeexpired = $time + $timetilexpire;
         $data->ended = $this->ended;
         $data->expired = $this->expired;
         $data->blocked = $this->blocked;
@@ -447,9 +458,7 @@ class peergrade_assignment {
 
     public function get_time_to_expire($formatted = true) {
         $time = time();
-        $timeassigned = $this->timeassigned;
-        $timetilexpire = $this->settings->timetoexpire * DAYSECS;
-        $timewhenexpires = $timeassigned + $timetilexpire;
+        $timewhenexpires = $this->timeexpired;
         $difference = $timewhenexpires - $time;
         return $formatted ? format_time($difference) : $difference;
 
@@ -790,10 +799,9 @@ class peergrade implements renderable {
 
         $time = time();
         $willexpiresoon = 0;
-        $timetilalmostexpire = $this->settings->timetoexpire * DAYSECS - $howsoon;
-        $timewhenstartsexpiring = $time - $timetilalmostexpire; // This makes sense when reordered.
+        $timetilalmostexpire = $time + $howsoon;
         foreach ($this->usersassigned as $userassign) {
-            if (!$userassign->ended && $userassign->timeassigned < $timewhenstartsexpiring) {
+            if (!$userassign->ended && $userassign->timeexpired < $timetilalmostexpire) {
                 $willexpiresoon++;
             }
         }
@@ -892,7 +900,7 @@ class peergrade implements renderable {
             return false;
         }
 
-        // You can't peergrade if you are blocked.
+        // You can't peergrade if you are blocked. For now, there is no block of assigns.
         if ($this->userblocked || $this->get_self_assignment()->blocked) {
             return false;
         } // TODO exclusive! and delete verify_exclusivity().
@@ -952,9 +960,8 @@ class peergrade implements renderable {
 
         $time = time();
         // The cron should check this but just in case it does not in time.
-        $timeassigned = $this->get_self_assignment()->timeassigned;
-        $timetilexpire = $this->settings->timetoexpire * DAYSECS;
-        if ($time > $timeassigned + $timetilexpire) {
+        $timeexpired = $this->get_self_assignment()->timeexpired;
+        if ($time > $timeexpired) {
             $this->get_self_assignment()->expired = true;
             return true;
         }
@@ -1170,6 +1177,7 @@ class peergrade implements renderable {
                 'itemid' => $this->itemid,
                 'peergradeduserid' => $this->itemuserid,
                 'returnurl' => $returnurl,
+                'timetoexpire' => $this->settings->timetoexpire,
                 'sesskey' => sesskey()
         );
         if ($action !== null) {
@@ -1485,7 +1493,7 @@ class peergrade_manager {
 
         $userfields = user_picture::fields('u', ['deleted'], 'userid');
         $sql = "SELECT r.id, r.itemid, r.userid, r.peergraded, r.ended, r.expired, r.blocked, r.nomination, r.timeassigned,
-                       r.timemodified, n.nomination AS nominationvalue, $userfields
+                       r.timemodified, r.timeexpired, n.nomination AS nominationvalue, $userfields
                   FROM {peerforum_time_assigned} r
              LEFT JOIN {user} u ON r.userid = u.id
              LEFT JOIN {peerforum_relationship_nomin} n ON r.nomination = n.id
@@ -1560,6 +1568,7 @@ class peergrade_manager {
                     $assignoptions->nominationvalue = $userassign->nominationvalue;
                     $assignoptions->timeassigned = $userassign->timeassigned;
                     $assignoptions->timemodified = $userassign->timemodified;
+                    $assignoptions->timeexpired = $userassign->timeexpired;
                     $assignoptions->peergradeoptions = $peergradeoptions;
                     $assign = new peergrade_assignment($assignoptions);
 

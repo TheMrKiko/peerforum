@@ -38,6 +38,7 @@ $assigneduserid =
         required_param('assigneduserid', PARAM_INT); // Which user is the assign being change.
 $peergradeduserid = required_param('peergradeduserid', PARAM_INT); // Which user is being peergraded.
 $returnurl = required_param('returnurl', PARAM_LOCALURL); // Required for non-ajax requests.
+$timetoexpire = required_param('timetoexpire', PARAM_INT);
 
 $result = new stdClass;
 
@@ -84,6 +85,7 @@ if ($action === 'remove' && $assigneduserid) {
     $peergradeoptions->context = $context;
     $peergradeoptions->component = $component;
     $peergradeoptions->peergradearea = $peergradearea;
+    $peergradeoptions->timetoexpire = $timetoexpire;
 
     $assignoptions = new stdClass();
     $assignoptions->itemid = $itemid;

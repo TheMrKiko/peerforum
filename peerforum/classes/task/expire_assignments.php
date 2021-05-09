@@ -107,9 +107,7 @@ class expire_assignments extends \core\task\scheduled_task {
                 }
             }
             if (!$assignshouldend) {
-                $timeassigned = $assign->timeassigned;
-                $timetilexpire = $peerforum->get_timetopeergrade() * DAYSECS;
-                $assignshouldend = $time > $timeassigned + $timetilexpire;
+                $assignshouldend = $time > $assign->timeexpired;
                 if ($assignshouldend && empty($assign->ublocked)) {
                     $assignsshouldexpire[] = $assign->id;
                 }
@@ -151,6 +149,7 @@ class expire_assignments extends \core\task\scheduled_task {
                     a.itemid,
                     a.postid,
                     a.timeassigned,
+                    a.timeexpired,
                     a.ended,
                     a.contextid,
                     a.component,
