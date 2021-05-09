@@ -543,5 +543,69 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021040101, 'peerforum');
     }
 
+    if ($oldversion < 2021050901) {
+
+        // Define field timeexpired to be added to peerforum_time_assigned.
+        $table = new xmldb_table('peerforum_time_assigned');
+        $field = new xmldb_field('timeexpired', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'timemodified');
+
+        // Conditionally launch add field timeexpired.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $pfs = $DB->get_records('peerforum');
+        $pf = end($pfs);
+
+        $timetoexpire = $pf->timetopeergrade * DAYSECS;
+        $assigns = $DB->get_records('peerforum_time_assigned');
+
+        foreach ($assigns as $assign) {
+            $timeexpired = $assign->timeassigned + $timetoexpire;
+            $DB->set_field('peerforum_time_assigned', 'timeexpired', $timeexpired,
+                    array('id' => $assign->id)
+            );
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021050901, 'peerforum');
+    }
+
+    if ($oldversion < 2021050902) {
+
+        $pfs = $DB->get_records('peerforum');
+        foreach ($pfs as $pfe) {
+            $DB->set_field('peerforum', 'outlierdetection', 0,
+                    array('id' => $pfe->id)
+            );
+        }
+
+        // Changing type of field outlierdetection on table peerforum to int.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('outlierdetection', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'seeoutliers');
+
+        // Launch change of type for field outlierdetection.
+        $dbman->change_field_type($table, $field);
+
+        // Changing precision of field outlierdetection on table peerforum to (4).
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('outlierdetection', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'seeoutliers');
+
+        // Launch change of precision for field outlierdetection.
+        $dbman->change_field_precision($table, $field);
+
+        // Changing the default of field outlierdetection on table peerforum to 0.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('outlierdetection', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'seeoutliers');
+
+        // Launch change of default for field outlierdetection.
+        $dbman->change_field_default($table, $field);
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021050902, 'peerforum');
+    }
+
+
+
     return true;
 }

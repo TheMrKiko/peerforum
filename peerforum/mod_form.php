@@ -452,15 +452,12 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->addHelpButton('seeoutliers', 'seeoutliers', 'peerforum');
 
         // Outliers detection.
-        $detection = array(
-                'grade points' => get_string('gradepoints', 'peerforum'),
-                'standard deviation' => get_string('standarddeviation', 'peerforum'),
-        );
+        $detection = peerforum_get_outlier_detection();
 
         $mform->addElement('select', 'outlierdetection', get_string('outlierdetection', 'peerforum'), $detection);
         $mform->hideIf('outlierdetection', 'seeoutliers', 'eq', 0);
         $mform->hideIf('outlierdetection', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-        $mform->setDefault('outlierdetection', 'standard deviation');
+        $mform->setDefault('outlierdetection', PEERFORUM_OUTLIERMODE_STDDEVIATION);
         $mform->addHelpButton('outlierdetection', 'outlierdetection', 'peerforum');
 
         // Outliers method value.

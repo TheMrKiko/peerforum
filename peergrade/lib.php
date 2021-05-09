@@ -2373,7 +2373,7 @@ class peergrade_manager {
         asort($cvpeergrades);
         $mode = count(array_unique($vpeergrades)) < count($vpeergrades) ? array_keys($cvpeergrades, max($cvpeergrades)) : array();
 
-        if ($peergradesettings->outlierdetection == 'standard deviation') {
+        if ($peergradesettings->outlierdetection == PEERFORUM_OUTLIERMODE_STDDEVIATION) {
             // Standard deviation.
             $arrvariance = array_map(function($i) use ($average) {
                 return ($i - $average) ** 2;
@@ -2391,7 +2391,7 @@ class peergrade_manager {
 
             $minpeergrade = $average - $sd;
             $maxpeergrade = $average + $sd;
-        } else if ($peergradesettings->outlierdetection == 'grade points') {
+        } else if ($peergradesettings->outlierdetection == PEERFORUM_OUTLIERMODE_GRADEPOINTS) {
 
             $minpeergrade = $average - $outdetectvalue;
             $maxpeergrade = $average + $outdetectvalue;

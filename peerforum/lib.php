@@ -84,6 +84,9 @@ define('PEERFORUM_GRADEVISIBLE_ALWAYS', 1);
 define('PEERFORUM_GRADEVISIBLE_MINGRADERS', 2);
 define('PEERFORUM_GRADEVISIBLE_AFTERPGENDS', 3);
 
+define('PEERFORUM_OUTLIERMODE_STDDEVIATION', 0);
+define('PEERFORUM_OUTLIERMODE_GRADEPOINTS', 1);
+
 define('MANAGEPOSTS_MODE_SEEALL', 1);
 define('MANAGEPOSTS_MODE_SEEGRADED', 2);
 define('MANAGEPOSTS_MODE_SEENOTGRADED', 3);
@@ -502,6 +505,18 @@ function peerforum_get_when_peergrade_visible() {
             PEERFORUM_GRADEVISIBLE_ALWAYS => get_string('always', 'peerforum'),
             PEERFORUM_GRADEVISIBLE_MINGRADERS => get_string('whenmingraders', 'peerforum'),
             PEERFORUM_GRADEVISIBLE_AFTERPGENDS => get_string('afterpeergradeends', 'peerforum'),
+    );
+}
+
+/**
+ * Returns array of peerforum outlier detection
+ *
+ * @return array
+ */
+function peerforum_get_outlier_detection() {
+    return array(
+            PEERFORUM_OUTLIERMODE_STDDEVIATION => get_string('standarddeviation', 'peerforum'),
+            PEERFORUM_OUTLIERMODE_GRADEPOINTS => get_string('gradepoints', 'peerforum'),
     );
 }
 

@@ -155,7 +155,7 @@ class peerforum {
     private $blockoutliers;
     /** @var int $seeoutliers seeoutliers */
     private $seeoutliers;
-    /** @var string $outlierdetection outlierdetection */
+    /** @var int $outlierdetection outlierdetection */
     private $outlierdetection;
     /** @var int $warningoutliers warningoutliers */
     private $warningoutliers;
@@ -250,7 +250,7 @@ class peerforum {
      * @param int $outdetectvalue
      * @param int $blockoutliers
      * @param int $seeoutliers
-     * @param string $outlierdetection
+     * @param int $outlierdetection
      * @param int $warningoutliers
      * @param int $showafterrating
      * @param int $showratings
@@ -326,7 +326,7 @@ class peerforum {
             int $outdetectvalue,
             int $blockoutliers,
             int $seeoutliers,
-            string $outlierdetection,
+            int $outlierdetection,
             int $warningoutliers,
             int $showafterrating,
             int $showratings,
@@ -1053,9 +1053,9 @@ class peerforum {
     }
 
     /**
-     * @return string
+     * @return int
      */
-    public function get_outlierdetection(): string {
+    public function get_outlierdetection(): int {
         return $this->outlierdetection;
     }
 
