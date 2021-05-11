@@ -2705,7 +2705,7 @@ function peerforum_instance_created($context, $peerforum) {
 function peerforum_update_instance($peerforum, $mform) {
     global $DB, $OUTPUT, $USER, $COURSE, $CFG;
 
-    require_once($CFG->dirroot . '/mod/peerforum/locallib.php'); // TODO maybe remover.
+    require_once($CFG->dirroot . '/mod/peerforum/locallib.php');
 
     $peerforum->timemodified = time();
     $peerforum->id = $peerforum->instance;
@@ -2734,6 +2734,7 @@ function peerforum_update_instance($peerforum, $mform) {
     // if  scale changes - do we need to recheck the ratings, if ratings higher than scale how do we want to respond?
     // for count and sum aggregation types the grade we check to make sure they do not exceed the scale (i.e. max score) when calculating the grade
     $updategrades = false;
+    $updateoutliers = false;
 
     if ($oldpeerforum->assessed <> $peerforum->assessed || $oldpeerforum->peergradeassessed <> $peerforum->peergradeassessed) {
         // Whether this peerforum is rated.
@@ -2753,6 +2754,17 @@ function peerforum_update_instance($peerforum, $mform) {
     if ($oldpeerforum->finalgrademode <> $peerforum->finalgrademode) {
         // The peer grade mode currently in use.
         $updategrades = true;
+    }
+
+    if ($oldpeerforum->outlierdetection <> $peerforum->outlierdetection
+            || $oldpeerforum->outdetectvalue <> $peerforum->outdetectvalue || $oldpeerforum->blockoutliers <> $peerforum->blockoutliers) {
+        // The outlier calc in use.
+        $updateoutliers = true;
+        $updategrades = true;
+    }
+
+    if ($updateoutliers) {
+        peerforum_update_outliers($peerforum); // Recalculate outliers for the peerforum.
     }
 
     if ($updategrades) {
@@ -3655,6 +3667,44 @@ function peerforum_print_recent_activity($course, $viewfullnames, $timestart) {
 }
 
 /**
+ * Update peergrade outlier grades.
+ *
+ * @param object $peerforum
+ */
+function peerforum_update_outliers($peerforum): void {
+    if ($peerforum->peergradeassessed) {
+        global $CFG, $DB;
+
+        $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
+        $context = \context_module::instance($cm->id);
+
+        $discussions = $DB->get_records('peerforum_discussions', array('peerforum' => $peerforum->id));
+
+        if (empty($discussions)) {
+            return;
+        }
+
+        $discussionids = array_keys($discussions);
+
+        list($sql, $params) = $DB->get_in_or_equal($discussionids, SQL_PARAMS_NAMED);
+
+        $items = $DB->get_records_select('peerforum_posts', ' discussion ' . $sql, $params);
+
+        require_once($CFG->dirroot . '/peergrade/lib.php');
+
+        $peergradeoptions = new stdClass;
+        $peergradeoptions->peergradearea = 'post';
+        $peergradeoptions->component = 'mod_peerforum';
+        $peergradeoptions->context = $context;
+        $peergradeoptions->items = $items;
+        $peergradeoptions->peergradescaleid = $peerforum->peergradescale;
+
+        $pgm = new peergrade_manager();
+        $pgm->commit_peergrade_outliers($peergradeoptions, $peerforum);
+    }
+}
+
+/**
  * Update activity grades.
  *
  * @param object $peerforum
@@ -3676,7 +3726,7 @@ function peerforum_update_grades($peerforum, $userid = 0): void {
                 'ratingarea' => 'post',
                 'contextid' => \context_module::instance($cm->id)->id,
                 'modulename' => 'peerforum',
-                'moduleid  ' => $peerforum->id,
+                'moduleid' => $peerforum->id,
                 'userid' => $userid,
                 'aggregationmethod' => $peerforum->assessed,
                 'scaleid' => $peerforum->scale,
@@ -3698,7 +3748,7 @@ function peerforum_update_grades($peerforum, $userid = 0): void {
                 'peergradearea' => 'post',
                 'contextid' => \context_module::instance($cm->id)->id,
                 'modulename' => 'peerforum',
-                'moduleid  ' => $peerforum->id,
+                'moduleid' => $peerforum->id,
                 'userid' => $userid,
                 'aggregationmethod' => $peerforum->peergradeassessed,
                 'peergradescaleid' => $peerforum->peergradescale,

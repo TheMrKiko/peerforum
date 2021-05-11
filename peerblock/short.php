@@ -267,11 +267,13 @@ foreach ($items as $item) {
 
         if (!empty($assign->peergraded)) {
             // When already peer graded.
+            $pg = $allpeergrades[$assign->peergraded];
+            $outclass = $pg->blocked ? 'bg-danger' : '';
+
             $row->cells[] = new html_table_cell('GRAD');
             end($row->cells)->style = 'color: #339966';
-            end($row->cells)->attributes = array('class' => 'bold text-center align-middle');
+            end($row->cells)->attributes = array('class' => 'bold text-center align-middle ' . $outclass);
 
-            $pg = $allpeergrades[$assign->peergraded];
             $row->cells[] = new html_table_cell($peergradescalemenu[$pg->peergrade]);
             $outclass = '';
             if ($peergradeobj->settings->seeoutliers) {

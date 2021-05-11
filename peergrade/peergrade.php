@@ -95,6 +95,8 @@ $peergradeoptions->itemuserid = $peergradeduserid;
 $peergrade = new peergrade($peergradeoptions);
 $peergrade->update_peergrade($userpeergrade, $feedback);
 
+$pgm->commit_peergrade_outliers($peergradeoptions);
+
 if (!empty($cm) && $context->contextlevel == CONTEXT_MODULE) {
     // Tell the module that its grades have changed.
     $modinstance = $DB->get_record($cm->modname, array('id' => $cm->instance), '*', MUST_EXIST);

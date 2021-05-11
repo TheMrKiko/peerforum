@@ -605,7 +605,32 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021050902, 'peerforum');
     }
 
+    if ($oldversion < 2021051001) {
 
+        // Rename field peergraderid on table peerforum_peergrade to blocked.
+        $table = new xmldb_table('peerforum_peergrade');
+        $field = new xmldb_field('peergraderid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'peergradescaleid');
+
+        // Launch rename field peergraderid.
+        $dbman->rename_field($table, $field, 'blocked');
+
+        // Changing precision of field blocked on table peerforum_peergrade to (1).
+        $table = new xmldb_table('peerforum_peergrade');
+        $field = new xmldb_field('blocked', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'peergradescaleid');
+
+        // Launch change of precision for field blocked.
+        $dbman->change_field_precision($table, $field);
+
+        // Changing the default of field blocked on table peerforum_peergrade to 0.
+        $table = new xmldb_table('peerforum_peergrade');
+        $field = new xmldb_field('blocked', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'peergradescaleid');
+
+        // Launch change of default for field blocked.
+        $dbman->change_field_default($table, $field);
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021051001, 'peerforum');
+    }
 
     return true;
 }

@@ -523,14 +523,19 @@ class peergrade implements renderable {
     public $id = null;
 
     /**
-     * @var int The aggregate of the combined peergrades for the associated item. This is only set if the peergrade already exists
+     * @var int The aggregate of the non blocked combined peergrades for the associated item. This is only set if the peergrade already exists
      */
     public $aggregate = null;
 
     /**
-     * @var int The total number of peergrades for the associated item. This is only set if the peergrade already exists
+     * @var int The number of non blocked peergrades for the associated item. This is only set if the peergrade already exists
      */
     public $count = 0;
+
+    /**
+     * @var int The total number of peergrades for the associated item. Counting blocked too aka outliers
+     */
+    public $totalcount = 0;
 
     /**
      * @var int The peergrade the associated user gave the associated item. This is only set if the peergrade already exists
@@ -607,6 +612,10 @@ class peergrade implements renderable {
         }
         if (isset($options->count)) {
             $this->count = $options->count;
+            $this->totalcount = $options->count;
+        }
+        if (isset($options->realcount)) {
+            $this->totalcount = $options->realcount;
         }
         if (isset($options->peergrade)) {
             $this->peergrade = $options->peergrade;
@@ -682,8 +691,8 @@ class peergrade implements renderable {
             $data->feedback = $feedback;
             $data->timecreated = $time;
             $data->timemodified = $time;
-            $data->peergraderid = 0;
-            $data->scaleid = 0;
+            $data->blocked = 0;
+            $data->scaleid = 0; //TODO Remove
 
             $id = $DB->insert_record('peerforum_peergrade', $data);
             $firstitem->get_self_assignment($this->userid)->update_peergrade($id);
@@ -984,7 +993,7 @@ class peergrade implements renderable {
      * @return bool
      */
     public function has_min_grades(): bool {
-        return $this->count >= $this->settings->minpeergraders ?? false;
+        return $this->totalcount >= $this->settings->minpeergraders ?? false;
     }
 
     /**
@@ -1377,7 +1386,7 @@ class peergrade_manager {
         );
 
         $userfields = user_picture::fields('u', ['deleted'], 'userid');
-        $sql = "SELECT r.id, r.peergrade, r.feedback, r.itemid, r.userid, r.timemodified, r.component, r.peergradearea, $userfields
+        $sql = "SELECT r.*, $userfields
                   FROM {peerforum_peergrade} r
              LEFT JOIN {user} u ON r.userid = u.id
                  WHERE r.contextid = :contextid AND
@@ -1486,10 +1495,21 @@ class peergrade_manager {
                  WHERE r.contextid = :contextid AND
                        r.itemid {$itemidtest} AND
                        r.component = :component AND
-                       r.peergradearea = :peergradearea
+                       r.peergradearea = :peergradearea AND
+                       r.blocked = 0
               GROUP BY r.itemid, r.component, r.peergradearea, r.contextid
               ORDER BY r.itemid";
         $aggregatepeergrades = $DB->get_records_sql($sql, $params);
+
+        $sql = "SELECT r.itemid, COUNT(r.peergrade) AS realnumpeergrades
+                  FROM {peerforum_peergrade} r
+                 WHERE r.contextid = :contextid AND
+                       r.itemid {$itemidtest} AND
+                       r.component = :component AND
+                       r.peergradearea = :peergradearea
+              GROUP BY r.itemid, r.component, r.peergradearea, r.contextid
+              ORDER BY r.itemid";
+        $realaggregatepeergrades = $DB->get_records_sql($sql, $params);
 
         $userfields = user_picture::fields('u', ['deleted'], 'userid');
         $sql = "SELECT r.id, r.itemid, r.userid, r.peergraded, r.ended, r.expired, r.blocked, r.nomination, r.timeassigned,
@@ -1547,6 +1567,15 @@ class peergrade_manager {
                 $peergradeoptions->itemid = $item->{$itemidcol};
                 $peergradeoptions->aggregate = null;
                 $peergradeoptions->count = 0;
+            }
+
+            if (array_key_exists($item->{$itemidcol}, $realaggregatepeergrades)) {
+                $rec = $realaggregatepeergrades[$item->{$itemidcol}];
+                $peergradeoptions->itemid = $item->{$itemidcol};
+                $peergradeoptions->realcount = $rec->realnumpeergrades;
+            } else {
+                $peergradeoptions->itemid = $item->{$itemidcol};
+                $peergradeoptions->realcount = 0;
             }
 
             if (!empty($usersassigned)) {
@@ -1867,7 +1896,8 @@ class peergrade_manager {
                        $stdjoin->joins
                  WHERE r.contextid = :contextid AND
                        r.component = :component AND
-                       r.peergradearea = :peergradearea
+                       r.peergradearea = :peergradearea AND
+                       r.blocked = 0
                        $singleuserwhere
               GROUP BY u.id";
         $results0 = $DB->get_records_sql($sql, $params + $stdjoin->params);
@@ -1880,7 +1910,8 @@ class peergrade_manager {
                        $profjoin->joins
                  WHERE r.contextid = :contextid AND
                        r.component = :component AND
-                       r.peergradearea = :peergradearea
+                       r.peergradearea = :peergradearea AND
+                       r.blocked = 0
                        $singleuserwhere
               GROUP BY u.id";
         $results1 = $DB->get_records_sql($sql, $params + $profjoin->params);
@@ -2261,12 +2292,13 @@ class peergrade_manager {
         $peergradeoptions->component = $component;
         $peergradeoptions->itemid = $itemid;
         $peergradeoptions->peergradescaleid = $peergradescaleid;
-        $peergradeoptions->feedback = $feedback;
         $peergradeoptions->userid = $USER->id;
         $peergradeoptions->itemuserid = $peergradeduserid;
 
         $peergrade = new peergrade($peergradeoptions);
         $peergrade->update_peergrade($userpeergrade, $feedback);
+
+        $this->commit_peergrade_outliers($peergradeoptions);
 
         // Future possible enhancement: add a setting to turn grade updating off for those who don't want them in gradebook.
         // Note that this would need to be done in both peergrade.php and peergrade_ajax.php.
@@ -2417,6 +2449,47 @@ class peergrade_manager {
         unset($peergrade);
 
         return $peergrades;
+    }
+
+    /**
+     * From a list of peer grades with outlier properties, adds blocks in the DB the ones that are red.
+     *
+     * @param $otions
+     * @param $newsettings New settings to override the current ones.
+     */
+    public function commit_peergrade_outliers($options, $newsettings = null) {
+        global $DB;
+
+        if (isset($options->itemid)) {
+            $item = new stdClass;
+            $item->id = $options->itemid;
+            $options->items = array($item);
+        }
+
+        $peergradeoptions = new stdClass;
+        $peergradeoptions->context = $options->context;
+        $peergradeoptions->component = $options->component;
+        $peergradeoptions->peergradearea = $options->peergradearea;
+        $peergradeoptions->items = $options->items;
+        $peergradeoptions->aggregate = PEERGRADE_AGGREGATE_AVERAGE; // We dont actually care what aggregation method is applied.
+        $peergradeoptions->peergradescaleid = $options->peergradescaleid;
+        $peergradeoptions->userid = $options->userid ?? null;
+
+        $items = $this->get_peergrades($peergradeoptions);
+        foreach ($items as $item) {
+            $options->itemid = $item->id;
+            $peergradeobj = $item->peergrade;
+            $settings = $newsettings ?: $peergradeobj->settings;
+            if ($settings->blockoutliers) {
+                $peergrades = $this->get_all_peergrades_for_item($options);
+
+                $peergrades = $this->check_peergrade_outliers($peergrades, $settings);
+                foreach ($peergrades as $peergrade) {
+                    $blocked = $peergrade->outlier === PEERGRADE_OUTLIER_OUT ? 1 : 0;
+                    $DB->set_field('peerforum_peergrade', 'blocked', $blocked, array('id' => $peergrade->id));
+                }
+            }
+        }
     }
 
     /**
