@@ -92,6 +92,11 @@ class peerforum_post implements \renderable, \templatable {
      */
     protected $canseereply = true;
 
+    /**
+     * Whether the user can peergrade.
+     *
+     * @var boolean $canpeergrade
+     */
     protected $canpeergrade = false;
 
     /**
