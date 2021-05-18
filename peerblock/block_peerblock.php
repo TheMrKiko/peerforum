@@ -183,7 +183,7 @@ class block_peerblock extends block_list {
                         'Time to expire: ' . $pgexpiring->get_time_to_expire());
             }
 
-            if ($nrankings >= 5) {
+            if ($nrankings >= 1) {
                 $this->content->items[] = html_writer::span('Peers to rank: ' .
                         html_writer::link(new moodle_url($rankurl), $nrankings . ' peers'));
             }

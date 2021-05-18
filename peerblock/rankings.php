@@ -47,7 +47,7 @@ $rankings = $rankingfull['ranking'] ?? array();
 $ids = $rankingfull['id'] ?? array();
 $userids = array_keys($users);
 
-if (count($userids) >= 5) {
+if (count($userids) >= 1) {
     require_once('../../user/lib.php');
 
     $studentobjs = user_get_users_by_id($userids);
