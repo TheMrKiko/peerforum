@@ -657,6 +657,20 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021051801, 'peerforum');
     }
 
+    if ($oldversion < 2021051802) {
+
+        // Define field minpeerrankings to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('minpeerrankings');
+
+        // Conditionally launch drop field minpeerrankings.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021051802, 'peerforum');
+    }
 
     return true;
 }

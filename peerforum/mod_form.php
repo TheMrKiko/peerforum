@@ -615,6 +615,14 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->setDefault('peerrankings', 1);
         $mform->addHelpButton('peerrankings', 'peerrankings', 'peerforum');
 
+        // How many pending rankings until a student is prompted to rank.
+        $mform->addElement('text', 'minpeerrankings', get_string('minpeerrankings', 'peerforum'));
+        $mform->hideIf('minpeerrankings', 'peerrankings', 'eq', 0);
+        $mform->setType('minpeerrankings', PARAM_INT);
+        $mform->setDefault('minpeerrankings', 5);
+        $mform->addRule('minpeerrankings', null, 'numeric', null, 'client');
+        $mform->addHelpButton('minpeerrankings', 'minpeerrankings', 'peerforum');
+
         // Enable peer nominations on PeerForum.
         $mform->addElement('selectyesno', 'peernominations', get_string('peernominations', 'peerforum'));
         $mform->setDefault('peernominations', 1);
