@@ -632,5 +632,31 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021051001, 'peerforum');
     }
 
+    if ($oldversion < 2021051801) {
+
+        // Changing type of field outdetectvalue on table peerforum to number.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('outdetectvalue', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '1', 'showpeergrades');
+
+        // Launch change of type for field outdetectvalue.
+        $dbman->change_field_type($table, $field);
+
+        // Launch change of precision for field outdetectvalue.
+        $dbman->change_field_precision($table, $field);
+
+        // Changing precision of field warningoutliers on table peerforum to (10, 2).
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('warningoutliers', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0', 'outlierdetection');
+
+        $dbman->change_field_type($table, $field);
+
+        // Launch change of precision for field warningoutliers.
+        $dbman->change_field_precision($table, $field);
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021051801, 'peerforum');
+    }
+
+
     return true;
 }

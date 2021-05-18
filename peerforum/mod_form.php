@@ -461,10 +461,9 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->addHelpButton('outlierdetection', 'outlierdetection', 'peerforum');
 
         // Outliers method value.
-        $mform->addElement('text', 'outdetectvalue', get_string('outdetectvalue', 'peerforum'));
+        $mform->addElement('float', 'outdetectvalue', get_string('outdetectvalue', 'peerforum'));
         $mform->hideIf('outdetectvalue', 'seeoutliers', 'eq', 0);
         $mform->hideIf('outdetectvalue', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-        $mform->setType('outdetectvalue', PARAM_FLOAT);
         $mform->setDefault('outdetectvalue', 1);
         $mform->addRule('outdetectvalue', null, 'numeric', null, 'client');
         $mform->addHelpButton('outdetectvalue', 'outdetectvalue', 'peerforum');
@@ -477,10 +476,9 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $mform->addHelpButton('blockoutliers', 'blockoutliers', 'peerforum');
 
         // Threshold for warning outliers.
-        $mform->addElement('text', 'warningoutliers', get_string('warningoutliers', 'peerforum'));
+        $mform->addElement('float', 'warningoutliers', get_string('warningoutliers', 'peerforum'));
         $mform->hideIf('warningoutliers', 'seeoutliers', 'eq', 0);
         $mform->hideIf('warningoutliers', 'peergradeassessed', 'eq', PEERGRADE_AGGREGATE_NONE);
-        $mform->setType('warningoutliers', PARAM_FLOAT);
         $mform->setDefault('warningoutliers', 0);
         $mform->addRule('warningoutliers', null, 'numeric', null, 'client');
         $mform->addHelpButton('warningoutliers', 'warningoutliers', 'peerforum');

@@ -149,7 +149,7 @@ class peerforum {
     private $gradeprofessorpost;
     /** @var int $showpeergrades showpeergrades */
     private $showpeergrades;
-    /** @var int $outdetectvalue outdetectvalue */
+    /** @var float $outdetectvalue outdetectvalue */
     private $outdetectvalue;
     /** @var int $blockoutliers blockoutliers */
     private $blockoutliers;
@@ -157,7 +157,7 @@ class peerforum {
     private $seeoutliers;
     /** @var int $outlierdetection outlierdetection */
     private $outlierdetection;
-    /** @var int $warningoutliers warningoutliers */
+    /** @var float $warningoutliers warningoutliers */
     private $warningoutliers;
     /** @var int $showafterrating showafterrating */
     private $showafterrating;
@@ -247,11 +247,11 @@ class peerforum {
      * @param int $expirepeergrade
      * @param int $gradeprofessorpost
      * @param int $showpeergrades
-     * @param int $outdetectvalue
+     * @param float $outdetectvalue
      * @param int $blockoutliers
      * @param int $seeoutliers
      * @param int $outlierdetection
-     * @param int $warningoutliers
+     * @param float $warningoutliers
      * @param int $showafterrating
      * @param int $showratings
      * @param int $showafterpeergrade
@@ -323,11 +323,11 @@ class peerforum {
             int $expirepeergrade,
             int $gradeprofessorpost,
             int $showpeergrades,
-            int $outdetectvalue,
+            float $outdetectvalue,
             int $blockoutliers,
             int $seeoutliers,
             int $outlierdetection,
-            int $warningoutliers,
+            float $warningoutliers,
             int $showafterrating,
             int $showratings,
             int $showafterpeergrade,
@@ -1032,9 +1032,9 @@ class peerforum {
     }
 
     /**
-     * @return int
+     * @return float
      */
-    public function get_outdetectvalue(): int {
+    public function get_outdetectvalue(): float {
         return $this->outdetectvalue;
     }
 
@@ -1060,9 +1060,9 @@ class peerforum {
     }
 
     /**
-     * @return int
+     * @return float
      */
-    public function get_warningoutliers(): int {
+    public function get_warningoutliers(): float {
         return $this->warningoutliers;
     }
 
