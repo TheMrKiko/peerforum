@@ -183,7 +183,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         $strpeergrade = get_string("peergrade", "peerforum");
         $peergradehtml = ''; // The string we'll return.
 
-        if (!$peergrade->exists()) {
+        if (!$peergrade->exists() && !$peergrade->could_exist()) {
             return $peergradehtml;
         }
 
@@ -208,7 +208,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         /*------------------- SHOW AGGREGATE -----------------------------------*/
 
         // Permissions check - can they view the aggregate?
-        if ($peergrade->user_can_view_aggregate(false)) {
+        if ($peergrade->exists() && $peergrade->user_can_view_aggregate(false)) {
 
             $aggregatelabel = $peergrademanager->get_aggregate_label($peergrade->settings->aggregationmethod);
             $aggregatelabel = html_writer::tag('span', $aggregatelabel, array('class' => 'peergrade-aggregate-label'));
@@ -368,7 +368,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
         /*--------------- DISPLAY PEERGRADE ------------- */
 
         // Permissions check - can they view the peer grades?
-        if ($peergrade->user_can_view_peergrades($allpeergrades, false)) {
+        if ($peergrade->exists() && $peergrade->user_can_view_peergrades($allpeergrades, false)) {
             $expandhtml = '';
             $pgsmissing = count($allpeergrades);
 
@@ -527,7 +527,7 @@ class mod_peerforum_renderer extends plugin_renderer_base {
                 $unassignurl = $peergrade->get_assign_url('remove', $assign->userinfo->id, 'pgconfiglink' . $peergrade->itemid);
                 $singlebutton = new single_button($unassignurl, 'Delete');
                 $singlebutton->add_confirm_action('Are you sure you wanna de assign and delete the peer grade?
-            This is irreversible. Also, if this is the LAST assign left, you won\'t be able to assign anyone else. ');
+                This is irreversible.');
                 $row->cells[] = $this->output->render($singlebutton);
 
                 return $row;

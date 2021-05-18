@@ -260,7 +260,7 @@ foreach ($items as $item) {
 
         $singlebutton = new single_button($unassignurl, 'Delete');
         $singlebutton->add_confirm_action('Are you sure you wanna de assign and delete the peer grade?
-            This is irreversible. Also, if this is the LAST assign left, you won\'t be able to assign anyone else. ');
+        This is irreversible.');
 
         $row->cells[] = new html_table_cell($OUTPUT->render($singlebutton));
         end($row->cells)->attributes = array('class' => 'text-center align-middle');

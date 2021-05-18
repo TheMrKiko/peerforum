@@ -827,6 +827,16 @@ class peergrade implements renderable {
     }
 
     /**
+     * If it is possible for this item to be peergraded.
+     *
+     * @return bool
+     */
+    public function could_exist(): bool {
+        return $this->settings->gradeprofessorpost || !has_capability('mod/peerforum:professorpeergrade',
+                        $this->context, $this->itemuserid);
+    }
+
+    /**
      * Returns if the user can edit the grade already submitted.
      *
      * @return bool
@@ -937,6 +947,10 @@ class peergrade implements renderable {
                 $this->ended = true;
                 return $this->ended;
             }
+        }
+
+        if (!$this->exists()) {
+            return true;
         }
 
         return false;
@@ -1090,7 +1104,8 @@ class peergrade implements renderable {
                 || ($this->get_peergrade() && !$this->can_edit())
                 || ($this->settings->whenpeergradevisible === PEERFORUM_GRADEVISIBLE_MINGRADERS &&
                         $this->has_min_grades() && !$this->get_self_assignment())
-                || $this->is_ended();
+                || $this->is_ended()
+                || !$this->exists();
     }
 
     /**
@@ -1704,6 +1719,7 @@ class peergrade_manager {
         $settings->remainanonymous = $options->remainanonymous ?? $pluginextrasettingsarray['remainanonymous'];
         $settings->whenpeergradevisible = $options->whenpeergradevisible ?? $pluginextrasettingsarray['whenpeergradevisible'];
         $settings->finalgrademode = $options->finalgrademode ?? $pluginextrasettingsarray['finalgrademode'];
+        $settings->gradeprofessorpost = $options->gradeprofessorpost ?? $pluginextrasettingsarray['gradeprofessorpost'];
         $settings->seeoutliers = $options->seeoutliers ?? $pluginextrasettingsarray['seeoutliers'];
         $settings->outlierdetection = $options->outlierdetection ?? $pluginextrasettingsarray['outlierdetection'];
         $settings->outdetectvalue = $options->outdetectvalue ?? $pluginextrasettingsarray['outdetectvalue'];
