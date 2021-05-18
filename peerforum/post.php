@@ -397,19 +397,6 @@ if (!empty($peerforum)) {
                         $peerforumdatamapper->to_legacy_object($peerforumentity)
                 );
 
-                $DB->delete_records("peerforum_peergrade_subject",
-                        array('name' => $post->subject, 'courseid' => $course->id, 'peerforumid' => $peerforum->id));
-
-                //If a discussion topic is deleted, fix student distribution
-                if ($peerforum->threaded_grading) {
-                    if ($peerforum->random_distribution) {
-                        apply_random_distribution($course->id, $peerforum->id);
-                    } else {
-                        //threaded grading (for all students with this topic + type 1>>2)
-                        update_threaded_grading($course->id);
-                    }
-                }
-
                 redirect(
                         $urlfactory->get_peerforum_view_url_from_peerforum($peerforumentity),
                         get_string('eventdiscussiondeleted', 'peerforum'),
@@ -1009,19 +996,6 @@ if ($mformpost->is_cancelled()) {
         foreach ($groupstopostto as $group) {
             if (!$capabilitymanager->can_create_discussions($USER, $groupid)) {
                 print_error('cannotcreatediscussion', 'peerforum');
-            }
-
-            //Update the peergrade subjects table with this new topic
-            if ($peerforum->threaded_grading) {
-                if ($peerforum->random_distribution) {
-                    $type = 1;
-                    //Update the distribution to consider new topic
-                    apply_random_distribution($course->id, $peerforum->id);
-                } else {
-                    $type = 2;
-                }
-            } else { //needed?
-                $type = 2;
             }
 
             $discussion->groupid = $group;
