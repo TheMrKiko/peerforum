@@ -132,14 +132,48 @@ foreach ($nominations as $nomination) {
 
 $table->finish_output();
 
-$nominations = $othernominations;
-if (!empty($nominations)) {
-    $othernominations = array();
+/*------------------------------- OTHER NOMINATIONS -------------------------------*/
+if (!empty($othernominations)) {
 
     echo html_writer::tag('h3', 'Students who nominated');
     $table = new flexible_table('userothernominations');
+    $table->set_attribute('class', 'table table-responsive table-striped');
+    $table->define_columns(array(
+            'fullname',
+            'nominee',
+            'nomination',
+            'confidence',
+    ));
+    $table->define_headers(array(
+            'Student',
+            'Nominee',
+            'Nomination',
+            'Confidence',
+    ));
+    $table->column_style_all('text-align', 'center');
+    $table->column_style('fullname', 'text-align', 'left');
+    $table->column_style('nominee', 'text-align', 'left');
+    $table->define_baseurl($url);
+    $table->define_header_column('fullname');
+    $table->setup();
 
-    goto othertable;
+    foreach ($othernominations as $nomination) {
+        $row = array();
+        $row[] = html_writer::link(
+                new moodle_url($url, array('userid' => $nomination->userid)),
+                fullname($users[$nomination->userid])
+        );
+        $row[] = html_writer::link(
+                new moodle_url($url, array('userid' => $nomination->otheruserid)),
+                fullname($users[$nomination->otheruserid])
+        );
+        $row[] = 'Like ' . ($nomination->nomination > 0 ? 'most' : 'least');
+        $row[] = $confscale[$nomination->confidence];
+
+        $table->add_data($row);
+    }
+
+    $table->finish_output();
 }
 
 /*------------------------------- RANKINGS -------------------------------*/
