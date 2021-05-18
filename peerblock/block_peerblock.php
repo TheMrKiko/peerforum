@@ -159,10 +159,6 @@ class block_peerblock extends block_list {
         }
 
         /*------- Render data -------*/
-        $this->content->items[] = html_writer::span(
-                $OUTPUT->render(new pix_icon('icon', 'logo', 'block_peerblock')) .
-                'Summary',
-                'd-flex align-items-center bold');
 
         if ($shouldnominate) {
             $sumurl = $rankurl = $urlfactory->get_nominations_url($shouldnominate);
@@ -199,17 +195,12 @@ class block_peerblock extends block_list {
                 'Expiring soon: ' .
                 $pgexpiringsoon . ' posts (' . $indpgexpiringsoon . ' individual graders)');
 
-            $this->content->items[] = html_writer::link(
-                    new moodle_url($CFG->wwwroot . '/peergrading/index.php',
-                            array('courseid' => $courseid,
-                                    'userid' => $userid, 'display' => 1, 'peerforum' => $courseid)),
-                    '...',
-                    array('title' => get_string('viewpanel', 'block_peerblock')));
         }
 
         $this->content->items[] = html_writer::tag('p', html_writer::link(new moodle_url($sumurl, array(
                         'display' => MANAGEPOSTS_MODE_SEEALL)),
-                html_writer::span('Full summary...', 'mark')),
+                html_writer::span($OUTPUT->render(new pix_icon('icon', 'logo', 'block_peerblock')) .
+                        'Full summary...')),
                 array('class' => 'm-0 mt-3'));
 
         return $this->content;
