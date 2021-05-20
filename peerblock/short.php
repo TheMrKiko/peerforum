@@ -34,6 +34,8 @@ $rmanager = mod_peerforum\local\container::get_manager_factory()->get_rating_man
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
 $display = optional_param('display', 1, PARAM_INT);
+$page = optional_param('page', 0, PARAM_INT);
+$perpage = optional_param('perpage', 100, PARAM_INT);
 
 $url = new moodle_url('/blocks/peerblock/short.php', array(
         'courseid' => $courseid,
@@ -72,6 +74,11 @@ $PAGE->requires->js_call_amd('block_peerblock/truncate_text', 'init');
 $options = get_peerblock_select_options();
 echo $OUTPUT->box_start('posts-list');
 echo $OUTPUT->render(new single_select($url, 'display', $options, $display, false));
+
+$url = new moodle_url($url, array(
+        'page' => $page,
+        'perpage' => $perpage,
+));
 
 $filters += array(
         'itemtable' => 'peerforum_posts',
@@ -197,6 +204,8 @@ $d = static function ($p) : rating {
 
 $dateformat = get_string('strftimedatetimeshort', 'langconfig');
 
+$totalitems = count($items);
+$items = array_slice($items, ($page * $perpage), $perpage, true);
 foreach ($items as $item) {
     $peergradeobj = $b($item->peergrade);
     $ratingobj = $d($ritems[$item->id]->rating);
@@ -338,6 +347,14 @@ foreach ($items as $item) {
         $row = new html_table_row();
     }
 }
-echo !empty($items) ? html_writer::table($table) : 'No posts to show.';
+
+if (!empty($items)) {
+    echo $OUTPUT->paging_bar($totalitems, $page, $perpage, $url);
+    echo html_writer::table($table);
+    echo $OUTPUT->paging_bar($totalitems, $page, $perpage, $url);
+} else {
+    echo 'No posts to show.';
+}
+
 echo $OUTPUT->box_end();
 echo $OUTPUT->footer();
