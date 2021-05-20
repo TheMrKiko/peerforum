@@ -565,7 +565,7 @@ class mod_peerforum_mod_form extends moodleform_mod {
         $record = $DB->get_record('peerforum', array('course' => $COURSE->id));
 
         if ($record && $record->id) {
-            $discussiontopics = get_discussions_name($COURSE->id, $record->id);
+            $discussiontopics = array();
             $selecttopics = $mform->addElement('select', 'topicstoattribute', get_string('topicstoattribute', 'peerforum'),
                     $discussiontopics);
             $selecttopics->setMultiple(true);
