@@ -58,6 +58,10 @@ foreach($nominations as $n) {
     $userids[$n->userid] = true;
     $userids[$n->otheruserid] = true;
 }
+foreach($othernominations as $on) {
+    $userids[$on->userid] = true;
+    $userids[$on->otheruserid] = true;
+}
 foreach($rankings as $r) {
     $userids[$r->userid] = true;
     $userids[$r->otheruserid] = true;
