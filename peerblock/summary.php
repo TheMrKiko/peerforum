@@ -44,11 +44,6 @@ $url = new moodle_url('/blocks/peerblock/summary.php', array(
 
 set_peergradepanel_page($courseid, $userid, $url, 'manageposts', false, false);
 
-$url = new moodle_url($url, array(
-        'page' => $page,
-        'perpage' => $perpage,
-));
-
 // Build filter options.
 if ($display == MANAGEPOSTS_MODE_SEEALL) {
     // All posts.
@@ -81,6 +76,11 @@ $PAGE->requires->js_amd_inline("
 $options = get_peerblock_select_options();
 echo $OUTPUT->box_start('posts-list');
 echo $OUTPUT->render(new single_select($url, 'display', $options, $display, false));
+
+$url = new moodle_url($url, array(
+        'page' => $page,
+        'perpage' => $perpage,
+));
 
 // Gets posts from filters.
 $items = $pgmanager->get_items_from_filters($filters);
