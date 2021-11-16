@@ -147,7 +147,6 @@ class expire_assignments extends \core\task\scheduled_task {
                 "SELECT
                     a.id,
                     a.itemid,
-                    a.postid,
                     a.timeassigned,
                     a.timeexpired,
                     a.ended,

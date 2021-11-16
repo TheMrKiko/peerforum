@@ -862,7 +862,6 @@ $string['peeraggregatenone'] = 'No peer grades';
 $string['peeraggregatesum'] = 'Sum of peer grades';
 $string['peeraggregatetype_help'] =
         'The aggregate type defines how peer grades are combined to form the final grade in the gradebook.';
-$string['allowpeergrade'] = 'Enable peer grade';
 $string['configpeergradesettings'] = 'Peer grade settings';
 $string['peergrading'] = 'Peer grade';
 $string['finalgrademode'] = 'Final grade mode';
@@ -873,9 +872,6 @@ $string['professorpercentage_help'] = 'Default maximum grade for peergrades assi
 $string['studentpercentage_help'] = 'Default maximum grade for peer grades in peerforums';
 $string['peergradescale'] = 'Select peer grade scale';
 $string['peergradescale_help'] = 'This setting specifies the maximum grade a student can give to a PeerForum post.';
-$string['peergradesvisibility'] = 'Peergrades visibility';
-$string['peergradesvisibility_help'] =
-        'Select \'private\' if you do not want the peergrades of PeerForum posts to be public. Only the user whose post was peergraded can see the peergrades';
 $string['always'] = 'Always';
 $string['whenmingraders'] = 'When has min peer grades';
 $string['afterpeergradeends'] = 'After peer grade ends';
@@ -886,9 +882,6 @@ $string['when_help'] =
         'Select when you want the written feedback to appear. If \'Always\' is chosen, the feedback will be always visible and public. If \'After peergrade ends\' is chosen, the feedback will only be visible when a minimum number of peergraders submit a feedback to a post in the PeerForum.';
 $string['enablefeedback'] = 'Enable written feedback';
 $string['enablefeedback_help'] = 'Set to \'no\' if you do not want to allow written feedback on PeerForum posts';
-$string['feedbackvisibility'] = 'Feedback visibility';
-$string['feedbackvisibility_help'] =
-        'Select \'private\' if you do not want the written feedbacks of PeerForum posts to be public. Only the user whose post was peergraded can see the feedbacks';
 $string['remainanonymous'] = 'Maintain the peer grader anonymous';
 $string['remainanonymous_help'] = 'Set to \'yes\' if you do want to show the peer grader identity in PeerForum posts';
 $string['selectpeergraders'] = 'Select number of peer graders per post';
@@ -1026,22 +1019,9 @@ $string['displayviewpeergradesmode'] = 'Display manage graders mode';
 $string['firstletterpost'] = 'First letter of post subject';
 $string['gradeprofessorpost'] = "Enable peer grade of professor's posts";
 $string['gradeprofessorpost_help'] = "Select 'yes' if you want students to peer grade professor's posts";
-$string['expirepeergrade'] = "End post peer grade after expired time period";
-$string['expirepeergrade_help'] =
-        "Select 'yes' if you want the peer grade public anyway if after x days (defined above) not everyone has graded the post assigned to them.";
-$string['showpeergrades'] = "Show final peer grade";
-$string['showpeergrades_help'] = "Select 'no' if you want the final peer grade to be hidden. Only professors can see the grade";
-$string['showafterrating'] = "Show after ratings ends";
-$string['showafterrating_help'] =
-        "Select 'yes' if you want to show final peer grade only after rating ends (the ratings assessed type must be set to yes)";
-$string['showratings'] = "Show final rating";
-$string['showratings_help'] = "Select 'no' if you want the final rating to be hidden. Only professors can see the grade";
 $string['showafterpeergrade'] = "Hide until peer grade visible";
 $string['showafterpeergrade_help'] =
         "Select 'yes' if you want to show final rating only after peer grade ends (the peer grade assessed type must be set to yes)";
-$string['showpostid'] = 'Show post id';
-$string['showpostid_help'] =
-        "Select 'yes' if you want the posts' id to be displayed in the Peer Forum. This can be usefull for the Peer Grade panel.";
 $string['enable_attribution_advanced'] = 'Enable advanced topic attribution';
 $string['enable_attribution_advanced_help'] =
         "Select 'no' if you do not want to have different topics with different peer grading attribution rules.";
@@ -1112,8 +1092,6 @@ $string['training_help'] = "Select 'yes' if you want students to have access to 
 $string['miscellaneous'] = "Miscellaneous";
 $string['peergradeforitem'] = "Peergrade for item";
 $string['nopeergrades'] = "No peer grade.";
-$string['random_distribution'] = "Random Distribution";
-$string['random_distribution_help'] = "Select 'yes' if you want students to be divided equally throughout the existing topics.";
 $string['unsubscribediscussion'] = "Unsubscribe this discussion";
 $string['clicktounsubscribe'] = "Click to subscribe";
 $string['prevdiscussiona'] = "Previous discussion";

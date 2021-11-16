@@ -232,10 +232,8 @@ class peergrade_assignment {
 
         $data = new stdClass;
         // Insert a new peergrade.
-        $data->postid = $this->itemid;
         $data->itemid = $this->itemid;
         $data->userid = $this->userid;
-        $data->courseid = 0; //you want to remove this
         $data->timeassigned = $time;
         $data->timemodified = $time;
         $data->timeexpired = $time + $timetilexpire;
@@ -670,24 +668,6 @@ class peergrade implements renderable {
         return $timewhenstopsediting > $time;
     }
 
-    public function verify_exclusivity($postauthor, $grader, $courseid) {
-        global $DB;
-
-        $conflicts = $DB->get_records('peerforum_peergrade_conflict', array('courseid' => $courseid));
-        $conflict = 0;
-
-        foreach ($conflicts as $id => $value) {
-            $students = explode(';', $conflicts[$id]->idstudents);
-            $students = array_filter($students);
-
-            if (in_array($grader, $students) && in_array($postauthor, $students)) {
-                $conflict = 1;
-                break;
-            }
-        }
-        return $conflict;
-    }
-
     /**
      * Returns true if the user is able to peergrade this peergrade object
      *
@@ -730,7 +710,7 @@ class peergrade implements renderable {
         // You can't peergrade if you are blocked. For now, there is no block of assigns.
         if ($this->userblocked || $this->get_self_assignment()->blocked) {
             return false;
-        } // TODO exclusive! and delete verify_exclusivity().
+        }
         return true;
     }
 
@@ -1443,11 +1423,8 @@ class peergrade_manager {
      *      timetoexpire      => settings data [optional]
      *      finishpeergrade   => settings data [optional]
      *      enablefeedback    => settings data [optional]
-     *      showpeergrades    => settings data [optional]
      *      minpeergraders    => settings data [optional]
-     *      expirepost        => settings data [optional]
      *      remainanonymous   => settings data [optional]
-     *      peergradevisibility => settings data [optional]
      *      whenpeergradevisible => settings data [optional]
      *      finalgrademode => settings data [optional]
      * }
@@ -1503,10 +1480,7 @@ class peergrade_manager {
         $settings->timetoexpire = $options->timetoexpire ?? $pluginextrasettingsarray['timetoexpire'];
         $settings->finishpeergrade = $options->finishpeergrade ?? $pluginextrasettingsarray['finishpeergrade'];
         $settings->enablefeedback = $options->enablefeedback ?? $pluginextrasettingsarray['enablefeedback'];
-        $settings->showpeergrades = $options->showpeergrades ?? $pluginextrasettingsarray['showpeergrades'];
         $settings->minpeergraders = $options->minpeergraders ?? $pluginextrasettingsarray['minpeergraders'];
-        $settings->peergradevisibility = $options->peergradevisibility ?? $pluginextrasettingsarray['peergradevisibility'];
-        $settings->expirepost = $options->expirepost ?? $pluginextrasettingsarray['expirepost'];
         $settings->remainanonymous = $options->remainanonymous ?? $pluginextrasettingsarray['remainanonymous'];
         $settings->whenpeergradevisible = $options->whenpeergradevisible ?? $pluginextrasettingsarray['whenpeergradevisible'];
         $settings->finalgrademode = $options->finalgrademode ?? $pluginextrasettingsarray['finalgrademode'];

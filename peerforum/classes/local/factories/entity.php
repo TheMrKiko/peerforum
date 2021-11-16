@@ -109,10 +109,7 @@ class entity {
                 $record->peergradeassessed,
                 $record->peergradeassesstimestart,
                 $record->peergradeassesstimefinish,
-                $record->peergradesvisibility,
                 $record->whenpeergrades,
-                $record->feedbackvisibility,
-                $record->whenfeedback,
                 $record->enablefeedback,
                 $record->remainanonymous,
                 $record->selectpeergraders,
@@ -122,19 +119,13 @@ class entity {
                 $record->finalgrademode,
                 $record->studentpercentage,
                 $record->professorpercentage,
-                $record->allowpeergrade,
-                $record->expirepeergrade,
                 $record->gradeprofessorpost,
-                $record->showpeergrades,
                 $record->outdetectvalue,
                 $record->blockoutliers,
                 $record->seeoutliers,
                 $record->outlierdetection,
                 $record->warningoutliers,
-                $record->showafterrating,
-                $record->showratings,
                 $record->showafterpeergrade,
-                $record->showpostid,
                 $record->showdetails,
                 $record->autoassignreplies,
                 $record->hidereplies,
@@ -142,10 +133,7 @@ class entity {
                 $record->peerrankings,
                 $record->peernominationsfields,
                 $record->peernominationsaddfields,
-                $record->random_distribution,
-                $record->training,
-                $record->threaded_grading,
-                $record->adv_peergrading
+                $record->training
         );
     }
 
@@ -170,9 +158,7 @@ class entity {
                 $record->timestart,
                 $record->timeend,
                 $record->pinned,
-                $record->timelocked,
-                $record->type,
-                $record->idlink
+                $record->timelocked
         );
     }
 
@@ -200,7 +186,6 @@ class entity {
                 $record->mailnow,
                 $record->deleted,
                 $record->privatereplyto,
-                $record->peergraders,
                 $record->wordcount,
                 $record->charcount
         );

@@ -59,8 +59,6 @@ class discussion {
                     'timeend' => $discussion->get_time_end(),
                     'pinned' => $discussion->is_pinned(),
                     'timelocked' => $discussion->get_locked(),
-                    'type' => $discussion->is_type(),
-                    'idlink' => $discussion->get_idlink(),
             ];
         }, $discussions);
     }

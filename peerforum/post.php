@@ -999,8 +999,6 @@ if ($mformpost->is_cancelled()) {
             }
 
             $discussion->groupid = $group;
-            $discussion->type = $type;
-            $discussion->idlink = null;
 
             $message = '';
             if ($discussion->id = peerforum_add_discussion($discussion, $mformpost)) {

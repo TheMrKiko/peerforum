@@ -672,5 +672,221 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021051802, 'peerforum');
     }
 
+    if ($oldversion < 2021111601) {
+
+        // Define table peerforum_peergrade_users to be dropped.
+        $table = new xmldb_table('peerforum_peergrade_users');
+
+        // Conditionally launch drop table for peerforum_peergrade_users.
+        if ($dbman->table_exists($table)) {
+            $dbman->drop_table($table);
+        }
+
+        // Define table peerforum_groups to be dropped.
+        $table = new xmldb_table('peerforum_groups');
+
+        // Conditionally launch drop table for peerforum_groups.
+        if ($dbman->table_exists($table)) {
+            $dbman->drop_table($table);
+        }
+
+        // Define table peerforum_peergrade_conflict to be dropped.
+        $table = new xmldb_table('peerforum_peergrade_conflict');
+
+        // Conditionally launch drop table for peerforum_peergrade_conflict.
+        if ($dbman->table_exists($table)) {
+            $dbman->drop_table($table);
+        }
+
+        // Define table peerforum_blockedgrades to be dropped.
+        $table = new xmldb_table('peerforum_blockedgrades');
+
+        // Conditionally launch drop table for peerforum_blockedgrades.
+        if ($dbman->table_exists($table)) {
+            $dbman->drop_table($table);
+        }
+
+        // Define table peerforum_users_assigned to be dropped.
+        $table = new xmldb_table('peerforum_users_assigned');
+
+        // Conditionally launch drop table for peerforum_users_assigned.
+        if ($dbman->table_exists($table)) {
+            $dbman->drop_table($table);
+        }
+
+        // Define table peerforum_peergrade_subject to be dropped.
+        $table = new xmldb_table('peerforum_peergrade_subject');
+
+        // Conditionally launch drop table for peerforum_peergrade_subject.
+        if ($dbman->table_exists($table)) {
+            $dbman->drop_table($table);
+        }
+
+        // Define table peerforum_relationships to be dropped.
+        $table = new xmldb_table('peerforum_relationships');
+
+        // Conditionally launch drop table for peerforum_relationships.
+        if ($dbman->table_exists($table)) {
+            $dbman->drop_table($table);
+        }
+
+        // Define field peergradesvisibility to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('peergradesvisibility');
+
+        // Conditionally launch drop field peergradesvisibility.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field feedbackvisibility to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('feedbackvisibility');
+
+        // Conditionally launch drop field feedbackvisibility.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field whenfeedback to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('whenfeedback');
+
+        // Conditionally launch drop field whenfeedback.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field allowpeergrade to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('allowpeergrade');
+
+        // Conditionally launch drop field allowpeergrade.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field expirepeergrade to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('expirepeergrade');
+
+        // Conditionally launch drop field expirepeergrade.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field showpeergrades to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('showpeergrades');
+
+        // Conditionally launch drop field showpeergrades.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field showafterrating to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('showafterrating');
+
+        // Conditionally launch drop field showafterrating.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field showratings to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('showratings');
+
+        // Conditionally launch drop field showratings.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field showpostid to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('showpostid');
+
+        // Conditionally launch drop field showpostid.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field random_distribution to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('random_distribution');
+
+        // Conditionally launch drop field random_distribution.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field threaded_grading to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('threaded_grading');
+
+        // Conditionally launch drop field threaded_grading.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field adv_peergrading to be dropped from peerforum.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('adv_peergrading');
+
+        // Conditionally launch drop field adv_peergrading.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field idlink to be dropped from peerforum_discussions.
+        $table = new xmldb_table('peerforum_discussions');
+        $field = new xmldb_field('idlink');
+
+        // Conditionally launch drop field idlink.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field type to be dropped from peerforum_discussions.
+        $table = new xmldb_table('peerforum_discussions');
+        $field = new xmldb_field('type');
+
+        // Conditionally launch drop field type.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field peergraders to be dropped from peerforum_posts.
+        $table = new xmldb_table('peerforum_posts');
+        $field = new xmldb_field('peergraders');
+
+        // Conditionally launch drop field peergraders.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field postid to be dropped from peerforum_time_assigned.
+        $table = new xmldb_table('peerforum_time_assigned');
+        $field = new xmldb_field('postid');
+
+        // Conditionally launch drop field postid.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field courseid to be dropped from peerforum_time_assigned.
+        $table = new xmldb_table('peerforum_time_assigned');
+        $field = new xmldb_field('courseid');
+
+        // Conditionally launch drop field courseid.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021111601, 'peerforum');
+    }
+
+
     return true;
 }

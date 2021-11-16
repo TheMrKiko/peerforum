@@ -50,11 +50,6 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
             $paths[] = new restore_path_element('peerforum_read', '/activity/peerforum/readposts/read');
             $paths[] = new restore_path_element('peerforum_track', '/activity/peerforum/trackedprefs/track');
             $paths[] = new restore_path_element('peerforum_peergrade', '/activity/peerforum/discussions/discussion/posts/post/peergrades/peergrade');
-            $paths[] = new restore_path_element('peerforum_blockedgrades', '/activity/peerforum/blockedgrades/blockedgrades');
-            $paths[] = new restore_path_element('peerforum_groups', '/activity/peerforum/groups/groups');
-            $paths[] = new restore_path_element('peerforum_peergradecriteria', '/activity/peergradecriteria/peergradecriteria');
-            $paths[] = new restore_path_element('peerforum_peergrade_conflict', '/activity/peergrade_conflict/peergrade_conflict');
-            $paths[] = new restore_path_element('peerforum_peergrade_users', '/activity/peergrade_users/peergrade_users');
             $paths[] = new restore_path_element('peerforum_time_assigned', '/activity/time_assigned/time_assigned');
         }
 

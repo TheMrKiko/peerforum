@@ -61,7 +61,6 @@ class post {
                     'mailnow' => $post->should_mail_now(),
                     'deleted' => $post->is_deleted(),
                     'privatereplyto' => $post->get_private_reply_recipient_id(),
-                    'peergraders' => $post->get_peergraders(),
                     'wordcount' => $post->get_wordcount(),
                     'charcount' => $post->get_charcount(),
             ];

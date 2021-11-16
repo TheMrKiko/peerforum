@@ -71,8 +71,6 @@ class post {
     private $wordcount;
     /** @var int $charcount Number of chars in the message */
     private $charcount;
-    /** @var string peergraders */
-    private $peergraders;
 
     /**
      * Constructor.
@@ -93,7 +91,6 @@ class post {
      * @param bool $mailnow Should this post be mailed immediately
      * @param bool $deleted Is the post deleted
      * @param int $privatereplyto Which user this reply is intended for in a private reply situation
-     * @param string $peergraders peergraders
      * @param int|null $wordcount
      * @param int|null $charcount
      */
@@ -114,7 +111,6 @@ class post {
             bool $mailnow,
             bool $deleted,
             int $privatereplyto,
-            string $peergraders,
             ?int $wordcount,
             ?int $charcount
     ) {
@@ -134,7 +130,6 @@ class post {
         $this->mailnow = $mailnow;
         $this->deleted = $deleted;
         $this->privatereplyto = $privatereplyto;
-        $this->peergraders = $peergraders;
         $this->wordcount = $wordcount;
         $this->charcount = $charcount;
     }
@@ -359,12 +354,5 @@ class post {
             $record->wordcount = count_words($record->message);
             $record->charcount = count_letters($record->message);
         }
-    }
-
-    /**
-     * @return string
-     */
-    public function get_peergraders(): string {
-        return $this->peergraders;
     }
 }

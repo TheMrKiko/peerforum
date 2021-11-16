@@ -990,18 +990,16 @@ function peerforum_print_recent_activity($course, $viewfullnames, $timestart) {
                                               f.blockperiod, f.completiondiscussions, f.completionreplies, f.completionposts,
                                               f.displaywordcount, f.lockdiscussionafter, f.grade_peerforum_notify,
                                               f.peergradescale, f.peergradeassessed, f.peergradeassesstimestart, f.peergradeassesstimefinish,
-                                              f.peergradesvisibility, f.whenpeergrades, f.feedbackvisibility, f.whenfeedback, f.enablefeedback,
+                                              f.whenpeergrades, f.enablefeedback,
                                               f.remainanonymous, f.selectpeergraders, f.minpeergraders, f.finishpeergrade, f.timetopeergrade,
-                                              f.finalgrademode, f.studentpercentage, f.professorpercentage, f.allowpeergrade, f.expirepeergrade,
-                                              f.gradeprofessorpost, f.showpeergrades, f.outdetectvalue, f.blockoutliers, f.seeoutliers,
-                                              f.outlierdetection, f.warningoutliers, f.showafterrating, f.showratings, f.showafterpeergrade,
-                                              f.showpostid, f.showdetails, f.autoassignreplies, f.hidereplies, f.peernominations, f.peerrankings,
-                                              f.peernominationsfields, f.peernominationsaddfields, f.random_distribution, f.training,
-                                              f.threaded_grading, f.adv_peergrading,
+                                              f.finalgrademode, f.studentpercentage, f.professorpercentage,
+                                              f.gradeprofessorpost, f.outdetectvalue, f.blockoutliers, f.seeoutliers,
+                                              f.outlierdetection, f.warningoutliers, f.showafterpeergrade,
+                                              f.showdetails, f.autoassignreplies, f.hidereplies, f.peernominations, f.peerrankings,
+                                              f.peernominationsfields, f.peernominationsaddfields, f.training,
                                               d.name AS discussionname, d.firstpost, d.userid AS discussionstarter,
                                               d.assessed AS discussionassessed, d.timemodified, d.usermodified, d.peerforum, d.groupid,
                                               d.timestart, d.timeend, d.pinned, d.timelocked,
-                                              d.type AS discussiontype, d.idlink,
                                               $allnamefields
                                          FROM {peerforum_posts} p
                                               JOIN {peerforum_discussions} d ON d.id = p.discussion
@@ -1050,8 +1048,6 @@ function peerforum_print_recent_activity($course, $viewfullnames, $timestart) {
                     'timeend' => $post->timeend,
                     'pinned' => $post->pinned,
                     'timelocked' => $post->timelocked,
-                    'type' => $post->discussiontype,
-                    'idlink' => $post->idlink,
             ];
             // Build the discussion entity from the factory and cache it.
             $discussions[$post->discussion] = $entityfactory->get_discussion_from_stdclass($discussionrecord);
@@ -1097,10 +1093,7 @@ function peerforum_print_recent_activity($course, $viewfullnames, $timestart) {
                     'peergradeassessed' => $post->peergradeassessed,
                     'peergradeassesstimestart' => $post->peergradeassesstimestart,
                     'peergradeassesstimefinish' => $post->peergradeassesstimefinish,
-                    'peergradesvisibility' => $post->peergradesvisibility,
                     'whenpeergrades' => $post->whenpeergrades,
-                    'feedbackvisibility' => $post->feedbackvisibility,
-                    'whenfeedback' => $post->whenfeedback,
                     'enablefeedback' => $post->enablefeedback,
                     'remainanonymous' => $post->remainanonymous,
                     'selectpeergraders' => $post->selectpeergraders,
@@ -1110,19 +1103,13 @@ function peerforum_print_recent_activity($course, $viewfullnames, $timestart) {
                     'finalgrademode' => $post->finalgrademode,
                     'studentpercentage' => $post->studentpercentage,
                     'professorpercentage' => $post->professorpercentage,
-                    'allowpeergrade' => $post->allowpeergrade,
-                    'expirepeergrade' => $post->expirepeergrade,
                     'gradeprofessorpost' => $post->gradeprofessorpost,
-                    'showpeergrades' => $post->showpeergrades,
                     'outdetectvalue' => $post->outdetectvalue,
                     'blockoutliers' => $post->blockoutliers,
                     'seeoutliers' => $post->seeoutliers,
                     'outlierdetection' => $post->outlierdetection,
                     'warningoutliers' => $post->warningoutliers,
-                    'showafterrating' => $post->showafterrating,
-                    'showratings' => $post->showratings,
                     'showafterpeergrade' => $post->showafterpeergrade,
-                    'showpostid' => $post->showpostid,
                     'showdetails' => $post->showdetails,
                     'autoassignreplies' => $post->autoassignreplies,
                     'hidereplies' => $post->hidereplies,
@@ -1130,10 +1117,7 @@ function peerforum_print_recent_activity($course, $viewfullnames, $timestart) {
                     'peerrankings' => $post->peerrankings,
                     'peernominationsfields' => $post->peernominationsfields,
                     'peernominationsaddfields' => $post->peernominationsaddfields,
-                    'random_distribution' => $post->random_distribution,
                     'training' => $post->training,
-                    'threaded_grading' => $post->threaded_grading,
-                    'adv_peergrading' => $post->adv_peergrading,
             ];
             // Build the peerforum entity from the factory.
             $peerforumentity = $entityfactory->get_peerforum_from_stdclass($peerforumrecord, $context, $coursemodule, $course);
@@ -3623,7 +3607,6 @@ function peerforum_add_new_post($post, $mform, $unused = null) {
     $post->userid = $USER->id;
     $post->privatereplyto = $privatereplyto;
     $post->attachment = "";
-    $post->peergraders = 0;
     if (!isset($post->totalscore)) {
         $post->totalscore = 0;
     }
@@ -3807,7 +3790,6 @@ function peerforum_add_discussion($discussion, $mform = null, $unused = null, $u
     $post->peerforum = $peerforum->id;     // speedup
     $post->course = $peerforum->course; // speedup
     $post->mailnow = $discussion->mailnow;
-    $post->peergraders = 0;
 
     \mod_peerforum\local\entities\post::add_message_counts($post);
     $post->id = $DB->insert_record("peerforum_posts", $post);
@@ -3827,9 +3809,6 @@ function peerforum_add_discussion($discussion, $mform = null, $unused = null, $u
     $discussion->usermodified = $post->userid;
     $discussion->userid = $userid;
     $discussion->assessed = 0;
-
-    $discussion->idlink = 0; // TODO delete both
-    $discussion->type = 0;
 
     $post->discussion = $DB->insert_record("peerforum_discussions", $discussion);
 

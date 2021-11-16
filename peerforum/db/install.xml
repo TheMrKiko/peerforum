@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/peerforum/db" VERSION="20210518" COMMENT="XMLDB file for Moodle mod/peerforum"
+<XMLDB PATH="mod/peerforum/db" VERSION="20211116" COMMENT="XMLDB file for Moodle mod/peerforum"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -43,10 +43,7 @@
                 <FIELD NAME="peergradeassessed" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="peergradeassesstimestart" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="peergradeassesstimefinish" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="peergradesvisibility" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="whenpeergrades" TYPE="int" LENGTH="4" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="feedbackvisibility" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="whenfeedback" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="enablefeedback" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="remainanonymous" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="selectpeergraders" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="5" SEQUENCE="false"/>
@@ -56,19 +53,13 @@
                 <FIELD NAME="finalgrademode" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="3" SEQUENCE="false"/>
                 <FIELD NAME="studentpercentage" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="20" SEQUENCE="false"/>
                 <FIELD NAME="professorpercentage" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="80" SEQUENCE="false"/>
-                <FIELD NAME="allowpeergrade" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
-                <FIELD NAME="expirepeergrade" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="gradeprofessorpost" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
-                <FIELD NAME="showpeergrades" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="outdetectvalue" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false" DECIMALS="2"/>
                 <FIELD NAME="blockoutliers" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="seeoutliers" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="outlierdetection" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="warningoutliers" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" DECIMALS="2"/>
-                <FIELD NAME="showafterrating" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="showratings" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="showafterpeergrade" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="showpostid" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="showdetails" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="autoassignreplies" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="hidereplies" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
@@ -76,10 +67,7 @@
                 <FIELD NAME="peerrankings" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
                 <FIELD NAME="peernominationsfields" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="4" SEQUENCE="false"/>
                 <FIELD NAME="peernominationsaddfields" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
-                <FIELD NAME="random_distribution" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="training" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
-                <FIELD NAME="threaded_grading" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="adv_peergrading" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -104,8 +92,6 @@
                 <FIELD NAME="timeend" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="pinned" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="timelocked" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="idlink" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="type" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="2" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -137,7 +123,6 @@
                 <FIELD NAME="privatereplyto" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="wordcount" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="charcount" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="peergraders" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -278,51 +263,6 @@
                 <INDEX NAME="peerforumusergrade" UNIQUE="true" FIELDS="peerforum, itemnumber, userid"/>
             </INDEXES>
         </TABLE>
-        <TABLE NAME="peerforum_peergrade_users" COMMENT="Peer Forum peergrade users table">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="iduser" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="userblocked" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="poststopeergrade" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="numpostsassigned" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="postspeergradedone" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="postsblocked" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="postsexpired" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="gradesum" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="topics" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="peergradetype" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="2" SEQUENCE="false"/>
-                <FIELD NAME="topicsassigned" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="numpoststopeergrade" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="# of posts that user can peer grade at the moment."/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-            </KEYS>
-        </TABLE>
-        <TABLE NAME="peerforum_groups" COMMENT="Peer Forum groups table">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="studentsid" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="studentsname" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-            </KEYS>
-        </TABLE>
-        <TABLE NAME="peerforum_peergrade_conflict" COMMENT="Peer grade conflicts table">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="conflictgroup" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="idstudents" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="namestudents" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-            </KEYS>
-        </TABLE>
         <TABLE NAME="peerforum_peergrade" COMMENT="Peer Forum peergrade table">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
@@ -355,8 +295,6 @@
                 <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="peergradearea" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="postid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="expired" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="If this ended because the user let expire"/>
@@ -388,67 +326,6 @@
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
                 <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="Relates to user.id"/>
-            </KEYS>
-        </TABLE>
-        <TABLE NAME="peerforum_blockedgrades" COMMENT="Peer Forum blocked peer grades">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="peergradearea" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="scaleid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="peergrade" TYPE="float" LENGTH="10" NOTNULL="true" SEQUENCE="false" DECIMALS="2"/>
-                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="peergradescaleid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="peergraderid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="feedback" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="isoutlier" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-            </KEYS>
-        </TABLE>
-        <TABLE NAME="peerforum_users_assigned" COMMENT="Peer Forum users assigned to posts">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="postid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="assigned_users" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="not_assigned_users" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="can_grade_users" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="not_can_grade_users" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-            </KEYS>
-        </TABLE>
-        <TABLE NAME="peerforum_peergrade_subject" COMMENT="Association of skill tree topics with peer grading criteria">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="type" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="peerforumid" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="idlink" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-            </KEYS>
-        </TABLE>
-        <TABLE NAME="peerforum_relationships" COMMENT="Default comment for the table, please edit me">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="iduser" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="id of the student responding to the questionnaire"/>
-                <FIELD NAME="peersfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text with all the id of its favorite peers"/>
-                <FIELD NAME="peersunfav" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="text w/ the id of all peers the students least likes"/>
-                <FIELD NAME="studentsranked" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="rankings" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
             </KEYS>
         </TABLE>
         <TABLE NAME="peerforum_relationship_nomin" COMMENT="Student relationships">
