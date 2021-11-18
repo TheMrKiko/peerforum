@@ -305,7 +305,82 @@ function peerforum_peergrade_validate($params) {
     return true;
 }
 
-function peerforum_peergrade_extrasettings($contextid, $component, $gradingarea) {
+/**
+/**
+ * Returns if the user can be assigned to peer grade the item.
+ *
+ * @param int $itemid The post id
+ * @param int $userid
+ * @param object $context
+ * @param string $component
+ * @param string $gradingarea
+ * @return boolean
+ */
+function peerforum_peergrade_canassign($itemid, $userid, $context, $component, $peergradearea) {
+    global $DB;
+
+    if ($component != 'mod_peerforum' || $peergradearea != 'post') {
+        // We don't know about this component/peergradearea so just return null to get the
+        // default restrictive permissions.
+        return null;
+    }
+    static $cache = null;
+    $cache = $cache ?? (object) [
+            'post' => array(),
+            'discussion' => array(),
+            'peerforum' => array(),
+            'course' => array(),
+    ];
+
+    // Fetch all the related records ... we need to do this anyway to call peerforum_user_can_see_post
+    $post = $cache->post[$itemid] = $cache->post[$itemid] ??
+            $DB->get_record('peerforum_posts', array('id' => $itemid), '*', MUST_EXIST);
+    $discussion = $cache->discussion[$post->discussion] = $cache->discussion[$post->discussion] ??
+            $DB->get_record('peerforum_discussions', array('id' => $post->discussion), '*', MUST_EXIST);
+    $peerforum = $cache->peerforum[$discussion->peerforum] = $cache->peerforum[$discussion->peerforum] ??
+            $DB->get_record('peerforum', array('id' => $discussion->peerforum), '*', MUST_EXIST);
+    $course = $cache->course[$peerforum->course] = $cache->course[$peerforum->course] ??
+            $DB->get_record('course', array('id' => $peerforum->course), '*', MUST_EXIST);
+
+    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id, $course->id, false, MUST_EXIST);
+
+    // Check the post author is not the user to assign .. you can't peergrade your own posts
+    if ($post->userid == $userid) {
+        return false;
+    }
+
+    // check the item we're peer grading was created in the assessable time window
+    if (!empty($peerforum->peergradeassesstimestart) && !empty($peerforum->peergradeassesstimefinish)) {
+        if ($post->created < $peerforum->peergradeassesstimestart || $post->created > $peerforum->peergradeassesstimefinish) {
+            return false;
+        }
+    }
+
+    // Make sure groups allow this user to see the item they may peer grade
+    if ($discussion->groupid > 0 and $groupmode = groups_get_activity_groupmode($cm, $course)) {   // Groups are being used
+        if (!groups_group_exists($discussion->groupid)) { // Can't find group
+            return false;
+        }
+
+        if (!groups_is_member($discussion->groupid, $userid) and !has_capability('moodle/site:accessallgroups', $context, $userid)) {
+            // do not allow rating of posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS
+            return false;
+        }
+    }
+    // We don't perform the peerforum_user_can_see_post for performance but it may be a problem.
+
+    return true;
+}
+
+/**
+ * Returns an array of peergrade options which are in the module settings.
+ *
+ * @param int $contextid
+ * @param string $component
+ * @param string $gradingarea
+ * @return array with extra settings
+ */
+function peerforum_peergrade_extrasettings($contextid, $component, $peergradearea) {
     static $cache = array();
     if (!empty($cache[$contextid])) {
         return $cache[$contextid];

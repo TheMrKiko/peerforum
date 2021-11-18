@@ -556,13 +556,11 @@ class mod_peerforum_renderer extends plugin_renderer_base {
             // Show options about assign/remove peers.
             if ($peerforumentity->is_showdetails()) {
                 $assignaddurl = $peergrade->get_assign_url('assign', null, 'pgconfiglink' . $peergrade->itemid);
-                static $possstudents = array();
-                if (empty($possstudents)) {
-                    $possstudents = $peergrademanager->get_possible_peergraders($peergrade);
-                    $possstudents = array_map(static function ($s) {
-                        return fullname($s);
-                    }, $possstudents);
-                }
+                $possstudents = $peergrademanager->get_possible_peergraders($peergrade);
+                $possstudents = array_map(static function ($s) {
+                    return fullname($s);
+                }, $possstudents);
+
                 $singleselect = new single_select($assignaddurl, 'assigneduserid',
                         array_filter($possstudents, static function ($s) use ($peergrade) {
                             return empty($peergrade->usersassigned[$s]) && $peergrade->itemuserid != $s;

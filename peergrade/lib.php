@@ -2085,22 +2085,36 @@ class peergrade_manager {
     }
 
     public function get_possible_peergraders($peergradeoptions) {
-        global $DB;
+        static $possiblepeergraders = array();
+        if (empty($possiblepeergraders)) {
+            global $DB;
 
-        $users = get_users_by_capability($peergradeoptions->context, 'mod/peerforum:studentpeergrade', 'u.id AS userid');
-        // Get the items from the database.
-        list($useridtest, $params) = $DB->get_in_or_equal(
-                array_map(function($u) {
-                    return $u->userid;
-                }, $users), SQL_PARAMS_NAMED);
+            $users = get_users_by_capability($peergradeoptions->context, 'mod/peerforum:studentpeergrade', 'u.id AS userid');
+            // Get the items from the database.
+            list($useridtest, $params) = $DB->get_in_or_equal(
+                    array_map(function($u) {
+                        return $u->userid;
+                    }, $users), SQL_PARAMS_NAMED);
 
-        $userfields = user_picture::fields('s', ['deleted']);
-        $sql = "SELECT $userfields
+            $userfields = user_picture::fields('s', ['deleted']);
+            $sql = "SELECT $userfields
                   FROM {user} s
              LEFT JOIN {peerforum_user_block} b ON s.id = b.userid
                  WHERE s.id {$useridtest} AND
                        b.id IS NULL";
-        return $DB->get_records_sql($sql, $params);
+            $possiblepeergraders = $DB->get_records_sql($sql, $params);
+        }
+
+        list($type, $name) = core_component::normalize_component($peergradeoptions->component);
+
+        return array_filter($possiblepeergraders, static function($ppg) use ($type, $name, $peergradeoptions) {
+            return plugin_callback($type, $name, 'peergrade', 'canassign', array($peergradeoptions->itemid,
+                    $ppg->id,
+                    $peergradeoptions->context,
+                    $peergradeoptions->component,
+                    $peergradeoptions->peergradearea),
+                    true);
+        });
     }
 
     /**
@@ -2240,6 +2254,7 @@ class peergrade_manager {
                 }, $users), SQL_PARAMS_NAMED);
 
         $coursecontext = $peergradeoptions->context->get_course_context();
+        list($type, $name) = core_component::normalize_component($peergradeoptions->component);
 
         $params['contextid'] = $peergradeoptions->context->id;
         $params['component'] = $peergradeoptions->component;
@@ -2331,6 +2346,17 @@ class peergrade_manager {
             if (isset($usersblocked[$userassigned->userid])) {
                 continue;
             }
+
+            if (!plugin_callback($type, $name, 'peergrade', 'canassign',
+                    array($peergradeoptions->itemid,
+                            $userassigned->userid,
+                            $peergradeoptions->context,
+                            $peergradeoptions->component,
+                            $peergradeoptions->peergradearea),
+                    true)) {
+                continue;
+            }
+
             $userid = $userassigned->userid;
 
             $nominationid = $usersnominated[$userid]->nominationid ?? 0;
