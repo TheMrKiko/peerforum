@@ -49,8 +49,7 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
             $paths[] = new restore_path_element('peerforum_digest', '/activity/peerforum/digests/digest');
             $paths[] = new restore_path_element('peerforum_read', '/activity/peerforum/readposts/read');
             $paths[] = new restore_path_element('peerforum_track', '/activity/peerforum/trackedprefs/track');
-            $paths[] = new restore_path_element('peerforum_peergrade', '/activity/peerforum/discussions/discussion/posts/post/peergrades/peergrade');
-            $paths[] = new restore_path_element('peerforum_time_assigned', '/activity/time_assigned/time_assigned');
+            $paths[] = new restore_path_element('peerforum_grade', '/activity/peerforum/grades/grade');
         }
 
         // Return the paths wrapped into standard activity structure
@@ -172,31 +171,6 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
         $newitemid = $DB->insert_record('rating', $data);
     }
 
-    protected function process_peerforum_peergrade($data) {
-        global $DB;
-
-        $data = (object) $data;
-
-        // Cannot use peergrade API, cause, it's missing the ability to specify times (modified/created)
-        $data->contextid = $this->task->get_contextid();
-        $data->itemid = $this->get_new_parentid('peerforum_post');
-        if ($data->scaleid < 0) { // scale found, get mapping
-            $data->scaleid = -($this->get_mappingid('scale', abs($data->scaleid)));
-        }
-        $data->peergrade = $data->value;
-        $data->userid = $this->get_mappingid('user', $data->userid);
-
-        // We need to check that component and peergradearea are both set here.
-        if (empty($data->component)) {
-            $data->component = 'mod_peerforum';
-        }
-        if (empty($data->peergradearea)) {
-            $data->peergradearea = 'post';
-        }
-
-        $newitemid = $DB->insert_record('peerforum_peergrade', $data);
-    }
-
     protected function process_peerforum_subscription($data) {
         global $DB;
 
@@ -291,10 +265,16 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
     }
 
     protected function after_execute() {
-        global $DB;
-
         // Add peerforum related files, no need to match by itemname (just internally handled context)
         $this->add_related_files('mod_peerforum', 'intro', null);
+
+        // Add post related files, matching by itemname = 'peerforum_post'
+        $this->add_related_files('mod_peerforum', 'post', 'peerforum_post');
+        $this->add_related_files('mod_peerforum', 'attachment', 'peerforum_post');
+    }
+
+    protected function after_restore() {
+        global $DB;
 
         // If the peerforum is of type 'single' and no discussion has been ignited
         // (non-userinfo backup/restore) create the discussion here, using peerforum
@@ -325,9 +305,5 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
                 $fs->create_file_from_storedfile($newfilerecord, $file);
             }
         }
-
-        // Add post related files, matching by itemname = 'peerforum_post'
-        $this->add_related_files('mod_peerforum', 'post', 'peerforum_post');
-        $this->add_related_files('mod_peerforum', 'attachment', 'peerforum_post');
     }
 }
