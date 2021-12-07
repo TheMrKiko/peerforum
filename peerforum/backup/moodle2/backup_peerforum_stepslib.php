@@ -70,6 +70,16 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $tags = new backup_nested_element('poststags');
         $tag = new backup_nested_element('tag', array('id'), array('itemid', 'rawname'));
 
+        $nominations = new backup_nested_element('nominations');
+
+        $nomination = new backup_nested_element('nomination', array('id'), array(
+                'userid', 'otheruserid', 'n', 'nomination', 'confidence'));
+
+        $rankings = new backup_nested_element('rankings');
+
+        $ranking = new backup_nested_element('ranking', array('id'), array(
+                'userid', 'otheruserid', 'n', 'ranking'));
+
         $ratings = new backup_nested_element('ratings');
 
         $rating = new backup_nested_element('rating', array('id'), array(
@@ -84,7 +94,7 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $assigns = new backup_nested_element('assigns');
 
         $assign = new backup_nested_element('assign', array('id'), array(
-                'component', 'peergradearea', 'userid', 'expired', 'blocked', 'ended', 'peergraded', //TODO daded???? nomination??
+                'component', 'peergradearea', 'userid', 'expired', 'blocked', 'ended', 'peergraded',
                 'nomination', 'timecreated', 'timemodified', 'timeexpired'));
 
         $discussionsubs = new backup_nested_element('discussion_subs');
@@ -149,6 +159,12 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $peerforum->add_child($grades);
         $grades->add_child($grade);
 
+        $peerforum->add_child($nominations);
+        $nominations->add_child($nomination);
+
+        $peerforum->add_child($rankings);
+        $rankings->add_child($ranking);
+
         $discussion->add_child($posts);
         $posts->add_child($post);
 
@@ -186,6 +202,10 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
             $read->set_source_table('peerforum_read', array('peerforumid' => backup::VAR_PARENTID));
 
             $track->set_source_table('peerforum_track_prefs', array('peerforumid' => backup::VAR_PARENTID));
+
+            $nomination->set_source_table('peerforum_relationship_nomin', array('course' => backup::VAR_COURSEID));
+
+            $ranking->set_source_table('peerforum_relationship_rank', array('course' => backup::VAR_COURSEID));
 
             $rating->set_source_table('rating', array('contextid' => backup::VAR_CONTEXTID,
                     'component' => backup_helper::is_sqlparam('mod_peerforum'),
@@ -228,6 +248,14 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $post->annotate_ids('user', 'userid');
 
         $discussionsub->annotate_ids('user', 'userid');
+
+        $nomination->annotate_ids('user', 'userid');
+
+        $nomination->annotate_ids('user', 'otheruserid');
+
+        $ranking->annotate_ids('user', 'userid');
+
+        $ranking->annotate_ids('user', 'otheruserid');
 
         $rating->annotate_ids('scale', 'scaleid');
 

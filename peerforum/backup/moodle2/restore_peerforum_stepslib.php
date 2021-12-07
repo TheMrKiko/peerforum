@@ -43,6 +43,8 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
             $paths[] = new restore_path_element('peerforum_tag', '/activity/peerforum/poststags/tag');
             $paths[] = new restore_path_element('peerforum_discussion_sub',
                     '/activity/peerforum/discussions/discussion/discussion_subs/discussion_sub');
+            $paths[] = new restore_path_element('peerforum_nomination', '/activity/peerforum/nominations/nomination');
+            $paths[] = new restore_path_element('peerforum_ranking', '/activity/peerforum/rankings/ranking');
             $paths[] = new restore_path_element('peerforum_rating',
                     '/activity/peerforum/discussions/discussion/posts/post/ratings/rating');
             $paths[] = new restore_path_element('peerforum_peergrade',
@@ -156,6 +158,44 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
         core_tag_tag::add_item_tag('mod_peerforum', 'peerforum_posts', $itemid, $context, $tag);
     }
 
+    protected function process_peerforum_nomination($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+        $data->course = $this->get_courseid();
+
+        $data->userid = $this->get_mappingid('user', $data->userid);
+        $data->otheruserid = $this->get_mappingid('user', $data->otheruserid);
+
+        if ($nomination = $DB->get_record('peerforum_relationship_nomin',
+                array('course' => $data->course, 'userid' => $data->userid, 'otheruserid' => $data->otheruserid))) {
+            $this->set_mapping('peerforum_nomination', $oldid, $nomination->id);
+        } else {
+            $newitemid = $DB->insert_record('peerforum_relationship_nomin', $data);
+            $this->set_mapping('peerforum_nomination', $oldid, $newitemid);
+        }
+    }
+
+    protected function process_peerforum_ranking($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+        $data->course = $this->get_courseid();
+
+        $data->userid = $this->get_mappingid('user', $data->userid);
+        $data->otheruserid = $this->get_mappingid('user', $data->otheruserid);
+
+        if ($ranking = $DB->get_record('peerforum_relationship_rank',
+                array('course' => $data->course, 'userid' => $data->userid, 'otheruserid' => $data->otheruserid))) {
+            $this->set_mapping('peerforum_ranking', $oldid, $ranking->id);
+        } else {
+            $newitemid = $DB->insert_record('peerforum_relationship_rank', $data);
+            $this->set_mapping('peerforum_ranking', $oldid, $newitemid);
+        }
+    }
+
     protected function process_peerforum_rating($data) {
         global $DB;
 
@@ -219,7 +259,8 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
         $data->contextid = $this->task->get_contextid();
         $data->itemid = $this->get_new_parentid('peerforum_post');
         $data->userid = $this->get_mappingid('user', $data->userid);
-        $data->peergraded = $this->get_mappingid('peerforum_peergrade', $data->peergraded); // TODO req nomination!
+        $data->peergraded = $this->get_mappingid('peerforum_peergrade', $data->peergraded);
+        $data->nomination = $this->get_mappingid('peerforum_nomination', $data->nomination);
 
         // We need to check that component and peergradearea are both set here.
         if (empty($data->component)) {
