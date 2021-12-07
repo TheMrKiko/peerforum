@@ -44,7 +44,14 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
                 'maxbytes', 'maxattachments', 'forcesubscribe', 'trackingtype',
                 'rsstype', 'rssarticles', 'timemodified', 'warnafter',
                 'blockafter', 'blockperiod', 'completiondiscussions', 'completionreplies',
-                'completionposts', 'displaywordcount', 'lockdiscussionafter', 'grade_peerforum'));
+                'completionposts', 'displaywordcount', 'lockdiscussionafter', 'grade_peerforum',
+                'peergradescale', 'peergradeassessed', 'peergradeassesstimestart',
+                'peergradeassesstimefinish', 'whenpeergrades', 'enablefeedback', 'remainanonymous',
+                'selectpeergraders', 'minpeergraders', 'finishpeergrade', 'timetopeergrade',
+                'finalgrademode', 'studentpercentage', 'professorpercentage', 'gradeprofessorpost',
+                'outdetectvalue', 'blockoutliers', 'seeoutliers', 'outlierdetection', 'warningoutliers',
+                'showafterpeergrade', 'showdetails', 'autoassignreplies', 'hidereplies', 'peernominations',
+                'peerrankings', 'peernominationsfields', 'peernominationsaddfields', 'training'));
 
         $discussions = new backup_nested_element('discussions');
 
@@ -67,6 +74,18 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
 
         $rating = new backup_nested_element('rating', array('id'), array(
                 'component', 'ratingarea', 'scaleid', 'value', 'userid', 'timecreated', 'timemodified'));
+
+        $peergrades = new backup_nested_element('peergrades');
+
+        $peergrade = new backup_nested_element('peergrade', array('id'), array(
+                'component', 'peergradearea', 'scaleid', 'peergradescaleid',
+                'peergrade', 'feedback', 'userid', 'timecreated', 'timemodified', 'blocked'));
+
+        $assigns = new backup_nested_element('assigns');
+
+        $assign = new backup_nested_element('assign', array('id'), array(
+                'component', 'peergradearea', 'userid', 'expired', 'blocked', 'ended', 'peergraded', //TODO daded???? nomination??
+                'nomination', 'timecreated', 'timemodified', 'timeexpired'));
 
         $discussionsubs = new backup_nested_element('discussion_subs');
 
@@ -136,6 +155,12 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $post->add_child($ratings);
         $ratings->add_child($rating);
 
+        $post->add_child($peergrades);
+        $peergrades->add_child($peergrade);
+
+        $post->add_child($assigns);
+        $assigns->add_child($assign);
+
         $discussion->add_child($discussionsubs);
         $discussionsubs->add_child($discussionsub);
 
@@ -168,6 +193,16 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
                     'itemid' => backup::VAR_PARENTID));
             $rating->set_source_alias('rating', 'value');
 
+            $peergrade->set_source_table('peerforum_peergrade', array('contextid' => backup::VAR_CONTEXTID,
+                    'component' => backup_helper::is_sqlparam('mod_peerforum'),
+                    'peergradearea' => backup_helper::is_sqlparam('post'),
+                    'itemid' => backup::VAR_PARENTID));
+
+            $assign->set_source_table('peerforum_time_assigned', array('contextid' => backup::VAR_CONTEXTID,
+                    'component' => backup_helper::is_sqlparam('mod_peerforum'),
+                    'peergradearea' => backup_helper::is_sqlparam('post'),
+                    'itemid' => backup::VAR_PARENTID));
+
             if (core_tag_tag::is_enabled('mod_peerforum', 'peerforum_posts')) {
                 // Backup all tags for all peerforum posts in this peerforum.
                 $tag->set_source_sql('SELECT t.id, ti.itemid, t.rawname
@@ -197,6 +232,14 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $rating->annotate_ids('scale', 'scaleid');
 
         $rating->annotate_ids('user', 'userid');
+
+        $peergrade->annotate_ids('scale', 'scaleid');
+
+        $peergrade->annotate_ids('scale', 'peergradescaleid');
+
+        $peergrade->annotate_ids('user', 'userid');
+
+        $assign->annotate_ids('user', 'userid');
 
         $subscription->annotate_ids('user', 'userid');
 

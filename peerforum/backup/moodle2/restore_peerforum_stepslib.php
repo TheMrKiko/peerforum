@@ -45,6 +45,10 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
                     '/activity/peerforum/discussions/discussion/discussion_subs/discussion_sub');
             $paths[] = new restore_path_element('peerforum_rating',
                     '/activity/peerforum/discussions/discussion/posts/post/ratings/rating');
+            $paths[] = new restore_path_element('peerforum_peergrade',
+                    '/activity/peerforum/discussions/discussion/posts/post/peergrades/peergrade');
+            $paths[] = new restore_path_element('peerforum_assign',
+                    '/activity/peerforum/discussions/discussion/posts/post/assigns/assign');
             $paths[] = new restore_path_element('peerforum_subscription', '/activity/peerforum/subscriptions/subscription');
             $paths[] = new restore_path_element('peerforum_digest', '/activity/peerforum/digests/digest');
             $paths[] = new restore_path_element('peerforum_read', '/activity/peerforum/readposts/read');
@@ -77,6 +81,12 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
         $data->assesstimefinish = $this->apply_date_offset($data->assesstimefinish);
         if ($data->scale < 0) { // scale found, get mapping
             $data->scale = -($this->get_mappingid('scale', abs($data->scale)));
+        }
+
+        $data->peergradeassesstimestart = $this->apply_date_offset($data->peergradeassesstimestart);
+        $data->peergradeassesstimefinish = $this->apply_date_offset($data->peergradeassesstimefinish);
+        if ($data->peergradescale < 0) { // peergradescaleid found, get mapping
+            $data->peergradescale = -($this->get_mappingid('scale', abs($data->peergradescale)));
         }
 
         $newitemid = $DB->insert_record('peerforum', $data);
@@ -169,6 +179,57 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
         }
 
         $newitemid = $DB->insert_record('rating', $data);
+    }
+
+    protected function process_peerforum_peergrade($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+
+        // Cannot use peergrades API, cause, it's missing the ability to specify times (modified/created)
+        $data->contextid = $this->task->get_contextid();
+        $data->itemid = $this->get_new_parentid('peerforum_post');
+        if ($data->scaleid < 0) { // scale found, get mapping
+            $data->scaleid = -($this->get_mappingid('scale', abs($data->scaleid)));
+        }
+        if ($data->peergradescaleid < 0) { // peergradescaleid found, get mapping
+            $data->peergradescaleid = -($this->get_mappingid('scale', abs($data->peergradescaleid)));
+        }
+        $data->userid = $this->get_mappingid('user', $data->userid);
+
+        // We need to check that component and peergradearea are both set here.
+        if (empty($data->component)) {
+            $data->component = 'mod_peerforum';
+        }
+        if (empty($data->peergradearea)) {
+            $data->peergradearea = 'post';
+        }
+
+        $newitemid = $DB->insert_record('peerforum_peergrade', $data);
+        $this->set_mapping('peerforum_peergrade', $oldid, $newitemid);
+    }
+
+    protected function process_peerforum_assign($data) {
+        global $DB;
+
+        $data = (object) $data;
+
+        // Cannot use peergrades API, cause, it's missing the ability to specify times (modified/created)
+        $data->contextid = $this->task->get_contextid();
+        $data->itemid = $this->get_new_parentid('peerforum_post');
+        $data->userid = $this->get_mappingid('user', $data->userid);
+        $data->peergraded = $this->get_mappingid('peerforum_peergrade', $data->peergraded); // TODO req nomination!
+
+        // We need to check that component and peergradearea are both set here.
+        if (empty($data->component)) {
+            $data->component = 'mod_peerforum';
+        }
+        if (empty($data->peergradearea)) {
+            $data->peergradearea = 'post';
+        }
+
+        $newitemid = $DB->insert_record('peerforum_time_assigned', $data);
     }
 
     protected function process_peerforum_subscription($data) {
