@@ -320,14 +320,18 @@ $heading = get_string('yournewtopic', 'peerforum');
 $trainingpageid = empty($trainingpage->id) ? null : $trainingpage->id;
 $draftideditor = file_get_submitted_draft_itemid('description');
 $editoropts = mod_peerforum_build_training_form::editor_options();
-$currenttext = file_prepare_draft_area($draftideditor, $modcontext->id, 'mod_peerforum', 'training',
+$currenttext = file_prepare_draft_area($draftideditor, $modcontext->id, 'mod_peerforum', 'trainingpage',
         $trainingpageid, $editoropts, $trainingpage->description);
 
 foreach ($trainingpage->exercise['description'] as $key => $ex) {
-    $draftideditorex = file_get_submitted_draft_itemid('description');
+    // NASTY HACK: The elname shoud be 'exercise[description]['.$key.']' but the function cannot parse it.
+    if ($submitteddraftideditorex = HTML_QuickForm_utils::pathGet($_REQUEST, array('exercise', 'description', $key))) {
+        $_REQUEST['exercise[description]['.$key.']'] = $_POST['exercise[description]['.$key.']'] = $submitteddraftideditorex;
+    }
+    $draftideditorex = file_get_submitted_draft_itemid('exercise[description]['.$key.']');
     $editoropts = mod_peerforum_build_training_form::editor_options();
-    $currenttextex = file_prepare_draft_area($draftideditorex, $modcontext->id, 'mod_peerforum', 'training',
-            $trainingpageid.$key, $editoropts, $ex->description);
+    $currenttextex = file_prepare_draft_area($draftideditorex, $modcontext->id, 'mod_peerforum', 'trainingexercise',
+            $trainingpage->exercise['id'][$key], $editoropts, $ex->description);
 
     $trainingpage->exercise['description'][$key] = array(
                 'text' => $currenttextex,

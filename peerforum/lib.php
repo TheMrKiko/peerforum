@@ -3438,6 +3438,8 @@ function peerforum_get_file_areas($course, $cm, $context) {
             'attachment' => get_string('areaattachment', 'mod_peerforum'),
             'post' => get_string('areapost', 'mod_peerforum'),
             'training' => get_string('areatraining', 'mod_peerforum'),
+            'trainingpage' => get_string('areatrainingpage', 'mod_peerforum'),
+            'trainingexercise' => get_string('areatrainingexercise', 'mod_peerforum'),
     );
 }
 
@@ -3469,10 +3471,13 @@ function peerforum_get_file_info($browser, $areas, $course, $cm, $context, $file
         return null;
     }
 
+    $istraining = ($filearea == 'training'
+            || $filearea == 'trainingpage' || $filearea == 'trainingexercise'); // hack para passar as verificações abaixo.
+
     // Note that peerforum_user_can_see_post() additionally allows access for parent roles
     // and it explicitly checks qanda peerforum type, too. One day, when we stop requiring
     // course:managefiles, we will need to extend this.
-    if (!has_capability('mod/peerforum:viewdiscussion', $context)) {
+    if (!$istraining && !has_capability('mod/peerforum:viewdiscussion', $context)) {
         return null;
     }
 
@@ -3481,35 +3486,37 @@ function peerforum_get_file_info($browser, $areas, $course, $cm, $context, $file
         return new peerforum_file_info_container($browser, $course, $cm, $context, $areas, $filearea);
     }
 
-    static $cached = array();
-    // $cached will store last retrieved post, discussion and peerforum. To make sure that the cache
-    // is cleared between unit tests we check if this is the same session
-    if (!isset($cached['sesskey']) || $cached['sesskey'] != sesskey()) {
-        $cached = array('sesskey' => sesskey());
-    }
+    if (!$istraining) {
+        static $cached = array();
+        // $cached will store last retrieved post, discussion and peerforum. To make sure that the cache
+        // is cleared between unit tests we check if this is the same session
+        if (!isset($cached['sesskey']) || $cached['sesskey'] != sesskey()) {
+            $cached = array('sesskey' => sesskey());
+        }
 
-    if (isset($cached['post']) && $cached['post']->id == $itemid) {
-        $post = $cached['post'];
-    } else if ($post = $DB->get_record('peerforum_posts', array('id' => $itemid))) {
-        $cached['post'] = $post;
-    } else {
-        return null;
-    }
+        if (isset($cached['post']) && $cached['post']->id == $itemid) {
+            $post = $cached['post'];
+        } else if ($post = $DB->get_record('peerforum_posts', array('id' => $itemid))) {
+            $cached['post'] = $post;
+        } else {
+            return null;
+        }
 
-    if (isset($cached['discussion']) && $cached['discussion']->id == $post->discussion) {
-        $discussion = $cached['discussion'];
-    } else if ($discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion))) {
-        $cached['discussion'] = $discussion;
-    } else {
-        return null;
-    }
+        if (isset($cached['discussion']) && $cached['discussion']->id == $post->discussion) {
+            $discussion = $cached['discussion'];
+        } else if ($discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion))) {
+            $cached['discussion'] = $discussion;
+        } else {
+            return null;
+        }
 
-    if (isset($cached['peerforum']) && $cached['peerforum']->id == $cm->instance) {
-        $peerforum = $cached['peerforum'];
-    } else if ($peerforum = $DB->get_record('peerforum', array('id' => $cm->instance))) {
-        $cached['peerforum'] = $peerforum;
-    } else {
-        return null;
+        if (isset($cached['peerforum']) && $cached['peerforum']->id == $cm->instance) {
+            $peerforum = $cached['peerforum'];
+        } else if ($peerforum = $DB->get_record('peerforum', array('id' => $cm->instance))) {
+            $cached['peerforum'] = $peerforum;
+        } else {
+            return null;
+        }
     }
 
     $fs = get_file_storage();
@@ -3525,7 +3532,7 @@ function peerforum_get_file_info($browser, $areas, $course, $cm, $context, $file
         return null;
     }
     // Make sure groups allow this user to see this file
-    if ($discussion->groupid > 0 && !has_capability('moodle/site:accessallgroups', $context)) {
+    if (!$istraining && $discussion->groupid > 0 && !has_capability('moodle/site:accessallgroups', $context)) {
         $groupmode = groups_get_activity_groupmode($cm, $course);
         if ($groupmode == SEPARATEGROUPS && !groups_is_member($discussion->groupid)) {
             return null;
@@ -3533,7 +3540,7 @@ function peerforum_get_file_info($browser, $areas, $course, $cm, $context, $file
     }
 
     // Make sure we're allowed to see it...
-    if (!peerforum_user_can_see_post($peerforum, $discussion, $post, null, $cm)) {
+    if (!$istraining && !peerforum_user_can_see_post($peerforum, $discussion, $post, null, $cm)) {
         return null;
     }
 
@@ -3571,7 +3578,8 @@ function peerforum_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
         return false;
     }
 
-    $istraining = $filearea == 'training'; // hack para passar as verificações abaixo.
+    $istraining = ($filearea == 'training'
+            || $filearea == 'trainingpage' || $filearea == 'trainingexercise'); // hack para passar as verificações abaixo.
 
     $postid = (int) array_shift($args);
 
@@ -7749,7 +7757,7 @@ function peerforum_add_new_training_page($trainingpage, $mform) {
 
     $id = $DB->insert_record("peerforum_training_page", $trainingpage);
     $trainingpage->id = $id;
-    $trainingpage->description = file_save_draft_area_files($trainingpage->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id,
+    $trainingpage->description = file_save_draft_area_files($trainingpage->itemid, $context->id, 'mod_peerforum', 'trainingpage', $trainingpage->id,
             mod_peerforum_build_training_form::editor_options(), $trainingpage->description);
     $DB->set_field('peerforum_training_page', 'description', $trainingpage->description, array('id' => $id));
 
@@ -7768,7 +7776,7 @@ function peerforum_add_new_training_page($trainingpage, $mform) {
         $exid = $DB->insert_record("peerforum_training_exercise", $exercise);
         $trainingexercise->id = $exid;
 
-        $exercise->description = file_save_draft_area_files($exercise->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id.$key,
+        $exercise->description = file_save_draft_area_files($exercise->itemid, $context->id, 'mod_peerforum', 'trainingexercise', $exid,
                 mod_peerforum_build_training_form::editor_options(), $exercise->description);
 
         $DB->set_field('peerforum_training_exercise', 'description', $exercise->description, array('id' => $exid));
@@ -7818,7 +7826,7 @@ function peerforum_update_training_page($trainingpage, $mform) {
         $DB->update_record('peerforum_training_page', $trainingpage);
 
         $trainingpage->description =
-                file_save_draft_area_files($trainingpage->itemid, $context->id, 'mod_peerforum', 'training', $trainingpage->id,
+                file_save_draft_area_files($trainingpage->itemid, $context->id, 'mod_peerforum', 'trainingpage', $trainingpage->id,
                         mod_peerforum_build_training_form::editor_options(), $trainingpage->description);
 
         $DB->set_field('peerforum_training_page', 'description', $trainingpage->description, array('id' => $trainingpage->id));
@@ -7853,8 +7861,8 @@ function peerforum_update_training_page($trainingpage, $mform) {
                 $DB->update_record("peerforum_training_exercise", $exercise);
             }
 
-            $exercise->description = file_save_draft_area_files($exercise->itemid, $context->id, 'mod_peerforum', 'training',
-                    $trainingpage->id . $key,
+            $exercise->description = file_save_draft_area_files($exercise->itemid, $context->id, 'mod_peerforum', 'trainingexercise',
+                    $trainingexercise->id,
                     mod_peerforum_build_training_form::editor_options(), $exercise->description);
 
             $DB->set_field('peerforum_training_exercise', 'description', $exercise->description,
@@ -7953,15 +7961,12 @@ function peerforum_delete_training_page($trainingpage) {
     $cm = get_coursemodule_from_instance('peerforum', $trainingpage->peerforum);
     $context = context_module::instance($cm->id);
 
-    // This might delete areas from exercises that are not supposed.
-    /*
     $exercises = \mod_peerforum\local\vaults\training_page::turn_outside_in($trainingpage->exercise, array('n'));
     foreach ($exercises as $key => $trainingexercise) {
-        $fs->delete_area_files($context->id, 'mod_peerforum', 'training', $trainingpage->id.$key);
+        $fs->delete_area_files($context->id, 'mod_peerforum', 'trainingexercise', $trainingexercise->id);
     }
-    */
 
-    $fs->delete_area_files($context->id, 'mod_peerforum', 'training', $trainingpage->id);
+    $fs->delete_area_files($context->id, 'mod_peerforum', 'trainingpage', $trainingpage->id);
 
     $DB->delete_records('peerforum_training_feedback', array('pageid' => $trainingpage->id));
     $DB->delete_records('peerforum_training_rgh_grade', array('pageid' => $trainingpage->id));
@@ -7980,15 +7985,11 @@ function peerforum_delete_training_page($trainingpage) {
 function peerforum_delete_exercise_from_training_page($exerciseid, $trainingpage) {
     global $DB;
 
-    // This might delete areas from exercises that are not supposed.
-    /*
     $fs = get_file_storage();
     $cm = get_coursemodule_from_instance('peerforum', $trainingpage->peerforum);
     $context = context_module::instance($cm->id);
 
-    $key = array_search($exerciseid, $trainingpage->exercise['id'])
-    $fs->delete_area_files($context->id, 'mod_peerforum', 'training', $trainingpage->id.$key);
-    */
+    $fs->delete_area_files($context->id, 'mod_peerforum', 'trainingexercise', $exerciseid);
 
     $DB->delete_records('peerforum_training_feedback', array('exid' => $exerciseid));
     $DB->delete_records('peerforum_training_rgh_grade', array('exid' => $exerciseid));

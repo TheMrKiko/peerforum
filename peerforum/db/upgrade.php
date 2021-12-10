@@ -887,6 +887,43 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021111601, 'peerforum');
     }
 
+    if ($oldversion < 2021120801) {
+        global $DB;
+
+        $fs = get_file_storage();
+        $peerforums = $DB->get_records('peerforum', array());
+
+        foreach ($peerforums as $peerforum) {
+            $cm = get_coursemodule_from_instance('peerforum', $peerforum->id);
+            $context = context_module::instance($cm->id);
+
+            $trainingpages = $DB->get_records('peerforum_training_page', array('peerforum' => $peerforum->id));
+            foreach ($trainingpages as $trainingpage) {
+
+                $oldfiles = $fs->get_area_files($context->id, 'mod_peerforum', 'training', $trainingpage->id, 'id', false);
+                foreach ($oldfiles as $oldfile) {
+                    $filerecord = new stdClass();
+                    $filerecord->filearea = 'trainingpage';
+                    $fs->create_file_from_storedfile($filerecord, $oldfile);
+                }
+
+                $trainingexs = $DB->get_records('peerforum_training_exercise', array('pageid' => $trainingpage->id));
+                foreach ($trainingexs as $trainingex) {
+
+                    $oldfiles = $fs->get_area_files($context->id, 'mod_peerforum', 'training',
+                            $trainingpage->id.$trainingex->n, 'id', false);
+                    foreach ($oldfiles as $oldfile) {
+                        $filerecord = new stdClass();
+                        $filerecord->filearea = 'trainingexercise';
+                        $filerecord->itemid = $trainingex->id;
+                        $fs->create_file_from_storedfile($filerecord, $oldfile);
+                    }
+                }
+            }
+        }
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2021120801, 'peerforum');
+    }
 
     return true;
 }

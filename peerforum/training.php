@@ -134,12 +134,12 @@ if (isguestuser()) {
 }
 
 $trainingpage->description = file_rewrite_pluginfile_urls($trainingpage->description, 'pluginfile.php',
-        $modcontext->id, 'mod_peerforum', 'training', $trainingpage->id);
+        $modcontext->id, 'mod_peerforum', 'trainingpage', $trainingpage->id);
 
 $trainingpage->exercise['description'] = $trainingpage->exercise['description'] ?? array();
 foreach ($trainingpage->exercise['description'] as $k => $d) {
     $trainingpage->exercise['description'][$k] = file_rewrite_pluginfile_urls($d->description, 'pluginfile.php',
-            $modcontext->id, 'mod_peerforum', 'training', $trainingpage->id.$k);
+            $modcontext->id, 'mod_peerforum', 'trainingexercise', $trainingpage->exercise['id'][$k]);
 }
 
 if ($peerforum->peergradeassessed) {
