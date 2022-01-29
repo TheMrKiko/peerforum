@@ -95,7 +95,7 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
 
         $assign = new backup_nested_element('assign', array('id'), array(
                 'component', 'peergradearea', 'userid', 'expired', 'blocked', 'ended', 'peergraded',
-                'nomination', 'timecreated', 'timemodified', 'timeexpired'));
+                'nomination', 'timeassigned', 'timemodified', 'timeexpired'));
 
         $discussionsubs = new backup_nested_element('discussion_subs');
 
@@ -135,6 +135,38 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
                 'timecreated',
                 'timemodified',
         ]);
+
+        $trainingpages = new backup_nested_element('training_pages');
+
+        $trainingpage = new backup_nested_element('training_page', array('id'), array(
+                'discussion', 'name', 'description', 'descriptionformat', 'descriptiontrust', 'exercises', 'ncriterias'));
+
+        $trainingcriterias = new backup_nested_element('training_criterias');
+
+        $trainingcriteria = new backup_nested_element('training_criteria', array('id'), array('n', 'name'));
+
+        $trainingexercises = new backup_nested_element('training_exercises');
+
+        $trainingexercise = new backup_nested_element('training_exercise', array('id'), array(
+                'n', 'name', 'description', 'descriptionformat', 'descriptiontrust'));
+
+        $trainingfeedbacks = new backup_nested_element('training_feedbacks');
+
+        $trainingfeedback = new backup_nested_element('training_feedback', array('id'), array(
+                'pageid', 'criteriaid', 'grade', 'feedback'));
+
+        $trainingrghgrades = new backup_nested_element('training_rgh_grades');
+
+        $trainingrghgrade = new backup_nested_element('training_rgh_grade', array('id'), array('pageid', 'criteriaid', 'grade'));
+
+        $trainingsubmits = new backup_nested_element('training_submits');
+
+        $trainingsubmit = new backup_nested_element('training_submit', array('id'), array(
+                'userid', 'opened', 'submitted', 'previous', 'allcorrect'));
+
+        $trainingratings = new backup_nested_element('training_ratings');
+
+        $trainingrating = new backup_nested_element('training_rating', array('id'), array('exid', 'criteriaid', 'grade'));
 
         // Build the tree
 
@@ -180,9 +212,43 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $discussion->add_child($discussionsubs);
         $discussionsubs->add_child($discussionsub);
 
+        $peerforum->add_child($trainingpages);
+        $trainingpages->add_child($trainingpage);
+
+        $trainingpage->add_child($trainingcriterias);
+        $trainingcriterias->add_child($trainingcriteria);
+
+        $trainingpage->add_child($trainingexercises);
+        $trainingexercises->add_child($trainingexercise);
+
+        $trainingexercise->add_child($trainingfeedbacks);
+        $trainingfeedbacks->add_child($trainingfeedback);
+
+        $trainingexercise->add_child($trainingrghgrades);
+        $trainingrghgrades->add_child($trainingrghgrade);
+
+        $trainingpage->add_child($trainingsubmits);
+        $trainingsubmits->add_child($trainingsubmit);
+
+        $trainingsubmit->add_child($trainingratings);
+        $trainingratings->add_child($trainingrating);
+
         // Define sources
 
         $peerforum->set_source_table('peerforum', array('id' => backup::VAR_ACTIVITYID));
+
+        $trainingpage->set_source_table('peerforum_training_page', array('peerforum' => backup::VAR_PARENTID,
+                'course' => backup::VAR_COURSEID));
+
+        $trainingcriteria->set_source_table('peerforum_training_criteria', array('pageid' => backup::VAR_PARENTID));
+
+        $trainingexercise->set_source_table('peerforum_training_exercise', array('pageid' => backup::VAR_PARENTID));
+
+        $trainingfeedback->set_source_table('peerforum_training_feedback', array('exid' => backup::VAR_PARENTID,
+                'pageid' => '../../../../id'));
+
+        $trainingrghgrade->set_source_table('peerforum_training_rgh_grade', array('exid' => backup::VAR_PARENTID,
+                'pageid' => '../../../../id'));
 
         // All these source definitions only happen if we are including user info
         if ($userinfo) {
@@ -237,11 +303,17 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
             }
 
             $grade->set_source_table('peerforum_grades', array('peerforum' => backup::VAR_PARENTID));
+
+            $trainingsubmit->set_source_table('peerforum_training_submit', array('pageid' => backup::VAR_PARENTID), 'id ASC');
+
+            $trainingrating->set_source_table('peerforum_training_rating', array('submissionid' => backup::VAR_PARENTID));
         }
 
         // Define id annotations
 
         $peerforum->annotate_ids('scale', 'scale');
+
+        $peerforum->annotate_ids('scale', 'peergradescale');
 
         $discussion->annotate_ids('group', 'groupid');
 
@@ -280,12 +352,17 @@ class backup_peerforum_activity_structure_step extends backup_activity_structure
         $grade->annotate_ids('userid', 'userid');
 
         $grade->annotate_ids('peerforum', 'peerforum');
+
+        $trainingsubmit->annotate_ids('user', 'userid');
         // Define file annotations
 
         $peerforum->annotate_files('mod_peerforum', 'intro', null); // This file area hasn't itemid
 
         $post->annotate_files('mod_peerforum', 'post', 'id');
         $post->annotate_files('mod_peerforum', 'attachment', 'id');
+
+        $trainingpage->annotate_files('mod_peerforum', 'trainingpage', 'id');
+        $trainingexercise->annotate_files('mod_peerforum', 'trainingexercise', 'id');
 
         // Return the root element (peerforum), wrapped into standard activity structure
         return $this->prepare_activity_structure($peerforum);

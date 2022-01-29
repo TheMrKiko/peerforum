@@ -56,6 +56,20 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
             $paths[] = new restore_path_element('peerforum_read', '/activity/peerforum/readposts/read');
             $paths[] = new restore_path_element('peerforum_track', '/activity/peerforum/trackedprefs/track');
             $paths[] = new restore_path_element('peerforum_grade', '/activity/peerforum/grades/grade');
+
+            $paths[] = new restore_path_element('peerforum_training_page', '/activity/peerforum/training_pages/training_page');
+            $paths[] = new restore_path_element('peerforum_training_criteria',
+                    '/activity/peerforum/training_pages/training_page/training_criterias/training_criteria');
+            $paths[] = new restore_path_element('peerforum_training_exercise',
+                    '/activity/peerforum/training_pages/training_page/training_exercises/training_exercise');
+            $paths[] = new restore_path_element('peerforum_training_feedback',
+                    '/activity/peerforum/training_pages/training_page/training_exercises/training_exercise/training_feedbacks/training_feedback');
+            $paths[] = new restore_path_element('peerforum_training_rgh_grade',
+                    '/activity/peerforum/training_pages/training_page/training_exercises/training_exercise/training_rgh_grades/training_rgh_grade');
+            $paths[] = new restore_path_element('peerforum_training_submit',
+                    '/activity/peerforum/training_pages/training_page/training_submits/training_submit');
+            $paths[] = new restore_path_element('peerforum_training_rating',
+                    '/activity/peerforum/training_pages/training_page/training_submits/training_submit/training_ratings/training_rating');
         }
 
         // Return the paths wrapped into standard activity structure
@@ -366,6 +380,109 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
         $newitemid = $DB->insert_record('peerforum_track_prefs', $data);
     }
 
+    protected function process_peerforum_training_page($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+
+        $data->course = $this->get_courseid();
+        $data->peerforum = $this->get_new_parentid('peerforum');
+        $data->discussion = $this->get_mappingid('peerforum_discussion', $data->discussion, 0);
+
+        $newitemid = $DB->insert_record('peerforum_training_page', $data);
+        $this->set_mapping('peerforum_training_page', $oldid, $newitemid, true);
+    }
+
+    protected function process_peerforum_training_criteria($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+
+        $data->pageid = $this->get_new_parentid('peerforum_training_page');
+
+        $newitemid = $DB->insert_record('peerforum_training_criteria', $data);
+        $this->set_mapping('peerforum_training_criteria', $oldid, $newitemid);
+    }
+
+    protected function process_peerforum_training_exercise($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+
+        $data->pageid = $this->get_new_parentid('peerforum_training_page');
+
+        $newitemid = $DB->insert_record('peerforum_training_exercise', $data);
+        $this->set_mapping('peerforum_training_exercise', $oldid, $newitemid, true);
+    }
+
+    protected function process_peerforum_training_feedback($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+
+        $data->exid = $this->get_new_parentid('peerforum_training_exercise');
+        $data->pageid = $this->get_mappingid('peerforum_training_page', $data->pageid);
+        if ($data->criteriaid != -1) {
+            $data->criteriaid = $this->get_mappingid('peerforum_training_criteria', $data->criteriaid);
+        }
+
+        $newitemid = $DB->insert_record('peerforum_training_feedback', $data);
+        $this->set_mapping('peerforum_training_feedback', $oldid, $newitemid);
+    }
+
+    protected function process_peerforum_training_rgh_grade($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+
+        $data->exid = $this->get_new_parentid('peerforum_training_exercise');
+        $data->pageid = $this->get_mappingid('peerforum_training_page', $data->pageid);
+        if ($data->criteriaid != -1) {
+            $data->criteriaid = $this->get_mappingid('peerforum_training_criteria', $data->criteriaid);
+        }
+
+        $newitemid = $DB->insert_record('peerforum_training_rgh_grade', $data);
+        $this->set_mapping('peerforum_training_rgh_grade', $oldid, $newitemid);
+    }
+
+    protected function process_peerforum_training_submit($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+
+        $data->pageid = $this->get_new_parentid('peerforum_training_page');
+        $data->userid = $this->get_mappingid('user', $data->userid);
+        // If submit has previous, map it (it has been already restored).
+        if (!empty($data->previous)) {
+            $data->previous = $this->get_mappingid('peerforum_training_submit', $data->previous);
+        }
+
+        $newitemid = $DB->insert_record('peerforum_training_submit', $data);
+        $this->set_mapping('peerforum_training_submit', $oldid, $newitemid);
+    }
+
+    protected function process_peerforum_training_rating($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+
+        $data->submissionid = $this->get_new_parentid('peerforum_training_submit');
+        $data->exid = $this->get_mappingid('peerforum_training_exercise', $data->exid);
+        if ($data->criteriaid != -1) {
+            $data->criteriaid = $this->get_mappingid('peerforum_training_criteria', $data->criteriaid);
+        }
+
+        $newitemid = $DB->insert_record('peerforum_training_rating', $data);
+        $this->set_mapping('peerforum_training_rating', $oldid, $newitemid);
+    }
+
     protected function after_execute() {
         // Add peerforum related files, no need to match by itemname (just internally handled context)
         $this->add_related_files('mod_peerforum', 'intro', null);
@@ -373,6 +490,9 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
         // Add post related files, matching by itemname = 'peerforum_post'
         $this->add_related_files('mod_peerforum', 'post', 'peerforum_post');
         $this->add_related_files('mod_peerforum', 'attachment', 'peerforum_post');
+
+        $this->add_related_files('mod_peerforum', 'trainingpage', 'peerforum_training_page');
+        $this->add_related_files('mod_peerforum', 'trainingexercise', 'peerforum_training_exercise');
     }
 
     protected function after_restore() {
