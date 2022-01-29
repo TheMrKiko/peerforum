@@ -246,8 +246,8 @@ function peerforum_peergrade_validate($params) {
     }
 
     // check the item we're rating was created in the assessable time window
-    if (!empty($peerforum->assesstimestart) && !empty($peerforum->assesstimefinish)) {
-        if ($post->created < $peerforum->assesstimestart || $post->created > $peerforum->assesstimefinish) {
+    if (!empty($peerforum->peergradeassesstimestart) && !empty($peerforum->peergradeassesstimefinish)) {
+        if ($post->created < $peerforum->peergradeassesstimestart || $post->created > $peerforum->peergradeassesstimefinish) {
             throw new peergrade_exception('notavailable');
         }
     }
@@ -306,6 +306,77 @@ function peerforum_peergrade_validate($params) {
 }
 
 /**
+ * Validates an peergrade assign.
+ * (Not being used atm lol)
+ *
+ * @param array $params submitted data
+ *            context => object the context in which the peergraded items exists [required]
+ *            component => The component for this module - should always be mod_peerforum [required]
+ *            peergradearea => object the context in which the peergraded items exists [required]
+ *            itemid => int the ID of the object being peergraded [required]
+ *            assigneduserid => int the id of the user whose items have been peergraded. NOT the user who submitted the
+ *         peergrading. 0 to update all. [required]
+ * @return boolean true if the peergrade is valid. Will throw peergrade_exception if not
+ */
+function peerforum_peergrade_validateassign($params) {
+    global $DB, $USER;
+
+    // Check the component is mod_peerforum
+    if ($params['component'] != 'mod_peerforum') {
+        throw new peergrade_exception('invalidcomponent');
+    }
+
+    // Check the peergradearea is post (the only peergrading area in peerforum)
+    if ($params['peergradearea'] != 'post') {
+        throw new peergrade_exception('invalidpeergradearea');
+    }
+
+    // Check the rateduserid is not the current user .. you can't rate your own posts
+    if ($params['peergradeduserid'] == $USER->id) {
+        throw new peergrade_exception('nopermissiontopeergrade');
+    }
+
+    // Fetch all the related records ... we need to do this anyway to call peerforum_user_can_see_post
+    $post = $DB->get_record('peerforum_posts', array('id' => $params['itemid'], 'userid' => $params['peergradeduserid']), '*',
+            MUST_EXIST);
+    $discussion = $DB->get_record('peerforum_discussions', array('id' => $post->discussion), '*', MUST_EXIST);
+    $peerforum = $DB->get_record('peerforum', array('id' => $discussion->peerforum), '*', MUST_EXIST);
+    $course = $DB->get_record('course', array('id' => $peerforum->course), '*', MUST_EXIST);
+    $cm = get_coursemodule_from_instance('peerforum', $peerforum->id, $course->id, false, MUST_EXIST);
+    $context = context_module::instance($cm->id);
+
+    // Make sure the context provided is the context of the peerforum
+    if ($context->id != $params['context']->id) {
+        throw new peergrade_exception('invalidcontext');
+    }
+
+    // check the item we're rating was created in the assessable time window
+    if (!empty($peerforum->peergradeassesstimestart) && !empty($peerforum->peergradeassesstimefinish)) {
+        if ($post->created < $peerforum->peergradeassesstimestart || $post->created > $peerforum->peergradeassesstimefinish) {
+            throw new peergrade_exception('notavailable');
+        }
+    }
+
+    // Make sure groups allow this user to see the item they're rating
+    if ($discussion->groupid > 0 and $groupmode = groups_get_activity_groupmode($cm, $course)) {   // Groups are being used
+        if (!groups_group_exists($discussion->groupid)) { // Can't find group
+            throw new peergrade_exception('cannotfindgroup');//something is wrong
+        }
+
+        if (!groups_is_member($discussion->groupid) and !has_capability('moodle/site:accessallgroups', $context)) {
+            // do not allow rating of posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS
+            throw new peergrade_exception('notmemberofgroup');
+        }
+    }
+
+    // perform some final capability checks
+    if (!peerforum_user_can_see_post($peerforum, $discussion, $post, $USER, $cm)) {
+        throw new peergrade_exception('nopermissiontorate');
+    }
+
+    return true;
+}
+
 /**
  * Returns if the user can be assigned to peer grade the item.
  *
@@ -387,7 +458,7 @@ function peerforum_peergrade_extrasettings($contextid, $component, $peergradeare
     }
 
     $context = context::instance_by_id($contextid, MUST_EXIST);
-    if ($component != 'mod_peerforum' || $gradingarea != 'post') {
+    if ($component != 'mod_peerforum' || $peergradearea != 'post') {
         // We don't know about this component/peergradearea so just return null to get the
         // default restrictive permissions.
         return null;
