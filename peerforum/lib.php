@@ -768,6 +768,12 @@ function peerforum_delete_instance($id) {
         }
     }
 
+    if ($trainingpages = $DB->get_records('peerforum_training_page', array('peerforum' => $peerforum->id))) {
+        foreach ($trainingpages as $trainingpage) {
+            peerforum_delete_training_page($trainingpage);
+        }
+    }
+
     peerforum_tp_delete_read_records(-1, -1, -1, $peerforum->id);
 
     peerforum_grade_item_delete($peerforum);

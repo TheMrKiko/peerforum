@@ -1083,6 +1083,9 @@ $string['peernominations_help'] =
         "Select 'yes' if you want students to be asked to nominate their favorite and least favorite peers.";
 $string['peernominationsaddfields'] = "Allow students to give more nominations";
 $string['peernominationsfields'] = "Number of peer nominations";
+$string['areatraining'] = 'Training pages (old)';
+$string['areatrainingpage'] = 'Training pages';
+$string['areatrainingexercise'] = 'Training exercises';
 $string['training'] = "Enable training";
 $string['minpeerrankings'] = "Minimum rankings until prompted";
 $string['minpeerrankings_help'] = "The minimum number of pending rankings until a user is prompted to rank.";
