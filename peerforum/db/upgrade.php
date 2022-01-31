@@ -925,5 +925,19 @@ function xmldb_peerforum_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2021120801, 'peerforum');
     }
 
+    if ($oldversion < 2022013001) {
+
+        // Changing the default of field whenpeergrades on table peerforum to 1.
+        $table = new xmldb_table('peerforum');
+        $field = new xmldb_field('whenpeergrades', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '1', 'peergradeassesstimefinish');
+
+        // Launch change of default for field whenpeergrades.
+        $dbman->change_field_default($table, $field);
+
+        // Peerforum savepoint reached.
+        upgrade_mod_savepoint(true, 2022013001, 'peerforum');
+    }
+
+
     return true;
 }
