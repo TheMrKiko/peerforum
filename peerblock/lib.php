@@ -70,11 +70,11 @@ function get_peerblock_tabs($url, $isprofessor = false, $isself = true) {
                 new moodle_url('/blocks/peerblock/relationships.php',
                         $params), $managerelations);
     }
-    if ($isprofessor) {
+    /*if ($isprofessor) {
         $row[] = new tabobject('manageconflicts',
                 new moodle_url('/blocks/peerblock/conflicts.php',
                         $params), $manageconflicts);
-    }
+    }*/
     return $row;
 }
 
