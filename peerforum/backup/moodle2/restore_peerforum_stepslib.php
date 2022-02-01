@@ -56,16 +56,20 @@ class restore_peerforum_activity_structure_step extends restore_activity_structu
             $paths[] = new restore_path_element('peerforum_read', '/activity/peerforum/readposts/read');
             $paths[] = new restore_path_element('peerforum_track', '/activity/peerforum/trackedprefs/track');
             $paths[] = new restore_path_element('peerforum_grade', '/activity/peerforum/grades/grade');
+        }
 
-            $paths[] = new restore_path_element('peerforum_training_page', '/activity/peerforum/training_pages/training_page');
-            $paths[] = new restore_path_element('peerforum_training_criteria',
-                    '/activity/peerforum/training_pages/training_page/training_criterias/training_criteria');
-            $paths[] = new restore_path_element('peerforum_training_exercise',
-                    '/activity/peerforum/training_pages/training_page/training_exercises/training_exercise');
-            $paths[] = new restore_path_element('peerforum_training_feedback',
-                    '/activity/peerforum/training_pages/training_page/training_exercises/training_exercise/training_feedbacks/training_feedback');
-            $paths[] = new restore_path_element('peerforum_training_rgh_grade',
-                    '/activity/peerforum/training_pages/training_page/training_exercises/training_exercise/training_rgh_grades/training_rgh_grade');
+        // Training pages must be restored after any possible discussion is restored.
+        $paths[] = new restore_path_element('peerforum_training_page', '/activity/peerforum/training_pages/training_page');
+        $paths[] = new restore_path_element('peerforum_training_criteria',
+                '/activity/peerforum/training_pages/training_page/training_criterias/training_criteria');
+        $paths[] = new restore_path_element('peerforum_training_exercise',
+                '/activity/peerforum/training_pages/training_page/training_exercises/training_exercise');
+        $paths[] = new restore_path_element('peerforum_training_feedback',
+                '/activity/peerforum/training_pages/training_page/training_exercises/training_exercise/training_feedbacks/training_feedback');
+        $paths[] = new restore_path_element('peerforum_training_rgh_grade',
+                '/activity/peerforum/training_pages/training_page/training_exercises/training_exercise/training_rgh_grades/training_rgh_grade');
+
+        if ($userinfo) {
             $paths[] = new restore_path_element('peerforum_training_submit',
                     '/activity/peerforum/training_pages/training_page/training_submits/training_submit');
             $paths[] = new restore_path_element('peerforum_training_rating',
