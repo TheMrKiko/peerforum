@@ -265,3 +265,21 @@ function set_peergradepanel_page($courseid, $userid, $url, $tab, $onlyforprofs, 
     $row = get_peerblock_tabs($url, $isprofessor, $iscurrentuser);
     echo $OUTPUT->tabtree($row, $tab);
 }
+
+function get_all_peerforum_context_for_course(int $courseid): array {
+    $modinfo = get_fast_modinfo($courseid);
+    $peerforums = $modinfo->get_instances_of('peerforum');
+    return array_map(static function ($pf) {
+        return context_module::instance($pf->id);
+    }, $peerforums);
+}
+
+function peerblock_get_items_basefilters(int $courseid): array {
+    return array(
+            'component' => 'mod_peerforum',
+            'peergradearea' => 'post',
+            'contextids' => array_map(static function ($c) {
+                return $c->id;
+            }, get_all_peerforum_context_for_course($courseid)),
+    );
+}

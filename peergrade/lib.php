@@ -2426,9 +2426,24 @@ class peergrade_manager {
         global $DB;
         $where = [];
         $alias = 's';
+        $params = array();
         if (isset($filters['userid'])) {
             $userid = $filters['userid'];
             $where[] = "{$alias}.userid = {$userid}";
+        }
+        if (isset($filters['contextids'])) {
+            $contextids = $filters['contextids'];
+            list($contextsql, $contextparams) = $DB->get_in_or_equal($contextids, SQL_PARAMS_NAMED);
+            $params += $contextparams;
+            $where[] = "{$alias}.contextid {$contextsql}";
+        }
+        if (isset($filters['component'])) {
+            $component = $filters['component'];
+            $where[] = "{$alias}.component = '{$component}'";
+        }
+        if (isset($filters['peergradearea'])) {
+            $peergradearea = $filters['peergradearea'];
+            $where[] = "{$alias}.peergradearea = '{$peergradearea}'";
         }
         if (isset($filters['ended'])) {
             $ended = $filters['ended'];
@@ -2468,7 +2483,7 @@ class peergrade_manager {
                        {$groups}
                      ) a
               ORDER BY {$sortsql} timeassigned DESC";
-        return $DB->get_records_sql($sql);
+        return $DB->get_records_sql($sql, $params);
     }
 
     /**

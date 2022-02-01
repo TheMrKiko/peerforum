@@ -79,10 +79,12 @@ class block_peerblock extends block_list {
         $viewgeneral = has_capability('mod/peerforum:viewpanelpeergrades', $this->page->context);
 
         /*------- Get the peergrading data -------*/
+        $filters = peerblock_get_items_basefilters($courseid);
+
         if (!$viewgeneral) {
-            $filters = array('ended' => 0, 'userid' => $userid);
+            $filters += array('ended' => 0, 'userid' => $userid);
         } else {
-            $filters = array('ended' => 0);
+            $filters += array('ended' => 0);
         }
 
         $itemsdb = $pgmanager->get_items_from_filters($filters);

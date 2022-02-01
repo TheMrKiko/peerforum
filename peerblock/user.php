@@ -40,10 +40,12 @@ $url = new moodle_url('/blocks/peerblock/user.php', array(
 
 set_peergradepanel_page($courseid, $userid, $url, 'viewgradersstats', true, false);
 
+$filters = peerblock_get_items_basefilters($courseid);
+
 $coursecontext = context_course::instance($courseid);
 
 // Manage users.
-$userfilter = $userid ? array('userid' => $userid) : array();
+$userfilter = $filters + ($userid ? array('userid' => $userid) : array());
 
 echo $OUTPUT->box_start('posts-list');
 

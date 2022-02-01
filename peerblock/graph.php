@@ -37,10 +37,12 @@ $url = new moodle_url('/blocks/peerblock/graph.php', array(
 
 set_peergradepanel_page($courseid, $userid, $url, 'viewgradesgraph', true, false);
 
+$filters = peerblock_get_items_basefilters($courseid);
+
 echo $OUTPUT->box_start('posts-list');
 
 // Gets posts from filters.
-$items = $pgmanager->get_items_from_filters(array(), '', 'timemodified ASC');
+$items = $pgmanager->get_items_from_filters($filters, '', 'timemodified ASC');
 
 $datemin = 0;
 $datemax = 0;
@@ -100,7 +102,7 @@ foreach ($items as $item) {
     }
 }
 
-$nmaxgrades = max($posts);
+$nmaxgrades = $posts ? max($posts) : 0;
 
 $seriepgvals = [];
 $serieexvals = [];

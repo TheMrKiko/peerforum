@@ -47,22 +47,24 @@ $PAGE->requires->css('/blocks/peerblock/styles.css');
 
 set_peergradepanel_page($courseid, $userid, $url, 'peergrades', true, false);
 
+$filters = peerblock_get_items_basefilters($courseid);
+
 // Build filter options.
 if ($display == MANAGEPOSTS_MODE_SEEALL) {
     // All posts.
-    $filters = array();
+    $filters += array();
 
 } else if ($display == MANAGEPOSTS_MODE_SEENOTGRADED) {
     // Posts to peer grade.
-    $filters = array('ended' => 0);
+    $filters += array('ended' => 0);
 
 } else if ($display == MANAGEPOSTS_MODE_SEEGRADED) {
     // Posts peergraded.
-    $filters = array('peergradednot' => 0);
+    $filters += array('peergradednot' => 0);
 
 } else if ($display == MANAGEPOSTS_MODE_SEEEXPIRED) {
     // Posts expired.
-    $filters = array('expired' => 1);
+    $filters += array('expired' => 1);
 
 }
 
