@@ -4840,6 +4840,67 @@ function peerforum_user_can_see_reply($peerforum, $post, $user = null, $cm = nul
 }
 
 /**
+ * Check whether a user has done the training for a discussion, and if it has to.
+ *
+ * @param \stdClass $peerforum The peerforum to check
+ * @param \stdClass $discussion The discussion in question
+ * @param \stdClass $user The user to test - if not specified, the current user is checked.
+ * @param \stdClass $cm The Course Module that the peerforum is in (required).
+ * @return bool
+ */
+function peerforum_user_completed_training($peerforum, $discussion, $user = null, $cm = null) {
+    global $CFG, $USER, $DB;
+
+    // retrieve objects (yuk)
+    if (is_numeric($peerforum)) {
+        debugging('missing full peerforum', DEBUG_DEVELOPER);
+        if (!$peerforum = $DB->get_record('peerforum', array('id' => $peerforum))) {
+            return false;
+        }
+    }
+    if (is_numeric($discussion)) {
+        debugging('missing full discussion', DEBUG_DEVELOPER);
+        if (!$discussion = $DB->get_record('peerforum_discussions', array('id' => $discussion))) {
+            return false;
+        }
+    }
+
+    if (!$cm) {
+        debugging('missing cm', DEBUG_DEVELOPER);
+        if (!$cm = get_coursemodule_from_instance('peerforum', $peerforum->id, $peerforum->course)) {
+            print_error('invalidcoursemodule');
+        }
+    }
+
+    // Context used throughout function.
+    $modcontext = context_module::instance($cm->id);
+
+    if (empty($user) || empty($user->id)) {
+        $user = $USER;
+    }
+
+    if (!$peerforum->peergradeassessed || !$peerforum->training) {
+        return true;
+    }
+    // We dont care.
+
+    if (has_capability('mod/peerforum:professorpeergrade', $modcontext, $user, false)) {
+        return true;
+    }
+    // We are professors, a omnipresent force.
+
+    $vaultfactory = \mod_peerforum\local\container::get_vault_factory();
+    $trainingvault = $vaultfactory->get_training_submission_vault();
+
+    $correcttrainings = $trainingvault->get_from_discussion_id_and_user_id($peerforum->id, $discussion->id, $user->id);
+    $shouldcompletetraining = !empty($correcttrainings) && isset($correcttrainings[$user->id])
+            && !empty($correcttrainings[$user->id]->id)
+            && !$correcttrainings[$user->id]->corrects;
+
+    return !$shouldcompletetraining;
+}
+
+/**
  * Returns all peerforum posts since a given time in specified peerforum.
  *
  * @todo Document this functions args

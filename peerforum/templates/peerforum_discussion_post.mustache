@@ -288,18 +288,25 @@
                                             {{/delete}}
                                             {{#reply}}
                                                 {{$replyoutput}}
-                                                    <a
-                                                            data-region="post-action"
-                                                            href="{{{urls.reply}}}"
-                                                            class="btn btn-link"
-                                                            data-post-id="{{id}}"
-                                                            data-action="collapsible-link"
-                                                            data-can-reply-privately="{{canreplyprivately}}"
-                                                            title="{{#str}} reply, mod_peerforum {{/str}}"
-                                                            role="menuitem"
-                                                    >
-                                                        {{#str}} reply, mod_peerforum {{/str}}
-                                                    </a>
+                                                    <div>
+                                                        <a
+                                                                data-region="post-action"
+                                                                {{#replywithtraining}}href="{{{urls.reply}}}"{{/replywithtraining}}
+                                                                class="btn btn-link {{^replywithtraining}}text-secondary{{/replywithtraining}}"
+                                                                data-post-id="{{id}}"
+                                                                {{#replywithtraining}}data-action="collapsible-link"{{/replywithtraining}}
+                                                                data-can-reply-privately="{{canreplyprivately}}"
+                                                                title="{{#str}} reply, mod_peerforum {{/str}}"
+                                                                role="menuitem"
+                                                        >
+                                                            {{#str}} reply, mod_peerforum {{/str}}
+                                                        </a>
+                                                        {{^replywithtraining}}
+                                                            {{#trainingreplyhelpicon}}
+                                                                {{>core/help_icon}}
+                                                            {{/trainingreplyhelpicon}}
+                                                        {{/replywithtraining}}
+                                                    </div>
                                                 {{/replyoutput}}
                                             {{/reply}}
                                             {{^reply}}

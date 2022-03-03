@@ -437,6 +437,21 @@ class capability {
     }
 
     /**
+     * Returns if an user has done training for the discussion or does not need to.
+     *
+     * @param stdClass $user The user to check
+     * @param discussion_entity $discussion
+     * @return bool if students can see reply
+     */
+    public function can_reply_regardless_of_training(stdClass $user, discussion_entity $discussion): bool {
+        $peerforum = $this->get_peerforum();
+        $peerforumrecord = $this->get_peerforum_record();
+        $discussionrecord = $this->get_discussion_record($discussion);
+        $coursemodule = $peerforum->get_course_module_record();
+        return peerforum_user_completed_training($peerforumrecord, $discussionrecord, $user, $coursemodule);
+    }
+
+    /**
      * Can the user edit the post in this discussion?
      *
      * @param stdClass $user The user to check

@@ -36,6 +36,7 @@ use context;
 use core_tag_tag;
 use renderer_base;
 use stdClass;
+use help_icon;
 
 require_once($CFG->dirroot . '/mod/peerforum/lib.php');
 
@@ -183,6 +184,11 @@ class post extends exporter {
                                         'type' => PARAM_BOOL,
                                         'null' => NULL_ALLOWED,
                                         'description' => 'Whether the reply is visible for this user, if hidden for some',
+                                ],
+                                'replywithtraining' => [
+                                        'type' => PARAM_BOOL,
+                                        'null' => NULL_ALLOWED,
+                                        'description' => 'Whether the user can reply after completed training (or does not need)',
                                 ]
                         ]
                 ],
@@ -269,6 +275,13 @@ class post extends exporter {
                                         'null' => NULL_ALLOWED
                                 ]
                         ]
+                ],
+                'trainingreplyhelpicon' => [
+                        'optional' => true,
+                        'default' => null,
+                        'null' => NULL_ALLOWED,
+                        'type' => PARAM_RAW,
+                        'description' => 'The help icon when you cannot reply because of training',
                 ],
                 'attachments' => [
                         'multiple' => true,
@@ -395,6 +408,7 @@ class post extends exporter {
         $canselfenrol = $capabilitymanager->can_self_enrol($user);
         $canreplyprivately = $capabilitymanager->can_reply_privately_to_post($user, $post);
         [$replyhidden, $canviewreply] = $capabilitymanager->can_view_reply($user, $post);
+        $canreplywithtraining = $canreply && $capabilitymanager->can_reply_regardless_of_training($user, $discussion);
 
         $urlfactory = $this->related['urlfactory'];
         $viewurl = $canview ? $urlfactory->get_view_post_url_from_post($post) : null;
@@ -420,6 +434,9 @@ class post extends exporter {
         // Only bother loading the content if the user can see it.
         $loadcontent = $canview && !$isdeleted;
         $exportattachments = $loadcontent && !empty($attachments);
+
+        $trainingreplyhelpiconexporter = new help_icon('trainingreplydisabled', 'peerforum');
+        $trainingreplyhelpicon = !$canreplywithtraining ? $trainingreplyhelpiconexporter->export_for_template($output) : null;
 
         if ($loadcontent) {
             $subject = $post->get_subject();
@@ -478,6 +495,7 @@ class post extends exporter {
                         'selfenrol' => $canselfenrol,
                         'hidereply' => $replyhidden,
                         'viewreply' => $canviewreply,
+                        'replywithtraining' => $canreplywithtraining,
                 ],
                 'urls' => [
                         'view' => $viewurl ? $viewurl->out(false) : null,
@@ -492,6 +510,7 @@ class post extends exporter {
                         'markasunread' => $markasunreadurl ? $markasunreadurl->out(false) : null,
                         'discuss' => $discussurl ? $discussurl->out(false) : null,
                 ],
+                'trainingreplyhelpicon' => $trainingreplyhelpicon,
                 'attachments' => ($exportattachments) ? $this->export_attachments($attachments, $post, $output, $canexport) : [],
                 'tags' => ($loadcontent && $hastags) ? $this->export_tags($tags) : [],
                 'html' => $includehtml ? [

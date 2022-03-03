@@ -770,6 +770,10 @@ $string['trackingtype_help'] = 'If enabled, participants can track read and unre
 * Optional - Participants can choose whether to turn tracking on or off via a link in the administration block. PeerForum tracking must also be enabled in the user\'s profile settings.
 * Forced - Tracking is always on, regardless of user setting. Available depending on administrative setting.
 * Off - Read and unread posts are not tracked.';
+$string['trainingreplydisabled'] = 'Disabled reply button';
+$string['trainingreplydisabled_help'] = 'Before you can submit a reply to this discussion, you must first complete the corresponding training page with all correct answers.
+
+The training page link can be found next to the discussion name, in the discussion\'s list.';
 $string['unlockdiscussion'] = 'Unlock this discussion';
 $string['unread'] = 'Unread';
 $string['unreadpost'] = 'Unread post';
