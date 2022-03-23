@@ -2308,6 +2308,11 @@ class peergrade_manager {
             }
         }
 
+        $authorsbefore = isset($peergradeoptions->itemfamily) ?
+                array_map(static function($parent) {
+                    return $parent->userid;
+                }, $peergradeoptions->itemfamily) : array();
+
         $lmusers = array();
         $llusers = array();
         $nomusersassigned = array();
@@ -2341,6 +2346,9 @@ class peergrade_manager {
                 continue;
             }
             if ($userassigned->userid == $peergradeoptions->itemuserid) {
+                continue;
+            }
+            if (in_array($userassigned->userid, $authorsbefore)) {
                 continue;
             }
             if (isset($usersblocked[$userassigned->userid])) {
