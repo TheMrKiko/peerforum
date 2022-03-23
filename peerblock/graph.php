@@ -216,6 +216,18 @@ foreach (range(0, $numweeks - 1) as $n) {
     }
 }
 ksort($seriesnprvals);
+
+// Because this and the next is stacked, we need to "unstack" the data for the $seriesnptvals.
+$seriesnptvalsunstacked = [];
+foreach ($seriesnptvals as $n => $serienptvals) {
+    $prevn = $n - 1;
+    $seriesnptvalsunstacked[$n] =
+            isset($seriesnptvals[$prevn]) ?
+                    array_map(static function($a, $b) {
+                        return $a - $b;
+                    }, $serienptvals, $seriesnptvals[$prevn]) :
+                    $serienptvals;
+}
 // End prep.
 
 $chart = new core\chart_bar();
@@ -227,7 +239,7 @@ foreach ($seriesnprvals as $n => $serienpvals) {
     $chart->add_series($serienp);
 }
 
-foreach ($seriesnptvals as $n => $serienptvals) {
+foreach ($seriesnptvalsunstacked as $n => $serienptvals) {
     $serienpt = new core\chart_series($n . 'nth time', $serienptvals);
     $serienpt->set_type(\core\chart_series::TYPE_LINE);
     $serienpt->set_yaxis(1);
@@ -270,7 +282,7 @@ $chart = new core\chart_bar();
 $chart->set_title('Peer grade sequential distribution 3');
 $chart->set_stacked(true);
 
-foreach ($seriesnptvals as $n => $serienptvals) {
+foreach ($seriesnptvalsunstacked as $n => $serienptvals) {
     $serienpt = new core\chart_series($n . 'nth time', $serienptvals);
     $serienpt->set_type(\core\chart_series::TYPE_LINE);
     $serienpt->set_yaxis(1);
